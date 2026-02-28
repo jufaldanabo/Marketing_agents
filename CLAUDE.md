@@ -104,6 +104,10 @@ Cada command/skill usa estas variables (se definen en el `.env` del proyecto emp
 | `INSTAGRAM_BUSINESS_ACCOUNT_ID` | Publicador, Monitoreo | ID de cuenta de negocio Instagram |
 | `FACEBOOK_ACCESS_TOKEN` | Publicador, Monitoreo | Token de página de Facebook |
 | `FACEBOOK_PAGE_ID` | Publicador, Monitoreo | ID de la página de Facebook |
+| `FACEBOOK_APP_ID` | Monitoreo, Setup | App ID para verificar vencimiento de tokens |
+| `FACEBOOK_APP_SECRET` | Monitoreo, Setup | App Secret para verificar vencimiento de tokens |
+| `TIKTOK_ACCESS_TOKEN` | Publicador (opcional) | Token OAuth 2.0 — scope: `video.publish` |
+| `TIKTOK_OPEN_ID` | Publicador (opcional) | open_id del usuario de TikTok for Developers |
 | `TELEGRAM_BOT_TOKEN` | Monitoreo, Intel, Prospección | Token del bot de Telegram |
 | `TELEGRAM_CHAT_ID` | Monitoreo, Intel, Prospección | Chat ID donde enviar reportes |
 | `COMMODITIES` | Inteligencia | Lista de materias primas a monitorear |

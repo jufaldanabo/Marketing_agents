@@ -37,6 +37,14 @@ INSTAGRAM_BUSINESS_ACCOUNT_ID=...
 # Facebook Graph API
 FACEBOOK_ACCESS_TOKEN=...
 FACEBOOK_PAGE_ID=...
+FACEBOOK_APP_ID=...        # Necesario para verificar vencimiento de tokens
+FACEBOOK_APP_SECRET=...    # Necesario para verificar vencimiento de tokens
+
+# TikTok Content Posting API (opcional)
+TIKTOK_ACCESS_TOKEN=...    # Token OAuth 2.0 con scope video.publish
+TIKTOK_OPEN_ID=...         # open_id del usuario (se obtiene en el auth flow)
+# Para obtener estas credenciales: https://developers.tiktok.com/
+# → Crear app → Product: "Content Posting API" → scope: video.publish
 
 # Telegram (para reportes)
 TELEGRAM_BOT_TOKEN=...
