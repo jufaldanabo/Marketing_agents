@@ -5,31 +5,41 @@ monitoring social activity, tracking competitors and prospecting leads — all f
 
 ## Installation
 
-### Opción A — Plugin (recomendado, sin bash)
+### Step 1 — Bootstrap `/plugin` (one-time, any terminal)
 
-Desde Claude Code, en cualquier proyecto:
+`/plugin` is a command manager that lives in your global Claude Code config.
+Run this **once** to install it globally:
+
+```bash
+mkdir -p ~/.claude/commands && curl -sL \
+  https://raw.githubusercontent.com/jufaldanabo/Marketing_agents/main/commands/plugin.md \
+  -o ~/.claude/commands/plugin.md
+```
+
+After this, `/plugin` is available in **all** your Claude Code projects, forever.
+
+---
+
+### Step 2 — Install Marketing Agents (from Claude Code, no bash)
+
+In any project, open Claude Code and run:
 
 ```
 /plugin marketplace add jufaldanabo/Marketing_agents
 /plugin install marketing-agents@jufaldanabo-marketing
+/init
 ```
 
-Luego ejecuta `/init` para configurar tu empresa.
+That's it. No more bash scripts.
 
 ---
 
-### Opción B — Script (si el sistema de plugins no está disponible)
+### Alternative — Install via script
+
+If you prefer to skip Step 1, run the installer directly:
 
 ```bash
-# En el directorio de tu proyecto:
 bash <(curl -sL https://raw.githubusercontent.com/jufaldanabo/Marketing_agents/main/install.sh)
-```
-
-**O clona primero:**
-```bash
-git clone https://github.com/jufaldanabo/Marketing_agents
-cd tu-proyecto
-bash ../Marketing_agents/install.sh
 ```
 
 ---
@@ -40,16 +50,17 @@ bash ../Marketing_agents/install.sh
 ```bash
 ls .claude/commands/
 ```
-You should see 11 files:
+You should see 12 files (including `plugin.md`):
 ```
 check-approvals.md  followup-leads.md   init.md        market-intel.md
-prospect-leads.md   publish-today.md    respond-comments.md
+plugin.md           prospect-leads.md   publish-today.md    respond-comments.md
 security-audit.md   setup-check.md      setup-railway.md  social-report.md
 ```
 
 **From Claude Code** — type `/` in the chat. The commands should appear in the autocomplete:
 
 ```
+/plugin
 /init
 /setup-check
 /publish-today

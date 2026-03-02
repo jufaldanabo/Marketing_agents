@@ -20,6 +20,7 @@ ok()   { echo -e "  ${GREEN}✓${RESET} $1"; }
 warn() { echo -e "  ${YELLOW}·${RESET} $1"; }
 
 COMMANDS=(
+  plugin
   init setup-check publish-today social-report market-intel
   prospect-leads respond-comments followup-leads
   check-approvals setup-railway security-audit
