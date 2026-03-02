@@ -1,278 +1,170 @@
-# Digital Marketing Agents Toolkit
+# Marketing Agents
+**Social media marketing automation for small and medium businesses.**
+This plugin provides skills, agents and commands for publishing B2B content,
+monitoring social activity, tracking competitors and prospecting leads — all from Claude Code.
 
-Toolkit de Claude Code para crear agentes de marketing B2B en redes sociales.
-Contiene **skills**, **commands** y **agentes** listos para instalar en proyectos de empresa.
+## Installation
 
-## ¿Qué incluye?
+```bash
+# In your project directory:
+bash <(curl -sL https://raw.githubusercontent.com/TU_USUARIO/Marketing_agents/main/install.sh)
+```
 
-| Tipo | Archivos | Para qué sirven |
+Then run `/init` to configure your company and get started.
+
+---
+
+## Day-to-Day Usage
+
+The plugin follows a simple loop: **configure → publish → monitor → grow**.
+
+### First time setup
+```
+/init              → Interactive wizard: company context, ICP, credentials guide
+/setup-check       → Validate all API connections and token expiry
+```
+
+### Daily publishing
+```
+/publish-today                    → Generate and publish B2B content (Instagram + Facebook)
+/publish-today "tema específico"  → Publish about a specific topic
+/check-approvals                  → Publish drafts approved by manager via Telegram
+```
+
+### Nightly monitoring
+```
+/social-report     → Metrics, comments and DMs summary sent to Telegram
+/respond-comments  → Generate and publish replies to pending comments
+```
+
+### Weekly growth
+```
+/market-intel      → Commodity prices + competitor activity report
+/prospect-leads    → Search and qualify new B2B leads
+/followup-leads    → Send follow-up messages to non-responsive leads
+```
+
+### Deployment & maintenance
+```
+/setup-railway     → Deploy agents as cron jobs on Railway
+/security-audit    → Audit credentials and security practices before deploying
+```
+
+---
+
+## Typical workflow in one session
+
+```bash
+# Morning: content day
+/init                           → Configure company (first time only)
+/setup-check                    → Confirm all tokens are valid
+/publish-today "nueva línea"    → Generate + preview + publish
+/check-approvals                → Publish yesterday's pending approvals
+
+# Evening: check activity
+/social-report                  → What happened today?
+/respond-comments               → Reply to commercial and urgent comments
+
+# Weekly: grow the pipeline
+/market-intel                   → Any price changes or competitor moves?
+/prospect-leads                 → Find 10 new leads in target sector
+/followup-leads                 → Follow up on leads from last week
+```
+
+---
+
+## Skills
+
+| Skill | Description | Key Commands |
 |---|---|---|
-| **Commands** | `commands/*.md` | Slash commands ejecutables (`/publish-today`, etc.) |
-| **Agents** | `agents/*.md` | System prompts completos de cada agente |
-| **Skills** | `skills/**/*.md` | Building blocks reutilizables por los agentes |
-
-## Instalación en un proyecto de empresa
-
-### Paso 1 — Clonar o copiar el toolkit
-
-```bash
-# Opción A: como submodule
-git submodule add https://github.com/usuario/Marketing_agents .claude/marketing-toolkit
-
-# Opción B: copiar directo
-cp -r Marketing_agents/commands/* /proyecto-empresa/.claude/commands/
-```
-
-### Paso 2 — Configurar variables de entorno
-
-Crea un `.env` en el proyecto de la empresa:
-
-```env
-ANTHROPIC_API_KEY=sk-ant-...
-
-# Instagram Graph API
-INSTAGRAM_ACCESS_TOKEN=...
-INSTAGRAM_BUSINESS_ACCOUNT_ID=...
-
-# Facebook Graph API
-FACEBOOK_ACCESS_TOKEN=...
-FACEBOOK_PAGE_ID=...
-FACEBOOK_APP_ID=...        # Necesario para verificar vencimiento de tokens
-FACEBOOK_APP_SECRET=...    # Necesario para verificar vencimiento de tokens
-
-# TikTok Content Posting API (opcional)
-TIKTOK_ACCESS_TOKEN=...    # Token OAuth 2.0 con scope video.publish
-TIKTOK_OPEN_ID=...         # open_id del usuario (se obtiene en el auth flow)
-# Para obtener estas credenciales: https://developers.tiktok.com/
-# → Crear app → Product: "Content Posting API" → scope: video.publish
-
-# Telegram (para reportes)
-TELEGRAM_BOT_TOKEN=...
-TELEGRAM_CHAT_ID=...
-
-# Configuración de la empresa
-COMPANY_NAME=Mi Empresa S.A.
-INDUSTRY=textil
-DEFAULT_TONE=professional
-COMMODITIES=algodón,poliéster,lana
-COMPETITORS=Empresa A,empresa-b.com
-```
-
-### Paso 3 — Referenciar en CLAUDE.md del proyecto
-
-En el `CLAUDE.md` del proyecto de empresa, agregar:
-
-```markdown
-## Marketing Toolkit instalado
-
-Commands disponibles:
-- `/publish-today` — Genera y publica contenido B2B diario
-- `/social-report` — Reporte nocturno de métricas y comentarios
-- `/market-intel` — Informe de inteligencia de mercado
-- `/prospect-leads` — Busca y califica clientes potenciales
-- `/respond-comments` — Genera y publica respuestas a comentarios
-- `/followup-leads` — Seguimiento a leads que no respondieron
-
-Configuración:
-- Empresa: {COMPANY_NAME}
-- Sector: {INDUSTRY}
-- Tono de marca: {TONE}
-```
-
-### Paso 4 — Usar desde Claude Code
-
-```bash
-# En la terminal de Claude Code del proyecto empresa:
-/init             # Primero: configuración guiada del toolkit (empresa, clientes, credenciales)
-/setup-check      # Validar que todas las credenciales funcionan
-/publish-today
-/social-report
-/market-intel
-/prospect-leads
-/respond-comments
-/followup-leads
-/check-approvals  # Publicar borradores aprobados por el manager en Telegram
-/setup-railway    # Configura despliegue automático en Railway
-```
+| `publishing` | B2B content generation for Instagram, Facebook, TikTok. Approval workflow via Telegram | `/publish-today`, `/check-approvals` |
+| `social-monitoring` | Comments analysis, metrics, token expiry alerts, Telegram notifications | `/social-report`, `/respond-comments` |
+| `market-intel` | Commodity price tracking and public competitor activity monitoring | `/market-intel` |
+| `prospecting` | Lead search (ICP-based), scoring 0-100, outreach messages, multi-touch follow-up | `/prospect-leads`, `/followup-leads` |
 
 ---
 
-## Commands disponibles
+## Agents
 
-### `/init`
-Asistente de configuración inicial del toolkit. Conversa con el usuario para configurar todo.
-- Recopila nombre de empresa, sector, producto y tono de comunicación
-- Define el Ideal Customer Profile (ICP): sector objetivo, geografía, tamaño, decisor
-- Registra competidores y commodities para monitorear
-- Captura nombre y cargo del vendedor para mensajes de prospección
-- Orienta sobre cómo obtener credenciales de Meta, TikTok y Telegram
-- Genera `.claude/company-context.json`, `.env.example` y actualiza `CLAUDE.md`
-- Ofrece ejecutar `/setup-check` al finalizar
-
-### `/publish-today`
-Genera contenido B2B y publica en Instagram y Facebook.
-- Pide el tema si no se especifica
-- Muestra preview antes de publicar
-- Guarda historial en `.claude/posts/`
-
-### `/social-report`
-Reporte nocturno de actividad en redes sociales.
-- Lee comentarios, DMs y métricas de Instagram y Facebook
-- Analiza con Claude y prioriza por urgencia
-- Envía resumen por Telegram
-- Guarda reporte en `.claude/reports/`
-
-### `/market-intel`
-Informe de inteligencia competitiva.
-- Busca precios actuales de materias primas
-- Rastrea actividad pública de competidores
-- Genera informe estratégico accionable
-- Guarda en `.claude/intel/`
-
-### `/prospect-leads`
-Búsqueda y calificación de clientes potenciales B2B.
-- Define el Ideal Customer Profile (ICP) con el usuario
-- Busca empresas candidatas con WebSearch y WebFetch (fuentes públicas)
-- Califica cada lead con score 0-100 (ajuste de perfil + intención de compra + accesibilidad)
-- Genera mensajes de primer contacto personalizados para LinkedIn o email
-- Guarda lista en `.claude/leads/`
-
-### `/respond-comments`
-Responde comentarios pendientes en Instagram y Facebook.
-- Lee comentarios del reporte nocturno o consulta la API directamente
-- Clasifica cada comentario: comercial, técnico, positivo, negativo, spam
-- Genera respuesta pública (máx 4 líneas) + DM de seguimiento si aplica
-- Muestra preview y solicita aprobación antes de publicar
-- Escala automáticamente comentarios de alto riesgo o influencers
-- Guarda respuestas publicadas en `.claude/responses/`
-
-### `/followup-leads`
-Seguimiento multi-toque a leads que no respondieron al primer contacto.
-- Revisa el historial de leads y calcula qué etapa corresponde (1/2/3/break-up)
-- Genera mensajes de seguimiento con ángulo diferente en cada etapa
-- Etapa 1: Agrega valor (dato del sector), Etapa 2: Cambia ángulo, Etapa 3: Urgencia contextual, Etapa 4: Break-up elegante
-- Cuando un lead responde positivamente: genera mensaje de seguimiento + notifica al vendedor
-- Copia mensajes al portapapeles para envío manual (LinkedIn/WhatsApp no tienen API de envío)
-- Actualiza `followup-tracking.json` con estado de cada lead
-
-### `/setup-check`
-Valida que todas las credenciales y conexiones estén activas antes del primer deploy.
-- Prueba Instagram, Facebook, TikTok (si configurado) y Telegram
-- Verifica vencimiento de tokens Meta API via `/debug_token`
-- Comprueba permisos requeridos en cada cuenta
-- Envía mensaje de prueba por Telegram para confirmar configuración
-- Muestra reporte ✅/❌ con instrucciones de corrección
-
-### `/check-approvals`
-Publica borradores que el manager aprobó via Telegram.
-- Lee respuestas del bot de Telegram (aprobar / editar / rechazar)
-- Publica automáticamente los borradores aprobados en todas sus plataformas
-- Regenera el contenido si el manager pidió cambios
-- Programa ejecución cada 30 minutos en Railway
+| Agent | Description |
+|---|---|
+| `content-publisher` | Generates daily B2B content adapted per platform and publishes via Meta and TikTok APIs |
+| `social-monitor` | Reads comments, DMs and metrics; alerts via Telegram; checks Meta token expiry |
+| `market-analyst` | Tracks commodity prices and competitor social activity; generates strategic reports |
+| `sales-prospector` | Searches leads using public sources, qualifies them, generates personalized outreach |
 
 ---
 
-## Agentes incluidos
+## Commands
 
-| Agente | Archivo | Modelo | Frecuencia |
-|---|---|---|---|
-| Publisher Agent | `agents/publisher-agent.md` | `claude-opus-4-6` | Diario |
-| Social Monitoring Agent | `agents/monitoring-agent.md` | `claude-sonnet-4-6` | Noche |
-| Market Intelligence Agent | `agents/intelligence-agent.md` | `claude-opus-4-6` | Semanal |
+### Setup
+| Command | Description |
+|---|---|
+| `/init` | Interactive onboarding wizard — company, ICP, credentials guide. Generates `company-context.json` and `.env.example` |
+| `/setup-check` | Validates all API connections (Instagram, Facebook, TikTok, Telegram). Checks token expiry |
+| `/setup-railway` | Deploys all agents as scheduled cron jobs on Railway |
+| `/security-audit` | Audits credentials, `.env` handling, permissions and security practices |
 
----
+### Publish
+| Command | Description |
+|---|---|
+| `/publish-today` | Generates B2B content and publishes to Instagram and Facebook (with preview before posting) |
+| `/check-approvals` | Polls Telegram for manager responses and publishes approved drafts |
 
-## Skills disponibles
+### Monitor
+| Command | Description |
+|---|---|
+| `/social-report` | Nightly report: metrics, comments and DMs summary sent to Telegram |
+| `/respond-comments` | Reads pending comments, generates replies by type, publishes after preview |
 
-### Publishing
-- `generate-b2b-content.md` — Genera texto B2B para Instagram y Facebook
-- `publish-instagram.md` — Publica en Instagram Graph API
-- `publish-facebook.md` — Publica en Facebook Graph API
-- `generate-image-prompt.md` — Genera prompts para Midjourney, DALL-E, Firefly o Stable Diffusion
-- `generate-tiktok-content.md` — Genera guión de video (15-60 seg) + caption de foto para TikTok
-- `publish-tiktok.md` — Publica en TikTok Content Posting API (foto automático, video con archivo)
-- `content-approval.md` — Guarda borrador y lo envía a Telegram para aprobación del manager
-
-### Social Monitoring
-- `send-telegram.md` — Envía reportes y alertas por Telegram
-- `respond-comments.md` — Clasifica comentarios y genera respuestas personalizadas
-- `check-token-expiry.md` — Verifica vencimiento de tokens Meta y envía alerta preventiva
-
-### Market Intelligence
-- `monitor-prices.md` — Busca precios de materias primas (WebSearch)
-- `track-competitors.md` — Rastrea actividad pública de competidores
-
-### Prospecting
-- `search-leads.md` — Busca empresas que coincidan con el ICP
-- `qualify-leads.md` — Califica y puntúa cada lead (0-100)
-- `outreach-message.md` — Genera mensajes de primer contacto personalizados
-- `follow-up-sequence.md` — Genera secuencia de seguimiento multi-toque (4 etapas)
-- `handle-positive-response.md` — Clasifica respuesta positiva, genera siguiente mensaje y notifica al vendedor
-
-### Deployment
-- `schedule-railway.md` — Genera scheduler Python + railway.toml para cron jobs automáticos
-
-### Security
-- `validate-security.md` — 18 reglas con ejemplos ✅/❌ para Meta API, Anthropic API, scraping y Telegram
+### Grow
+| Command | Description |
+|---|---|
+| `/market-intel` | Weekly commodity prices + competitor activity + strategic recommendations |
+| `/prospect-leads` | Searches and qualifies B2B leads based on ICP. Generates personalized outreach messages |
+| `/followup-leads` | Multi-touch follow-up for non-responsive leads. Handles positive responses with catalog messages |
 
 ---
 
-## Cómo agregar este toolkit a un nuevo cliente
+## Environment variables
 
-1. Crear repositorio del cliente: `mi-cliente/`
-2. Agregar este repo como submodule: `.claude/marketing-toolkit/`
-3. Copiar los commands a `.claude/commands/`
-4. Configurar `.env` con credenciales del cliente
-5. Actualizar `CLAUDE.md` con datos del cliente (empresa, sector, tono)
-6. Ejecutar `/security-audit --pre-deploy` antes del primer despliegue
-7. Probar con `/publish-today` en modo dry-run primero
+Copy `.env.example` to `.env` and fill in the values. Run `/init` for a guided setup.
 
----
-
-## Estructura del repositorio
-
-```
-Marketing_agents/
-├── README.md                              ← Este archivo
-├── CLAUDE.md                              ← Contexto para Claude Code
-│
-├── commands/                              ← Slash commands ejecutables
-│   ├── publish-today.md                  → /publish-today
-│   ├── social-report.md                  → /social-report
-│   ├── market-intel.md                   → /market-intel
-│   ├── prospect-leads.md                 → /prospect-leads
-│   ├── respond-comments.md               → /respond-comments
-│   ├── followup-leads.md                 → /followup-leads
-│   ├── setup-railway.md                  → /setup-railway
-│   └── security-audit.md                 → /security-audit
-│
-├── agents/                                ← System prompts de agentes
-│   ├── publisher-agent.md
-│   ├── monitoring-agent.md
-│   ├── intelligence-agent.md
-│   └── prospecting-agent.md
-│
-└── skills/                                ← Building blocks reutilizables
-    ├── publishing/
-    │   ├── generate-b2b-content.md
-    │   ├── publish-instagram.md
-    │   ├── publish-facebook.md
-    │   └── generate-image-prompt.md
-    ├── social_monitoring/
-    │   ├── send-telegram.md
-    │   └── respond-comments.md
-    ├── market_intelligence/
-    │   ├── monitor-prices.md
-    │   └── track-competitors.md
-    ├── prospecting/
-    │   ├── search-leads.md
-    │   ├── qualify-leads.md
-    │   ├── outreach-message.md
-    │   └── follow-up-sequence.md
-    └── deployment/
-        └── schedule-railway.md
-```
+| Variable | Required | Description |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | ✅ All | Anthropic API key |
+| `COMPANY_NAME` | ✅ All | Company name |
+| `INDUSTRY` | ✅ All | Industry sector (e.g. textil, manufactura) |
+| `TELEGRAM_BOT_TOKEN` | ✅ All | Telegram bot token (from @BotFather) |
+| `TELEGRAM_CHAT_ID` | ✅ All | Telegram chat ID for alerts |
+| `INSTAGRAM_ACCESS_TOKEN` | 📸 Publishing | Instagram Graph API long-lived token (60 days) |
+| `INSTAGRAM_BUSINESS_ACCOUNT_ID` | 📸 Publishing | Instagram business account ID |
+| `FACEBOOK_ACCESS_TOKEN` | 📘 Publishing | Facebook page long-lived token |
+| `FACEBOOK_PAGE_ID` | 📘 Publishing | Facebook page ID |
+| `FACEBOOK_APP_ID` | 🔑 Token check | App ID for token expiry verification |
+| `FACEBOOK_APP_SECRET` | 🔑 Token check | App secret for token expiry verification |
+| `TIKTOK_ACCESS_TOKEN` | 🎵 Optional | TikTok OAuth 2.0 token (scope: `video.publish`) |
+| `TIKTOK_OPEN_ID` | 🎵 Optional | TikTok user `open_id` |
+| `SENDER_NAME` | 📬 Prospecting | Salesperson name for outreach messages |
+| `SENDER_ROLE` | 📬 Prospecting | Salesperson role/title |
 
 ---
 
-*Digital Marketing Agents Toolkit — febrero 2026*
+## Key References
+
+| File | Description |
+|---|---|
+| `commands/init.md` | Onboarding wizard — collects all company context interactively |
+| `commands/setup-check.md` | Credential and connection validation guide |
+| `agents/publisher-agent.md` | Content publisher system prompt |
+| `agents/prospecting-agent.md` | Sales prospector system prompt |
+| `skills/publishing/content-approval.md` | Telegram approval workflow for content drafts |
+| `skills/prospecting/handle-positive-response.md` | Lead positive response handling |
+| `skills/social_monitoring/check-token-expiry.md` | Meta API token expiry monitoring |
+| `skills/publishing/publish-tiktok.md` | TikTok Content Posting API |
+
+---
+
+## License
+
+MIT

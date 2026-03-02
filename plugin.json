@@ -1,0 +1,69 @@
+{
+  "name": "marketing-agents",
+  "display_name": "Marketing Agents",
+  "version": "1.0.0",
+  "description": "Social media marketing automation for small and medium businesses. Skills, agents and commands to publish content, monitor social activity, track competitors and prospect B2B leads.",
+  "author": "",
+  "license": "MIT",
+  "repository": "https://github.com/TU_USUARIO/Marketing_agents",
+  "commands_dir": "commands/",
+  "agents": [
+    {
+      "name": "content-publisher",
+      "description": "Generates and publishes daily B2B content to Instagram, Facebook and TikTok. Supports approval workflow via Telegram.",
+      "file": "agents/publisher-agent.md",
+      "model": "claude-opus-4-6",
+      "thinking": "adaptive",
+      "tools": ["WebSearch", "WebFetch", "Read", "Write", "Bash"]
+    },
+    {
+      "name": "social-monitor",
+      "description": "Monitors comments, DMs and metrics on Instagram and Facebook. Alerts via Telegram and checks token expiry.",
+      "file": "agents/monitoring-agent.md",
+      "model": "claude-sonnet-4-6",
+      "thinking": "adaptive",
+      "tools": ["WebFetch", "Read", "Write", "Bash"]
+    },
+    {
+      "name": "market-analyst",
+      "description": "Monitors commodity prices and competitor activity. Generates actionable market intelligence reports.",
+      "file": "agents/intelligence-agent.md",
+      "model": "claude-sonnet-4-6",
+      "thinking": "adaptive",
+      "tools": ["WebSearch", "WebFetch", "Read", "Write"]
+    },
+    {
+      "name": "sales-prospector",
+      "description": "Searches, qualifies and reaches out to B2B leads. Manages multi-touch follow-up sequences and positive response handling.",
+      "file": "agents/prospecting-agent.md",
+      "model": "claude-opus-4-6",
+      "thinking": "adaptive",
+      "tools": ["WebSearch", "WebFetch", "Read", "Write", "Bash"]
+    }
+  ],
+  "skills": [
+    {
+      "name": "publishing",
+      "description": "B2B content generation and multi-platform publishing",
+      "path": "skills/publishing/"
+    },
+    {
+      "name": "social-monitoring",
+      "description": "Comments, metrics, token management and Telegram alerts",
+      "path": "skills/social_monitoring/"
+    },
+    {
+      "name": "market-intel",
+      "description": "Commodity price tracking and competitor monitoring",
+      "path": "skills/market_intelligence/"
+    },
+    {
+      "name": "prospecting",
+      "description": "Lead search, qualification, outreach and follow-up sequences",
+      "path": "skills/prospecting/"
+    }
+  ],
+  "requires": {
+    "env": ["ANTHROPIC_API_KEY", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "COMPANY_NAME", "INDUSTRY"]
+  }
+}
