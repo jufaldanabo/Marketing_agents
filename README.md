@@ -5,12 +5,58 @@ monitoring social activity, tracking competitors and prospecting leads — all f
 
 ## Installation
 
-```bash
-# In your project directory:
-bash <(curl -sL https://raw.githubusercontent.com/TU_USUARIO/Marketing_agents/main/install.sh)
+### Opción A — Plugin (recomendado, sin bash)
+
+Desde Claude Code, en cualquier proyecto:
+
+```
+/plugin marketplace add jufaldanabo/Marketing_agents
+/plugin install marketing-agents@jufaldanabo-marketing
 ```
 
-Then run `/init` to configure your company and get started.
+Luego ejecuta `/init` para configurar tu empresa.
+
+---
+
+### Opción B — Script (si el sistema de plugins no está disponible)
+
+```bash
+# En el directorio de tu proyecto:
+bash <(curl -sL https://raw.githubusercontent.com/jufaldanabo/Marketing_agents/main/install.sh)
+```
+
+**O clona primero:**
+```bash
+git clone https://github.com/jufaldanabo/Marketing_agents
+cd tu-proyecto
+bash ../Marketing_agents/install.sh
+```
+
+---
+
+### Verify the installation
+
+**From the terminal** — check that the commands are in place:
+```bash
+ls .claude/commands/
+```
+You should see 11 files:
+```
+check-approvals.md  followup-leads.md   init.md        market-intel.md
+prospect-leads.md   publish-today.md    respond-comments.md
+security-audit.md   setup-check.md      setup-railway.md  social-report.md
+```
+
+**From Claude Code** — type `/` in the chat. The commands should appear in the autocomplete:
+
+```
+/init
+/setup-check
+/publish-today
+...
+```
+
+If the commands appear, the plugin is installed. Run `/init` next.
 
 ---
 

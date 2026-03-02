@@ -3,9 +3,9 @@
   "display_name": "Marketing Agents",
   "version": "1.0.0",
   "description": "Social media marketing automation for small and medium businesses. Skills, agents and commands to publish content, monitor social activity, track competitors and prospect B2B leads.",
-  "author": "",
+  "author": "jufaldanabo",
   "license": "MIT",
-  "repository": "https://github.com/TU_USUARIO/Marketing_agents",
+  "repository": "https://github.com/jufaldanabo/Marketing_agents",
   "commands_dir": "commands/",
   "agents": [
     {

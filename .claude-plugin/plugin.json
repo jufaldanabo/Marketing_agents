@@ -1,0 +1,34 @@
+{
+  "name": "marketing-agents",
+  "display_name": "Marketing Agents",
+  "description": "Social media marketing automation for small and medium businesses. Publish B2B content, monitor social activity, track competitors and prospect leads — all from Claude Code.",
+  "version": "1.0.0",
+  "author": {
+    "name": "jufaldanabo",
+    "url": "https://github.com/jufaldanabo"
+  },
+  "repository": "https://github.com/jufaldanabo/Marketing_agents",
+  "license": "MIT",
+  "skills": [
+    { "name": "init",             "path": "commands/init.md" },
+    { "name": "setup-check",      "path": "commands/setup-check.md" },
+    { "name": "publish-today",    "path": "commands/publish-today.md" },
+    { "name": "social-report",    "path": "commands/social-report.md" },
+    { "name": "market-intel",     "path": "commands/market-intel.md" },
+    { "name": "prospect-leads",   "path": "commands/prospect-leads.md" },
+    { "name": "respond-comments", "path": "commands/respond-comments.md" },
+    { "name": "followup-leads",   "path": "commands/followup-leads.md" },
+    { "name": "check-approvals",  "path": "commands/check-approvals.md" },
+    { "name": "setup-railway",    "path": "commands/setup-railway.md" },
+    { "name": "security-audit",   "path": "commands/security-audit.md" }
+  ],
+  "requires": {
+    "env": [
+      "ANTHROPIC_API_KEY",
+      "TELEGRAM_BOT_TOKEN",
+      "TELEGRAM_CHAT_ID",
+      "COMPANY_NAME",
+      "INDUSTRY"
+    ]
+  }
+}

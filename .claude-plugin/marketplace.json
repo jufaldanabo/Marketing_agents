@@ -1,0 +1,23 @@
+{
+  "version": "1.0.0",
+  "name": "jufaldanabo-marketing",
+  "display_name": "jufaldanabo Marketing Plugins",
+  "description": "Marketing and automation plugins for Claude Code",
+  "plugins": [
+    {
+      "name": "marketing-agents",
+      "display_name": "Marketing Agents",
+      "description": "Social media marketing automation for SMBs — publish, monitor, prospect B2B leads from Claude Code.",
+      "version": "1.0.0",
+      "author": {
+        "name": "jufaldanabo",
+        "url": "https://github.com/jufaldanabo"
+      },
+      "source": {
+        "type": "github",
+        "repo": "jufaldanabo/Marketing_agents"
+      },
+      "tags": ["marketing", "social-media", "instagram", "facebook", "b2b", "prospecting"]
+    }
+  ]
+}
