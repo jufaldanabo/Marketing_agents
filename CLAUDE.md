@@ -25,6 +25,7 @@ Marketing_agents/                       ← Este repositorio (el toolkit)
 │   ├── followup-leads.md             → /followup-leads       — Seguimiento multi-toque a leads sin respuesta
 │   ├── check-approvals.md            → /check-approvals      — Publica borradores aprobados via Telegram
 │   ├── setup-check.md                → /setup-check          — Valida credenciales y conexiones
+│   ├── init.md                       → /init                 — Asistente de configuración inicial guiado
 │   ├── setup-railway.md              → /setup-railway        — Configura despliegue automático en Railway
 │   └── security-audit.md             → /security-audit       — Audita seguridad antes de desplegar
 │

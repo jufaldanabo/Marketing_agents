@@ -83,7 +83,8 @@ Configuración:
 
 ```bash
 # En la terminal de Claude Code del proyecto empresa:
-/setup-check      # Primero: validar que todas las credenciales funcionan
+/init             # Primero: configuración guiada del toolkit (empresa, clientes, credenciales)
+/setup-check      # Validar que todas las credenciales funcionan
 /publish-today
 /social-report
 /market-intel
@@ -97,6 +98,16 @@ Configuración:
 ---
 
 ## Commands disponibles
+
+### `/init`
+Asistente de configuración inicial del toolkit. Conversa con el usuario para configurar todo.
+- Recopila nombre de empresa, sector, producto y tono de comunicación
+- Define el Ideal Customer Profile (ICP): sector objetivo, geografía, tamaño, decisor
+- Registra competidores y commodities para monitorear
+- Captura nombre y cargo del vendedor para mensajes de prospección
+- Orienta sobre cómo obtener credenciales de Meta, TikTok y Telegram
+- Genera `.claude/company-context.json`, `.env.example` y actualiza `CLAUDE.md`
+- Ofrece ejecutar `/setup-check` al finalizar
 
 ### `/publish-today`
 Genera contenido B2B y publica en Instagram y Facebook.
