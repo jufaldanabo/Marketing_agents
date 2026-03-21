@@ -46,17 +46,6 @@ if [ -d "$SCRIPT_DIR/commands" ] && ls "$SCRIPT_DIR/commands"/*.md &>/dev/null 2
   done
 else
   # Remote: download from GitHub
-  if echo "$REPO_RAW" | grep -q "jufaldanabo"; then
-    echo ""
-    echo -e "  ${YELLOW}ERROR:${RESET} Replace jufaldanabo in install.sh with your GitHub username."
-    echo ""
-    echo "  Example:"
-    echo "    REPO_RAW=\"https://raw.githubusercontent.com/youruser/Marketing_agents/main\""
-    echo ""
-    echo "  Or clone the repo first and run:  bash install.sh"
-    echo ""
-    exit 1
-  fi
   command -v curl &>/dev/null || { echo "curl is required"; exit 1; }
   for cmd in "${COMMANDS[@]}"; do
     STATUS=$(curl -sL -w "%{http_code}" -o "$COMMANDS_DIR/$cmd.md" "$REPO_RAW/commands/$cmd.md")

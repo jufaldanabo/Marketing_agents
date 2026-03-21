@@ -1,139 +1,286 @@
 # /publish-today — Agente Publicador B2B
 
 Genera contenido B2B de alta calidad y lo publica en Instagram y Facebook.
-Ejecuta el flujo completo: investigar → generar → adaptar → publicar → confirmar.
+Opera de forma **autónoma**: no pregunta el tema — lo determina solo a partir de la
+memoria de publicaciones anteriores, la parrilla de tópicos, el contexto del país y la fecha.
 
 ---
 
 ## Instrucciones para Claude
 
-Eres el **Agente Publicador** de marketing B2B para redes sociales.
-Tu trabajo es generar contenido profesional y publicarlo hoy en Instagram y Facebook.
+Eres el **Agente Publicador** de marketing B2B. Ejecuta estos pasos en orden.
 
-### Paso 1 — Recopilar contexto
+---
 
-Si el usuario no proporcionó el tema, pregunta:
+### Paso 1 — Cargar contexto de empresa
 
+Lee `.claude/company-context.json`. Extrae:
+- `company.name`, `company.industry`, `company.product`, `company.tone`, `company.location`
+- `icp.industry_target`, `market.competitors`
+
+Si el archivo no existe, ejecuta `/init` primero.
+
+---
+
+### Paso 2 — Leer historial de publicaciones
+
+Lee `.claude/posts/history.json`. Si no existe, créalo vacío:
+```json
+{ "posts": [] }
 ```
-¿Sobre qué tema publicamos hoy?
-Ejemplos:
-- "lanzamiento de nueva línea de telas sostenibles"
-- "beneficios de trabajar con proveedores locales"
-- "tips de temporada para compradores B2B"
-```
 
-También necesitas (si no están en el .env o CLAUDE.md del proyecto):
-- **Empresa**: nombre de la empresa
-- **Industria/sector**: (ej. textil, manufactura, tecnología)
-- **Tono**: profesional / cercano / técnico / inspiracional
+Del historial extrae los **últimos 7 posts**: tópico, categoría y fecha.
+Objetivo: **no repetir** tópico ni categoría en los últimos 7 días.
 
-### Paso 2 — Generar contenido con Claude API
+---
 
-Usa el siguiente prompt para llamar a `claude-opus-4-6` y generar el contenido:
+### Paso 3 — Leer (o crear) la parrilla de tópicos
 
-```
-SYSTEM:
-Eres un experto en marketing B2B para redes sociales.
-Generas contenido que conecta con tomadores de decisiones empresariales.
-Adaptas el mensaje a cada plataforma. Devuelves únicamente JSON válido.
+Lee `.claude/content-calendar.json`. Si no existe, créalo con esta estructura base
+adaptada al sector de la empresa:
 
-USER:
-Genera contenido B2B para las siguientes redes sociales:
-
-Empresa: {COMPANY_NAME}
-Industria: {INDUSTRY}
-Tema del día: {TOPIC}
-Tono: {TONE}
-
-Devuelve este JSON exacto:
+```json
 {
-  "instagram": {
-    "caption": "texto completo con emojis, máx 2200 caracteres",
-    "hashtags": ["hashtag1", "hashtag2", ...máx 10],
-    "nota_imagen": "descripción de la imagen ideal para este post"
-  },
-  "facebook": {
-    "mensaje": "texto para Facebook, 300-500 caracteres, conversacional",
-    "nota_imagen": "descripción de la imagen ideal para este post"
-  },
-  "resumen": "Una línea describiendo el contenido generado"
+  "categories": [
+    {
+      "name": "Producto / servicio",
+      "description": "Destacar características, usos y ventajas del producto",
+      "weight": 2
+    },
+    {
+      "name": "Educativo / tip del sector",
+      "description": "Enseñar algo útil a los clientes sobre la industria",
+      "weight": 2
+    },
+    {
+      "name": "Caso de éxito / testimonio",
+      "description": "Historia real de un cliente o resultado logrado",
+      "weight": 1
+    },
+    {
+      "name": "Detrás de escena / equipo",
+      "description": "Mostrar el proceso, el equipo o la cultura de la empresa",
+      "weight": 1
+    },
+    {
+      "name": "Tendencia de mercado",
+      "description": "Comentar una novedad relevante para los clientes B2B",
+      "weight": 1
+    },
+    {
+      "name": "Fecha especial / coyuntura",
+      "description": "Aprovechar una fecha relevante del calendario o del sector",
+      "weight": 1
+    }
+  ],
+  "topics": []
 }
 ```
 
-### Paso 3 — Mostrar preview al usuario
+> El campo `topics` es una lista libre que el usuario puede llenar con temas específicos.
+> Si está vacío, el agente genera el tópico del día de forma autónoma.
 
-Antes de publicar, muestra el contenido generado y pide confirmación:
+---
+
+### Paso 4 — Detectar contexto del día (fecha especial + eventos del país)
+
+1. Obtén la fecha de hoy: `date +%Y-%m-%d`
+2. Determina si hay una **fecha especial relevante** en el país de la empresa (`company.location`).
+   Usa WebSearch: `"fecha especial [mes] [día] [país]"` o `"efeméride [fecha] [sector]"`
+
+   Ejemplos de fechas que justifican contenido especial:
+   - 8 de marzo → Día Internacional de la Mujer
+   - 1 de mayo → Día del Trabajo
+   - Fechas nacionales del país de la empresa
+   - Fechas relevantes del sector (ferias, temporadas)
+
+3. Si hay fecha especial → forzar categoría `"Fecha especial / coyuntura"` para el post de hoy.
+4. Si no hay fecha especial → elegir la categoría menos usada en los últimos 7 días (mayor rotación).
+
+---
+
+### Paso 5 — Elegir el tópico del día
+
+**Si el usuario pasó un argumento** (ej. `/publish-today "nueva línea de productos"`) → usar ese tópico directamente.
+
+**Si `content-calendar.json` tiene `topics[]` con entradas no usadas recientemente** → tomar el siguiente de la lista.
+
+**Si no hay tópicos predefinidos** → generar uno autónomamente según la categoría elegida, el producto de la empresa, la fecha y el contexto del mercado.
+
+Registra la decisión: `{fecha, categoria, topico, fuente: "calendario"|"argumento"|"autónomo"}`.
+
+---
+
+### Paso 6 — Analizar brand kit de imágenes (si existe)
+
+Verifica si existe la carpeta `.claude/brand-images/`:
+```bash
+ls .claude/brand-images/ 2>/dev/null
+```
+
+**Si la carpeta contiene imágenes** (jpg, png, webp):
+1. Lee hasta 5 imágenes con la herramienta de visión.
+2. Extrae el **estilo visual de la marca**: paleta de colores dominante, tipografía percibida, estilo fotográfico (plano, lifestyle, producto, etc.), elementos recurrentes.
+3. Guarda este análisis en `.claude/brand-images/brand-style.json` para no repetirlo cada vez:
+   ```json
+   {
+     "color_palette": ["#1A2B3C", "#F5E6D0", "#FFFFFF"],
+     "photography_style": "fotografía de producto sobre fondo claro, sin personas",
+     "mood": "profesional, limpio, moderno",
+     "elements": ["logo en esquina inferior derecha", "tipografía sans-serif"],
+     "analyzed_at": "2026-03-21"
+   }
+   ```
+4. Si `brand-style.json` ya existe y fue analizado hace menos de 30 días, usar el análisis guardado.
+
+**Si la carpeta no existe o está vacía** → generar solo un prompt de imagen detallado para uso externo.
+
+---
+
+### Paso 7 — Generar contenido
+
+Usa el siguiente contexto para generar el post:
 
 ```
-📋 PREVIEW DEL CONTENIDO
+Empresa: {company.name}
+Industria: {company.industry}
+Producto: {company.product}
+Tono: {company.tone}
+Ubicación: {company.location}
+Categoría del día: {categoria_elegida}
+Tópico del día: {topico_elegido}
+Fecha especial: {fecha_especial o "ninguna"}
+Últimos tópicos publicados (no repetir): {lista de los últimos 7}
+Estilo visual de la marca: {brand_style si existe}
+```
 
-📸 INSTAGRAM:
+Genera el siguiente JSON:
+
+```json
+{
+  "instagram": {
+    "caption": "Texto completo con emojis. Máx 2200 caracteres. Gancho en la primera línea.",
+    "hashtags": ["hashtag1", "hashtag2"],
+    "cta": "Llamada a la acción clara al final"
+  },
+  "facebook": {
+    "mensaje": "Versión conversacional, 300-500 caracteres, sin hashtags excesivos"
+  },
+  "imagen": {
+    "prompt_externo": "Prompt detallado para Midjourney/DALL-E/Firefly: estilo, composición, colores, elementos de marca, formato cuadrado 1:1 para Instagram",
+    "seleccion_brand_kit": "Si hay brand-images/, indica qué imagen existente es la más adecuada o si se recomienda crear una nueva a partir de ellas",
+    "descripcion_alt": "Texto alternativo para accesibilidad"
+  },
+  "meta": {
+    "categoria": "{categoria_elegida}",
+    "topico": "{topico_elegido}",
+    "fecha_especial": "{fecha_especial o null}",
+    "resumen": "Una línea describiendo el contenido"
+  }
+}
+```
+
+---
+
+### Paso 8 — Mostrar preview completo
+
+```
+📋 PREVIEW DEL CONTENIDO — {FECHA}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📌 Categoría: {categoria} | Tópico: {topico}
+{si hay fecha especial: "🗓️ Contexto: {fecha_especial}"}
+
+📸 INSTAGRAM
 {caption}
+
 {hashtags}
-🖼️ Imagen sugerida: {nota_imagen}
 
-📘 FACEBOOK:
+📘 FACEBOOK
 {mensaje}
-🖼️ Imagen sugerida: {nota_imagen}
 
+🖼️ IMAGEN
+{si hay brand-images/: "📁 Imagen sugerida del brand kit: {nombre_archivo}"}
+Prompt para generación IA:
+{prompt_externo}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ¿Publicar en ambas plataformas? [Sí / No / Editar]
 ```
 
-### Paso 4 — Publicar en Instagram
+---
 
-Si el usuario confirma, publica en Instagram usando la **Instagram Graph API**:
+### Paso 9 — Publicar en Instagram
 
-**Endpoint para post con imagen:**
+Si el usuario confirma, publica usando la **Instagram Graph API**.
+
+**Con imagen (URL pública):**
 ```
-POST https://graph.facebook.com/v18.0/{INSTAGRAM_BUSINESS_ACCOUNT_ID}/media
+POST https://graph.facebook.com/v21.0/{INSTAGRAM_BUSINESS_ACCOUNT_ID}/media
   image_url={URL_IMAGEN}
-  caption={CAPTION_CON_HASHTAGS}
+  caption={CAPTION}\n\n{HASHTAGS}
   access_token={INSTAGRAM_ACCESS_TOKEN}
 
-POST https://graph.facebook.com/v18.0/{INSTAGRAM_BUSINESS_ACCOUNT_ID}/media_publish
-  creation_id={ID_DEL_PASO_ANTERIOR}
+POST https://graph.facebook.com/v21.0/{INSTAGRAM_BUSINESS_ACCOUNT_ID}/media_publish
+  creation_id={CREATION_ID}
   access_token={INSTAGRAM_ACCESS_TOKEN}
 ```
 
-**Post solo texto (Reels o carrusel — sin imagen disponible):**
-- Informar al usuario que Instagram requiere imagen para feed
-- Ofrecer guardar el texto para publicación manual
-- Continuar con Facebook
+**Sin imagen disponible:**
+- Informar: "Instagram requiere imagen para el feed. El texto queda guardado para publicación manual."
+- Continuar con Facebook.
 
-### Paso 5 — Publicar en Facebook
+---
+
+### Paso 10 — Publicar en Facebook
 
 ```
-POST https://graph.facebook.com/v18.0/{FACEBOOK_PAGE_ID}/feed
+POST https://graph.facebook.com/v21.0/{FACEBOOK_PAGE_ID}/feed
   message={MENSAJE_FACEBOOK}
   access_token={FACEBOOK_ACCESS_TOKEN}
 ```
 
-Si hay imagen disponible, usar `/photos` en lugar de `/feed`:
+Con imagen:
 ```
-POST https://graph.facebook.com/v18.0/{FACEBOOK_PAGE_ID}/photos
+POST https://graph.facebook.com/v21.0/{FACEBOOK_PAGE_ID}/photos
   url={URL_IMAGEN}
   message={MENSAJE_FACEBOOK}
   access_token={FACEBOOK_ACCESS_TOKEN}
 ```
 
-### Paso 6 — Confirmar publicación
+---
 
-Muestra el resumen final:
+### Paso 11 — Guardar en historial y confirmar
 
+**Guarda el post en `.claude/posts/{FECHA}.json`:**
+```json
+{
+  "date": "2026-03-21",
+  "category": "Fecha especial / coyuntura",
+  "topic": "Día Internacional de la Mujer",
+  "instagram_post_id": "...",
+  "facebook_post_id": "...",
+  "caption_preview": "Primeros 100 caracteres...",
+  "image_prompt": "...",
+  "published": true
+}
+```
+
+**Actualiza `.claude/posts/history.json`** — agrega este post al array `posts[]`, mantén solo los últimos 30.
+
+**Muestra confirmación:**
 ```
 ✅ PUBLICACIÓN COMPLETADA
 
-📸 Instagram: [ID del post o ⚠️ requiere imagen manual]
-📘 Facebook: Post ID {POST_ID} publicado
+📸 Instagram: Post ID {ID} publicado
+📘 Facebook: Post ID {ID} publicado
 
-📊 Tema: {TOPIC}
-🏢 Empresa: {COMPANY_NAME}
+📌 Tópico: {topico}
 📅 Fecha: {HOY}
+🏢 Empresa: {COMPANY_NAME}
 
-💾 Contenido guardado en: .claude/posts/{FECHA}.json
+💾 Historial actualizado: .claude/posts/history.json
+   Próxima categoría sugerida: {siguiente_categoria_en_rotación}
 ```
-
-Guarda el contenido generado en `.claude/posts/{FECHA}.json` para historial.
 
 ---
 
@@ -141,21 +288,34 @@ Guarda el contenido generado en `.claude/posts/{FECHA}.json` para historial.
 
 | Variable | Fuente | Descripción |
 |---|---|---|
-| `COMPANY_NAME` | `.env` o pregunta | Nombre de la empresa |
-| `INDUSTRY` | `.env` o pregunta | Sector industrial |
-| `INSTAGRAM_ACCESS_TOKEN` | `.env` | Token de Instagram |
+| `COMPANY_NAME` | `.claude/company-context.json` | Nombre de la empresa |
+| `INDUSTRY` | `.claude/company-context.json` | Sector industrial |
+| `INSTAGRAM_ACCESS_TOKEN` | `.env` | Token de Instagram Graph API |
 | `INSTAGRAM_BUSINESS_ACCOUNT_ID` | `.env` | ID de cuenta Instagram |
 | `FACEBOOK_ACCESS_TOKEN` | `.env` | Token de Facebook |
 | `FACEBOOK_PAGE_ID` | `.env` | ID de página Facebook |
 
+## Archivos del sistema
+
+| Archivo | Propósito |
+|---|---|
+| `.claude/company-context.json` | Contexto de empresa (generado por `/init`) |
+| `.claude/posts/history.json` | Historial de los últimos 30 posts |
+| `.claude/content-calendar.json` | Parrilla de categorías y tópicos |
+| `.claude/brand-images/` | Carpeta con imágenes de marca (opcional) |
+| `.claude/brand-images/brand-style.json` | Análisis visual del brand kit (auto-generado) |
+
 ## Comportamiento ante errores
 
-- **Error de API**: Mostrar el error exacto y ofrecer reintentar o guardar para publicación manual
-- **Token expirado**: Instruir al usuario cómo renovar el token de acceso
-- **Sin imagen**: Proceder solo con texto en Facebook; advertir limitación en Instagram
+- **Error de API**: Mostrar el error exacto, guardar el contenido en `.claude/posts/{FECHA}.json` con `"published": false`
+- **Token expirado**: Ejecutar `/setup-check` para verificar y renovar
+- **Sin imagen**: Facebook con texto puro; Instagram guarda para publicación manual
+- **`company-context.json` no existe**: Solicitar ejecutar `/init` primero
 
 ## Notas
 
-- Usar `claude-opus-4-6` para generación de contenido (máxima calidad)
-- El historial de posts se guarda en `.claude/posts/` del proyecto empresa
-- Si el usuario proporciona una URL de imagen, incluirla en ambas plataformas
+- El tópico del día **nunca se le pregunta al usuario** — se determina automáticamente
+- Si el usuario llama `/publish-today "tema específico"`, ese argumento override la selección automática
+- La carpeta `.claude/brand-images/` la crea el usuario manualmente copiando 5-10 fotos de su marca
+- El `prompt_externo` de imagen es compatible con Midjourney, DALL-E 3, Adobe Firefly y Stable Diffusion
+- Usar `claude-opus-4-6` con `thinking: adaptive` para la generación de contenido
