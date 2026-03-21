@@ -111,7 +111,7 @@ Registra la decisión: `{fecha, categoria, topico, fuente: "calendario"|"argumen
 
 ---
 
-### Paso 6 — Analizar brand kit de imágenes (si existe)
+### Paso 6A — Analizar brand kit de imágenes (si existe)
 
 Verifica si existe la carpeta `.claude/brand-images/`:
 ```bash
@@ -133,7 +133,37 @@ ls .claude/brand-images/ 2>/dev/null
    ```
 4. Si `brand-style.json` ya existe y fue analizado hace menos de 30 días, usar el análisis guardado.
 
-**Si la carpeta no existe o está vacía** → generar solo un prompt de imagen detallado para uso externo.
+**Si la carpeta no existe o está vacía** → continuar sin brand_style (la IA generará imagen basada en el sector).
+
+---
+
+### Paso 6B — Generar imagen con IA
+
+Ejecuta el skill `skills/publishing/generate-image-ai.md` con estos inputs:
+
+```
+brand_style   → contenido de brand-style.json (o null)
+topic         → {topico_elegido}
+category      → {categoria_elegida}
+company_name  → {company.name}
+industry      → {company.industry}
+special_date  → {fecha_especial o null}
+platform      → "instagram"
+```
+
+El skill detecta automáticamente el proveedor disponible (`FAL_KEY` o `OPENAI_API_KEY`) y devuelve:
+
+```json
+{
+  "success": true,
+  "provider": "fal",
+  "image_url": "https://fal.media/files/xxx/generated.jpeg",
+  "prompt_used": "fotografía de producto industrial..."
+}
+```
+
+**Si el skill devuelve `success: false` o no hay API key** → continuar con `image_url: null`
+y mostrar el `prompt_externo` para uso manual en Artlist, Midjourney o Firefly.
 
 ---
 
@@ -167,8 +197,10 @@ Genera el siguiente JSON:
     "mensaje": "Versión conversacional, 300-500 caracteres, sin hashtags excesivos"
   },
   "imagen": {
-    "prompt_externo": "Prompt detallado para Midjourney/DALL-E/Firefly: estilo, composición, colores, elementos de marca, formato cuadrado 1:1 para Instagram",
-    "seleccion_brand_kit": "Si hay brand-images/, indica qué imagen existente es la más adecuada o si se recomienda crear una nueva a partir de ellas",
+    "url_generada": "URL devuelta por el skill generate-image-ai (o null si falló)",
+    "provider": "fal | openai | none",
+    "prompt_usado": "Prompt exacto enviado a la IA",
+    "prompt_externo": "Prompt para uso manual en Artlist / Midjourney / Firefly si no se generó automáticamente",
     "descripcion_alt": "Texto alternativo para accesibilidad"
   },
   "meta": {
@@ -199,9 +231,13 @@ Genera el siguiente JSON:
 {mensaje}
 
 🖼️ IMAGEN
-{si hay brand-images/: "📁 Imagen sugerida del brand kit: {nombre_archivo}"}
-Prompt para generación IA:
-{prompt_externo}
+{si imagen.url_generada existe:
+  "✅ Imagen generada con {imagen.provider}: {imagen.url_generada}"
+  "📝 Prompt usado: {imagen.prompt_usado[0:120]}..."
+sino:
+  "⚠️  Sin API key — usa este prompt en Artlist/Midjourney/Firefly:"
+  "{imagen.prompt_externo}"
+}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ¿Publicar en ambas plataformas? [Sí / No / Editar]
@@ -213,10 +249,13 @@ Prompt para generación IA:
 
 Si el usuario confirma, publica usando la **Instagram Graph API**.
 
-**Con imagen (URL pública):**
+Usa `imagen.url_generada` del Paso 6B como `image_url`. Si es null, Instagram requiere
+una URL pública — informar al usuario y guardar el post como borrador.
+
+**Con imagen (URL generada por IA o proporcionada manualmente):**
 ```
 POST https://graph.facebook.com/v21.0/{INSTAGRAM_BUSINESS_ACCOUNT_ID}/media
-  image_url={URL_IMAGEN}
+  image_url={imagen.url_generada}
   caption={CAPTION}\n\n{HASHTAGS}
   access_token={INSTAGRAM_ACCESS_TOKEN}
 
@@ -225,9 +264,10 @@ POST https://graph.facebook.com/v21.0/{INSTAGRAM_BUSINESS_ACCOUNT_ID}/media_publ
   access_token={INSTAGRAM_ACCESS_TOKEN}
 ```
 
-**Sin imagen disponible:**
-- Informar: "Instagram requiere imagen para el feed. El texto queda guardado para publicación manual."
-- Continuar con Facebook.
+**Sin imagen disponible (`url_generada` es null):**
+- Informar: "Instagram requiere imagen. Genera una con el prompt en Artlist (toolkit.artlist.io) o Midjourney y proporciona la URL."
+- Guardar el post como borrador con `"published": false`.
+- Continuar con Facebook (acepta posts sin imagen).
 
 ---
 
@@ -260,7 +300,9 @@ POST https://graph.facebook.com/v21.0/{FACEBOOK_PAGE_ID}/photos
   "instagram_post_id": "...",
   "facebook_post_id": "...",
   "caption_preview": "Primeros 100 caracteres...",
-  "image_prompt": "...",
+  "image_url": "https://fal.media/files/xxx/generated.jpeg",
+  "image_provider": "fal",
+  "image_prompt": "Prompt exacto usado para generar la imagen...",
   "published": true
 }
 ```
@@ -294,6 +336,8 @@ POST https://graph.facebook.com/v21.0/{FACEBOOK_PAGE_ID}/photos
 | `INSTAGRAM_BUSINESS_ACCOUNT_ID` | `.env` | ID de cuenta Instagram |
 | `FACEBOOK_ACCESS_TOKEN` | `.env` | Token de Facebook |
 | `FACEBOOK_PAGE_ID` | `.env` | ID de página Facebook |
+| `FAL_KEY` | `.env` | **Generación de imágenes** — fal.ai (recomendado) |
+| `OPENAI_API_KEY` | `.env` | **Generación de imágenes** — DALL-E 3 (alternativa) |
 
 ## Archivos del sistema
 
@@ -301,6 +345,7 @@ POST https://graph.facebook.com/v21.0/{FACEBOOK_PAGE_ID}/photos
 |---|---|
 | `.claude/company-context.json` | Contexto de empresa (generado por `/init`) |
 | `.claude/posts/history.json` | Historial de los últimos 30 posts |
+| `.claude/posts/images/{FECHA}.json` | Metadatos de la imagen generada por IA |
 | `.claude/content-calendar.json` | Parrilla de categorías y tópicos |
 | `.claude/brand-images/` | Carpeta con imágenes de marca (opcional) |
 | `.claude/brand-images/brand-style.json` | Análisis visual del brand kit (auto-generado) |
@@ -317,5 +362,7 @@ POST https://graph.facebook.com/v21.0/{FACEBOOK_PAGE_ID}/photos
 - El tópico del día **nunca se le pregunta al usuario** — se determina automáticamente
 - Si el usuario llama `/publish-today "tema específico"`, ese argumento override la selección automática
 - La carpeta `.claude/brand-images/` la crea el usuario manualmente copiando 5-10 fotos de su marca
-- El `prompt_externo` de imagen es compatible con Midjourney, DALL-E 3, Adobe Firefly y Stable Diffusion
+- **Generación de imágenes**: automática si hay `FAL_KEY` o `OPENAI_API_KEY`; si no, se genera un
+  `prompt_externo` listo para usar en Artlist (toolkit.artlist.io), Midjourney o Firefly
+- Las URLs de fal.ai son persistentes y se pueden usar directamente en Instagram Graph API
 - Usar `claude-opus-4-6` con `thinking: adaptive` para la generación de contenido

@@ -80,6 +80,10 @@ FACEBOOK_APP_SECRET=
 # TikTok (optional)
 TIKTOK_ACCESS_TOKEN=
 TIKTOK_OPEN_ID=
+
+# AI Image Generation — pick one (used by /publish-today to auto-generate images)
+FAL_KEY=                  # fal.ai — recommended (~$0.003/image) — get at: https://fal.ai
+OPENAI_API_KEY=           # OpenAI DALL-E 3 (~$0.04/image) — alternative if you already have OpenAI
 EOF
   ok ".env.example created"
 else
