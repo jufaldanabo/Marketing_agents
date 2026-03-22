@@ -51,15 +51,14 @@ echo "none"
 
 ---
 
-### Paso 2 — Construir el prompt de imagen
+### Paso 2 — Construir el prompt positivo
 
-Combina el estilo de marca + tópico + requisitos de plataforma.
+Combina el estilo de marca + tópico + anclajes de fotorrealismo.
 
 **Estructura del prompt:**
 ```
 {estilo_fotografico}, {mood}, colores dominantes {palette}, {descripcion_visual_del_topico},
-fotografía profesional B2B, {sector_industrial}, cuadrado 1:1, alta resolución,
-estilo editorial corporativo, iluminación profesional, sin texto superpuesto
+{sector_industrial}, {anclas_fotorrealismo}
 ```
 
 **Reglas de construcción:**
@@ -73,47 +72,127 @@ estilo editorial corporativo, iluminación profesional, sin texto superpuesto
 2. **Si NO existe `brand_style`** → generar un prompt limpio y profesional basado en
    el sector de la empresa y el tópico del post.
 
-3. **Adaptar el tópico al visual:**
-   - "tips de reducción de desperdicios" → imagen de proceso industrial ordenado, eficiente
-   - "caso de éxito" → imagen de personas de negocios satisfechas o producto destacado
-   - "tendencia de mercado" → imagen abstracta con datos, gráficos, tecnología
-   - "detrás de escena" → fotografía auténtica del proceso o equipo
-   - "Día Internacional de la Mujer" → imagen que celebre el liderazgo femenino en el sector
+3. **Prioridad de tipo de imagen — evitar problemas anatómicos:**
+   - **Primera opción**: fotografía de **producto, objeto o entorno** sin personas
+     → eliminates el 100% de los problemas de manos, dedos y caras
+   - **Segunda opción**: personas **de espaldas, de perfil, o en plano detalle** (manos con objeto,
+     escritorio con computadora, etc.) → reduce drásticamente los defectos
+   - **Tercera opción**: personas de frente → solo si la categoría lo requiere (ej. "caso de éxito",
+     "equipo"). En ese caso agregar explícitamente los anclas anatómicos del punto 5.
 
-4. **Para Instagram**: especificar `square_hd` (1024×1024)
+4. **Adaptar el tópico al visual:**
+   - "tips de reducción de desperdicios" → maquinaria limpia, proceso ordenado, sin personas
+   - "caso de éxito" → apretón de manos (plano medio), o producto destacado con cliente de fondo
+   - "tendencia de mercado" → imagen de sala de reunión, datos en pantalla, sin primer plano facial
+   - "detrás de escena" → proceso industrial, herramientas, materiales
+   - "Día Internacional de la Mujer" → mujer profesional de perfil o de espaldas en entorno laboral
+
+5. **Anclas de fotorrealismo — SIEMPRE agregar al final del prompt positivo:**
+   ```
+   fotografía real, hiperrealista, fotografía comercial profesional,
+   resolución 8K, nitidez perfecta, iluminación de estudio natural,
+   proporciones anatómicas correctas, manos con cinco dedos,
+   rasgos faciales naturales, sin distorsiones, sin artefactos de IA
+   ```
+
+6. **Para Instagram**: especificar `square_hd` (1024×1024)
    **Para Facebook**: especificar `landscape_4_3` (1280×960)
 
-**Ejemplo de prompt resultante:**
+**Ejemplo de prompt resultante (producto, sin personas):**
 ```
-fotografía de producto industrial sobre fondo blanco neutro, ambiente profesional y limpio,
-colores cálidos (beige #F5E6D0, azul oscuro #1A2B3C, blanco #FFFFFF),
-maquinaria de precisión con detalles técnicos, sector manufactura textil, cuadrado 1:1,
-luz de estudio difusa, sin texto superpuesto, alta resolución, comercial, editorial
+fotografía de producto industrial sobre fondo blanco neutro, ambiente limpio y minimalista,
+tonos cálidos beige y azul oscuro corporativo, maquinaria textil de precisión con
+detalles técnicos visibles, sector manufactura, fotografía real, hiperrealista,
+fotografía comercial profesional, resolución 8K, nitidez perfecta,
+iluminación de estudio natural, sin distorsiones, sin artefactos de IA
+```
+
+**Ejemplo de prompt resultante (persona, plano detalle):**
+```
+manos de ejecutivo firmando documento sobre escritorio de madera oscura,
+ambiente corporativo formal, luz de ventana lateral, tonos azul y beige,
+fotografía real, hiperrealista, fotografía comercial profesional,
+resolución 8K, proporciones anatómicas correctas, manos con cinco dedos,
+sin distorsiones, sin artefactos de IA
+```
+
+---
+
+### Paso 2.1 — Negative prompt (SIEMPRE incluir)
+
+El negative prompt le dice a la IA qué **NO generar**. Es tan importante como el prompt positivo.
+Se envía en el campo `negative_prompt` de la API (fal.ai) o embebido en el prompt (DALL-E 3).
+
+**Negative prompt estándar — copiar en cada llamada:**
+```
+cartoon, illustration, painting, drawing, anime, sketch, CGI, 3D render,
+unrealistic, surreal, abstract art, watercolor, oil painting,
+deformed hands, extra fingers, six fingers, 6 fingers, missing fingers, fused fingers,
+extra thumbs, malformed hands, extra limbs, extra arms, extra legs,
+disfigured face, deformed face, distorted face, asymmetrical face,
+extra eyes, three eyes, cyclops, two mouths, extra mouths, extra lips, melted face,
+bad anatomy, bad proportions, incorrect anatomy, mutation, mutated body,
+cloned faces, duplicate features, body horror, gross proportions,
+blurry, pixelated, low quality, low resolution, jpeg artifacts, noise,
+watermark, text overlay, signature, username, logo on image,
+AI artifacts, bad art, worst quality, out of frame, cropped badly,
+plastic skin, wax skin, unnatural skin texture, toy-like appearance
+```
+
+**Para DALL-E 3** (no acepta negative_prompt separado): agregar al final del prompt positivo:
+```
+-- IMPORTANT: photorealistic commercial photography only, no illustration, no cartoon,
+no extra fingers (exactly 5 fingers per hand), no extra eyes, no facial deformities,
+no AI artifacts, anatomically perfect human proportions --
 ```
 
 ---
 
 ### Paso 2A — Generar con fal.ai FLUX
 
-**Modelo recomendado:** `fal-ai/flux/schnell` (rápido, económico ~$0.003/imagen)
-**Modelo premium:** `fal-ai/flux/dev` (mayor calidad ~$0.025/imagen, usar si el post es especial)
+**Modelo recomendado:** `fal-ai/flux/dev` (soporta negative_prompt y más pasos → mayor calidad y
+menos alucinaciones anatómicas, ~$0.025/imagen)
+
+> ⚠️ No usar `flux/schnell` para imágenes con personas: tiene muy pocos pasos de inferencia
+> (4 por defecto) y genera manos/caras defectuosas con frecuencia. Para imágenes de producto
+> sin personas, schnell sí es suficiente.
 
 ```bash
-# Leer FAL_KEY del .env
 FAL_KEY=$(grep "^FAL_KEY=" .env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
 
-# Para Instagram (cuadrado)
+NEGATIVE_PROMPT="cartoon, illustration, painting, drawing, anime, sketch, CGI, 3D render, unrealistic, surreal, abstract art, watercolor, deformed hands, extra fingers, six fingers, 6 fingers, missing fingers, fused fingers, extra thumbs, malformed hands, extra limbs, extra arms, extra legs, disfigured face, deformed face, distorted face, asymmetrical face, extra eyes, three eyes, cyclops, two mouths, extra mouths, extra lips, melted face, bad anatomy, bad proportions, incorrect anatomy, mutation, mutated body, cloned faces, duplicate features, body horror, gross proportions, blurry, pixelated, low quality, watermark, text overlay, signature, logo on image, AI artifacts, bad art, worst quality, plastic skin, wax skin, unnatural skin texture, toy-like appearance"
+
+# Para Instagram (cuadrado) — imagen con personas
+curl -s -X POST "https://fal.run/fal-ai/flux/dev" \
+  -H "Authorization: Key $FAL_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"prompt\": \"{PROMPT_POSITIVO_CONSTRUIDO}\",
+    \"negative_prompt\": \"$NEGATIVE_PROMPT\",
+    \"image_size\": \"square_hd\",
+    \"num_inference_steps\": 28,
+    \"guidance_scale\": 3.5,
+    \"num_images\": 1,
+    \"enable_safety_checker\": true
+  }"
+
+# Para Instagram (cuadrado) — solo producto/objeto, sin personas
 curl -s -X POST "https://fal.run/fal-ai/flux/schnell" \
   -H "Authorization: Key $FAL_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "prompt": "{PROMPT_CONSTRUIDO}",
-    "image_size": "square_hd",
-    "num_inference_steps": 4,
-    "num_images": 1,
-    "enable_safety_checker": true
-  }'
+  -d "{
+    \"prompt\": \"{PROMPT_POSITIVO_CONSTRUIDO}\",
+    \"negative_prompt\": \"$NEGATIVE_PROMPT\",
+    \"image_size\": \"square_hd\",
+    \"num_inference_steps\": 8,
+    \"num_images\": 1,
+    \"enable_safety_checker\": true
+  }"
 ```
+
+> `num_inference_steps`: más pasos = más calidad y menos defectos anatómicos.
+> Mínimo recomendado con personas: **28 pasos** (flux/dev).
+> Para producto sin personas: **8 pasos** (flux/schnell) es suficiente.
 
 **Respuesta esperada:**
 ```json
@@ -131,30 +210,54 @@ curl -s -X POST "https://fal.run/fal-ai/flux/schnell" \
 }
 ```
 
-Extraer: `images[0].url` → esta es la URL pública para Instagram.
+Extraer: `images[0].url` → URL pública persistente, lista para Instagram Graph API.
 
-**Si `has_nsfw_concepts[0]` es `true`** → regenerar con el mismo prompt (máximo 2 intentos).
+**Si `has_nsfw_concepts[0]` es `true`** → regenerar (máximo 2 intentos).
+
+**Verificación de calidad antes de publicar:** Revisar visualmente la imagen generada
+con la herramienta de visión. Si se detectan manos con más de 5 dedos, caras deformadas
+o artefactos evidentes → regenerar con una variación del prompt (agregar más contexto
+fotográfico, cambiar composición). Máximo 3 intentos.
 
 ---
 
 ### Paso 2B — Generar con DALL-E 3 (alternativa)
 
+DALL-E 3 no acepta `negative_prompt` como campo separado. Las restricciones anatómicas
+se embeben directamente en el prompt positivo usando el bloque `RESTRICTIONS`.
+
+**Prompt final para DALL-E 3** = `{PROMPT_POSITIVO}` + bloque de restricciones:
+
+```
+{PROMPT_POSITIVO_CONSTRUIDO}
+
+RESTRICTIONS: photorealistic commercial photography only, absolutely no cartoon or
+illustration style, no extra fingers (exactly 5 fingers per hand, no more, no less),
+no extra eyes or facial features, no deformed faces, no extra limbs, no body mutations,
+no AI-generated artifacts, no text or watermarks overlaid on image,
+anatomically perfect and natural human proportions if humans appear,
+high resolution, sharp focus, professional studio lighting
+```
+
 ```bash
-# Leer OPENAI_API_KEY del .env
 OPENAI_KEY=$(grep "^OPENAI_API_KEY=" .env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
 
+# DALL-E 3 siempre usar "hd" quality para marketing — reduce artefactos vs "standard"
 curl -s -X POST "https://api.openai.com/v1/images/generations" \
   -H "Authorization: Bearer $OPENAI_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "dall-e-3",
-    "prompt": "{PROMPT_CONSTRUIDO}",
+    "prompt": "{PROMPT_CON_RESTRICCIONES}",
     "size": "1024x1024",
-    "quality": "standard",
+    "quality": "hd",
     "style": "natural",
     "n": 1
   }'
 ```
+
+> Usar `"quality": "hd"` (no "standard") — genera el doble de detalle y reduce
+> significativamente los defectos anatómicos. Precio: $0.080 vs $0.040 por imagen.
 
 **Respuesta esperada:**
 ```json
@@ -170,8 +273,8 @@ curl -s -X POST "https://api.openai.com/v1/images/generations" \
 
 Extraer: `data[0].url`
 
-> ⚠️ Las URLs de DALL-E expiran en ~60 minutos. Usar inmediatamente para publicar o guardar el
-> `revised_prompt` para regenerar después.
+> ⚠️ Las URLs de DALL-E expiran en ~60 minutos. Publicar en Instagram inmediatamente
+> tras generarla. Guardar `revised_prompt` por si hay que regenerar.
 
 ---
 
@@ -240,12 +343,12 @@ Mientras tanto, puedes usar este prompt en Midjourney, Firefly o Stable Diffusio
 
 ## Precios de referencia
 
-| Proveedor | Modelo | Precio/imagen | Velocidad |
-|---|---|---|---|
-| fal.ai | FLUX Schnell | ~$0.003 | ~3 segundos |
-| fal.ai | FLUX Dev | ~$0.025 | ~15 segundos |
-| OpenAI | DALL-E 3 Standard | ~$0.040 | ~10 segundos |
-| OpenAI | DALL-E 3 HD | ~$0.080 | ~15 segundos |
+| Proveedor | Modelo | Precio/imagen | Velocidad | Recomendado para |
+|---|---|---|---|---|
+| fal.ai | FLUX Schnell (8 pasos) | ~$0.003 | ~3 seg | Solo producto/objeto, sin personas |
+| fal.ai | FLUX Dev (28 pasos) | ~$0.025 | ~15 seg | Con personas — mejor calidad anatómica |
+| OpenAI | DALL-E 3 Standard | ~$0.040 | ~10 seg | No recomendado — usar HD |
+| OpenAI | DALL-E 3 HD | ~$0.080 | ~15 seg | Alternativa cuando no hay FAL_KEY |
 
 ---
 
@@ -255,5 +358,20 @@ Mientras tanto, puedes usar este prompt en Midjourney, Firefly o Stable Diffusio
 - Si el post tiene una fecha especial (ej. Día de la Mujer), incluirlo en el prompt
 - El prompt nunca debe pedir texto dentro de la imagen — Instagram lo procesa mejor sin texto
 - Si la empresa tiene colores de marca en `brand_style.color_palette`, incluirlos siempre
-- Compatible con la Instagram Graph API: `image_url` se pasa directamente en el paso de
-  creación del media container
+- Compatible con la Instagram Graph API: `image_url` se pasa directamente al crear el media container
+
+## Guía anti-alucinaciones
+
+| Problema común | Causa | Solución |
+|---|---|---|
+| Manos con 6+ dedos | Poco contexto anatómico + pocos pasos | Negative prompt + 28 pasos (flux/dev) |
+| Caras con 3 ojos | Composición ambigua | Especificar "retrato de perfil" o evitar caras |
+| Dos bocas / labios extra | Prompt sin anclaje realista | Usar "fotografía real" + anclas fotorrealismo |
+| Piel plástica / artificial | Modelo incorrecto | Usar `style: "natural"` en DALL-E; flux/dev en fal.ai |
+| Artefactos y ruido | Pocos pasos de inferencia | Mínimo 28 pasos con personas; 8 para producto |
+| Texto ilegible en imagen | Modelos no generan texto bien | Nunca pedir texto en el prompt |
+| Personas duplicadas | Prompt vago | Especificar cantidad exacta ("una persona", "dos personas") |
+
+**Regla de oro para marketing B2B:** si el tópico lo permite, preferir siempre
+**fotografía de producto o entorno** sin personas. Evita el 100% de los problemas
+anatómicos y la imagen queda más limpia para redes sociales.
