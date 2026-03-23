@@ -1,12 +1,12 @@
 # Skill: generate-image-ai
 
-Genera una imagen publicitaria B2B usando IA (fal.ai FLUX o DALL-E 3) a partir de las
-fotos de referencia del producto, el estilo visual de la marca y el contexto del post del día.
+Genera una imagen publicitaria B2B usando `fal-ai/nano-banana-2` a partir del contexto
+de la empresa, las fotos de referencia del producto y la temática del post del día.
 
-El modo principal es **imagen a imagen (img2img)**: toma una foto real del producto como
-base y la recrea ambientada en un nuevo contexto (mesa de trabajo, sala de reuniones,
-entorno industrial, personas al fondo), generando imágenes de IA que parecen fotografías
-comerciales profesionales del producto real.
+Usa **prompts conversacionales con contexto de negocio** ("soy fabricante de X, necesito
+una imagen para redes sociales, el tema de hoy es Y") que producen mejores resultados
+que los prompts técnicos de fotografía. Cuando hay fotos de referencia, las pasa al modelo
+como base visual (img2img) junto con el prompt conversacional.
 
 Devuelve una **URL pública** lista para usar directamente en Instagram Graph API.
 
@@ -137,7 +137,7 @@ echo "none"
 
 | Proveedor | Con imagen referencia | Sin imagen referencia |
 |---|---|---|
-| `FAL_KEY` | img2img con `flux/dev/image-to-image` ⭐ | text-to-image con `flux/dev` o `schnell` |
+| `FAL_KEY` | img2img con `fal-ai/nano-banana-2` ⭐ | text-to-image con `fal-ai/nano-banana-2` |
 | `OPENAI_API_KEY` | Describir referencia via visión → prompt DALL-E 3 | Prompt de texto estándar DALL-E 3 |
 | ninguno | Paso 4 (prompt externo solamente) | Paso 4 (prompt externo solamente) |
 
@@ -145,122 +145,98 @@ echo "none"
 
 ### Paso 2 — Construir el prompt
 
-El prompt varía según el modo detectado en Paso 0.
+> **Principio clave:** El modelo `nano-banana-2` responde mejor a lenguaje conversacional
+> con contexto de negocio que a descripciones técnicas de fotografía. El prompt debe sonar
+> como si un dueño de empresa le pidiera la imagen a un diseñador, no como un parámetro técnico.
 
-#### Modo img2img (hay foto de referencia + FAL_KEY)
+#### Con foto de referencia (hay imágenes en la carpeta del producto)
 
-En img2img el modelo usa la foto como base visual, pero **el prompt ancla el producto**
-para que el modelo sepa qué está generando. Sin un ancla de producto, el modelo lo
-reinterpreta libremente y el resultado no se parece al original.
+**Paso previo obligatorio:** Analizar `REF_IMAGE_PATH` con la herramienta de visión para extraer:
+- Qué tipo de producto/objeto se ve en la foto
+- Colores reales presentes
+- Cómo está presentado (forma, disposición)
+- Material o acabado si es evidente
 
-**Estructura del prompt img2img — SIEMPRE en dos bloques:**
+Con esa descripción visual, construir el prompt conversacional:
+
+**Plantilla:**
 ```
-{BLOQUE 1 — descripción del producto}: {tipo}, {colores visibles}, {forma/presentación}
-{BLOQUE 2 — contexto/ambiente}: {superficie_o_entorno}, {elementos_contextuales}, {iluminacion}, {mood}
-{anclas_fotorrealismo}
-```
+Soy {dueño/responsable de marketing} de {COMPANY_NAME}, una empresa de {INDUSTRY}.
+Necesito crear una imagen para publicar en redes sociales.
 
-**Bloque 1 — cómo describir el producto (OBLIGATORIO):**
+Mi producto es {DESCRIPCIÓN_VISUAL_EXTRAÍDA_DE_LA_FOTO: tipo, colores, forma}.
+La temática del post de hoy es: {TOPIC}.
+{Si hay SPECIAL_DATE: La ocasión especial es: {SPECIAL_DATE}.}
 
-Analizar visualmente la imagen de referencia con la herramienta de visión y extraer:
-- **Tipo de objeto**: lo que realmente se ve en la foto — inferir sin asumir
-- **Colores visibles**: los colores reales presentes en la imagen
-- **Forma/presentación**: cómo está dispuesto en la foto (apilado, en fila, en expositor, etc.)
-- **Material** (solo si es claramente visible): no inventar si no es evidente
-
-**Ejemplos de descripciones por industria:**
-```
-Manufactura/industrial: "sacos de cemento de 50kg apilados en pallet, color gris claro, impresos con logo"
-Alimentos: "frascos de vidrio transparente con producto en polvo naranja, tapas metálicas doradas, en fila"
-Tecnología: "dispositivo electrónico rectangular negro con pantalla LED frontal y botones laterales"
-Construcción: "tubos de PVC blanco de distintos diámetros, apilados horizontalmente en almacén"
-Servicios: "profesional en traje azul marino, de perfil, con documentos en mano"
-Agro/campo: "bolsas de semillas de 10kg apiladas, etiquetas verdes con texto, sobre superficie de madera"
+Crea una imagen atractiva y creativa para redes sociales que muestre mi producto
+en un contexto relacionado con la temática. La imagen debe verse real y profesional,
+sin texto ni logos superpuestos.
 ```
 
-| ✅ SÍ incluir en el prompt img2img | ❌ NO inventar ni exagerar |
-|---|---|
-| Tipo de producto extraído de la referencia | Colores que no aparecen en la foto real |
-| Colores reales observados en la imagen | Materiales no visibles claramente |
-| Forma y presentación tal como se ve | Detalles de producto que no son evidentes |
-| Contexto y ambiente según el tópico | Texturas o acabados que no son distinguibles |
-
-**Bloque 2 — adaptar el contexto al tópico del post:**
-- "tip del sector" → sobre mesa de trabajo de madera, muestras y cuaderno al lado, luz natural
-- "caso de éxito" → primer plano destacado, personas de traje al fondo desenfocadas
-- "detrás de escena" → en proceso de producción, entorno industrial limpio y ordenado
-- "tendencia de mercado" → superficie moderna, composición editorial, elementos de diseño
-- "fecha especial" → decoración acorde a la fecha, ambiente festivo o emotivo
-- "nuevo lanzamiento" → fondo minimalista blanco, estudio de fotografía, iluminación de producto
-
-**Estructura del prompt final (aplicable a cualquier industria):**
-```
-{descripción del producto extraída de la referencia},
-{contexto/entorno según el tópico},
-{iluminación y ambiente},
-{personas si aplica — de espaldas o perfil},
-fotografía real, hiperrealista, fotografía comercial profesional, resolución 8K,
-nitidez perfecta, iluminación natural, sin distorsiones, sin artefactos de IA
-```
+**Adaptar según el tópico:**
+- "tip del sector" → agregar: "Muéstralo en un ambiente de trabajo o estudio, con elementos relacionados al oficio."
+- "caso de éxito / cliente satisfecho" → agregar: "Contexto profesional, ambiente de éxito y confianza."
+- "detrás de escena / proceso" → agregar: "Ambiente de producción o taller, contexto de trabajo real."
+- "tendencia / mercado" → agregar: "Estilo editorial moderno, composición limpia y contemporánea."
+- "fecha especial" → agregar: "La imagen debe evocar {SPECIAL_DATE}, con ambientación acorde."
+- "nuevo lanzamiento" → agregar: "Presentación destacada del producto, fondo limpio, protagonismo total."
 
 **Ejemplos multi-industria:**
 
-*Manufactura — tip de producción:*
+*Textil — Día de la Mujer:*
 ```
-sacos de cemento gris claro de 50kg con logo impreso, apilados en pallet de madera,
-en nave industrial ordenada con iluminación cenital, operario con casco amarillo
-de espaldas supervisando al fondo (desenfocado), fotografía industrial profesional...
+Soy dueño de Sesgo Express, una fábrica de sesgo textil.
+Necesito crear una imagen para publicar en redes sociales.
+
+Mi producto son tortas de sesgo planchado en colores vibrantes (amarillo, verde lima,
+morado, marrón, naranja), presentadas como rollos planos apilados en forma de torta.
+La temática del post de hoy es: sesgo planchado para el Día de la Mujer.
+
+Crea una imagen atractiva para redes sociales que muestre mi producto en un contexto
+festivo relacionado con el Día de la Mujer. La imagen debe verse real y profesional,
+sin texto ni logos superpuestos.
 ```
 
-*Alimentos — lanzamiento de producto:*
+*Calzado — Halloween:*
 ```
-frascos de vidrio transparente con miel artesanal dorada y tapas metálicas, en fila sobre
-tabla de madera rústica con flores silvestres al lado, luz natural cálida de ventana,
-ambiente de cocina gourmet, fotografía comercial de alimentos, hiperrealista...
+Soy fabricante de calzado en Botas García.
+Necesito crear una imagen para publicar en redes sociales.
+
+Mi producto son botas de cuero negro con suela gruesa y detalle de hebillas laterales.
+La temática del post de hoy es: botas en Halloween.
+
+Crea una imagen creativa para redes sociales que muestre mis botas en un contexto
+oscuro y festivo de Halloween. La imagen debe verse real y profesional,
+sin texto ni logos superpuestos.
 ```
 
-*Tecnología — caso de éxito:*
+*Alimentos — lanzamiento:*
 ```
-dispositivo electrónico negro rectangular con pantalla LED encendida, sobre escritorio de
-oficina moderno, laptop y smartphone al fondo desenfocados, luz de estudio fría y nítida,
-ambiente corporativo premium, fotografía de producto tecnológico profesional...
-```
+Soy responsable de marketing en Miel del Valle, productora de miel artesanal.
+Necesito crear una imagen para publicar en redes sociales.
 
-#### Modo texto (sin foto de referencia, o OPENAI_API_KEY sin referencia)
+Mi producto son frascos de vidrio con miel dorada artesanal, tapas metálicas plateadas.
+La temática del post de hoy es: lanzamiento de nuestra miel de flores silvestres.
 
-Usar el flujo clásico de descripción completa del producto:
-
-**Estructura del prompt texto:**
-```
-{estilo_fotografico}, {mood}, colores dominantes {palette},
-{descripcion_visual_completa_del_producto_y_contexto},
-{sector_industrial}, {anclas_fotorrealismo}
+Crea una imagen hermosa para redes sociales que destaque los frascos con luz cálida
+y elementos naturales. La imagen debe verse real y profesional, sin texto ni logos.
 ```
 
-**Reglas:**
-1. **Si existe `brand_style`** → usar `photography_style`, `mood`, `color_palette`, `elements`
-2. **Si NO existe `brand_style`** → construir prompt limpio basado en industria + tópico
-3. **Prioridad de composición** (evitar defectos anatómicos):
-   - Primera opción: producto/objeto/entorno sin personas
-   - Segunda opción: personas de espaldas, de perfil, o plano detalle (manos, etc.)
-   - Tercera opción: personas de frente (solo si la categoría lo requiere)
+#### Sin foto de referencia (no hay imágenes en la carpeta del producto)
 
-#### Modo texto con referencia (OPENAI_API_KEY + hay foto)
+Usar el mismo formato conversacional, describiendo el producto desde el contexto de la empresa:
 
-1. Analizar la imagen de referencia con la herramienta de visión
-2. Extraer descripción visual detallada: colores, textura, material, forma, acabados
-3. Incorporar esa descripción como primer bloque del prompt:
+**Plantilla:**
 ```
-{descripcion_visual_extraida_de_foto_real}, ambientado en {contexto_segun_topico},
-{iluminacion_y_entorno_profesional}, {anclas_fotorrealismo}, RESTRICTIONS: ...
-```
+Soy {dueño/responsable de marketing} de {COMPANY_NAME}, una empresa de {INDUSTRY}.
+Necesito crear una imagen para publicar en redes sociales.
 
-**Anclas de fotorrealismo — SIEMPRE agregar al final del prompt (todos los modos):**
-```
-fotografía real, hiperrealista, fotografía comercial profesional,
-resolución 8K, nitidez perfecta, iluminación de estudio natural,
-proporciones anatómicas correctas, manos con cinco dedos,
-rasgos faciales naturales, sin distorsiones, sin artefactos de IA
+La temática del post de hoy es: {TOPIC}.
+{Si hay SPECIAL_DATE: La ocasión especial es: {SPECIAL_DATE}.}
+
+Crea una imagen atractiva para redes sociales que represente visualmente esta temática
+en el contexto de {INDUSTRY}. La imagen debe verse real y profesional,
+sin texto ni logos superpuestos.
 ```
 
 **Para Instagram**: `square_hd` (1024×1024)
@@ -268,106 +244,75 @@ rasgos faciales naturales, sin distorsiones, sin artefactos de IA
 
 ---
 
-### Paso 2.1 — Negative prompt (SIEMPRE incluir)
+### Paso 2.1 — Negative prompt (opcional para nano-banana-2)
 
-**Negative prompt estándar — copiar en cada llamada a fal.ai:**
+> El modelo `nano-banana-2` con prompts conversacionales generalmente no necesita
+> negative prompt extenso. Incluir solo si la primera generación tiene defectos visibles.
+
+**Negative prompt mínimo (usar si hay problemas):**
 ```
-cartoon, illustration, painting, drawing, anime, sketch, CGI, 3D render,
-unrealistic, surreal, abstract art, watercolor, oil painting,
-deformed hands, extra fingers, six fingers, 6 fingers, missing fingers, fused fingers,
-extra thumbs, malformed hands, extra limbs, extra arms, extra legs,
-disfigured face, deformed face, distorted face, asymmetrical face,
-extra eyes, three eyes, cyclops, two mouths, extra mouths, extra lips, melted face,
-bad anatomy, bad proportions, incorrect anatomy, mutation, mutated body,
-cloned faces, duplicate features, body horror, gross proportions,
-blurry, pixelated, low quality, low resolution, jpeg artifacts, noise,
-watermark, text overlay, signature, username, logo on image,
-AI artifacts, bad art, worst quality, out of frame, cropped badly,
-plastic skin, wax skin, unnatural skin texture, toy-like appearance
+text, watermark, logo, cartoon, illustration, low quality, blurry, deformed hands,
+extra fingers, bad anatomy, AI artifacts
 ```
 
-**Para DALL-E 3** (no acepta negative_prompt separado): agregar al final del prompt positivo:
+**Para DALL-E 3** (no acepta negative_prompt separado): agregar al final del prompt:
 ```
--- IMPORTANT: photorealistic commercial photography only, no illustration, no cartoon,
-no extra fingers (exactly 5 fingers per hand), no extra eyes, no facial deformities,
-no AI artifacts, anatomically perfect human proportions --
+Sin texto, sin watermarks, sin logos, fotografía real, sin ilustración, sin caricatura.
 ```
 
 ---
 
-### Paso 2A — Generar con fal.ai FLUX
+### Paso 2A — Generar con fal.ai nano-banana-2
 
-#### Modo img2img — con foto de referencia del producto ⭐ PREFERIDO
-
-**Modelo:** `fal-ai/flux/dev/image-to-image`
+**Modelo único:** `fal-ai/nano-banana-2` — se usa para todos los casos (con y sin foto de referencia).
 
 ```bash
 FAL_KEY=$(grep "^FAL_KEY=" .env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
+```
 
-NEGATIVE_PROMPT="cartoon, illustration, painting, drawing, anime, sketch, CGI, 3D render, unrealistic, surreal, abstract art, watercolor, deformed hands, extra fingers, six fingers, 6 fingers, missing fingers, fused fingers, extra thumbs, malformed hands, extra limbs, extra arms, extra legs, disfigured face, deformed face, distorted face, asymmetrical face, extra eyes, three eyes, cyclops, two mouths, extra mouths, extra lips, melted face, bad anatomy, bad proportions, incorrect anatomy, mutation, mutated body, cloned faces, duplicate features, body horror, gross proportions, blurry, pixelated, low quality, watermark, text overlay, signature, logo on image, AI artifacts, bad art, worst quality, plastic skin, wax skin, unnatural skin texture, toy-like appearance"
+#### Con foto de referencia ⭐ PREFERIDO
 
-# IMG2IMG — product reference + ambient context
-curl -s -X POST "https://fal.run/fal-ai/flux/dev/image-to-image" \
+Pasar la foto como `image_url` junto al prompt conversacional:
+
+```bash
+curl -s -X POST "https://fal.run/fal-ai/nano-banana-2" \
   -H "Authorization: Key $FAL_KEY" \
   -H "Content-Type: application/json" \
   -d "{
     \"image_url\": \"$IMAGE_DATA_URI\",
-    \"prompt\": \"{PROMPT_DE_CONTEXTO_CONSTRUIDO}\",
-    \"negative_prompt\": \"$NEGATIVE_PROMPT\",
+    \"prompt\": \"{PROMPT_CONVERSACIONAL_CONSTRUIDO}\",
     \"strength\": 0.55,
-    \"num_inference_steps\": 28,
-    \"guidance_scale\": 3.5,
     \"image_size\": \"square_hd\",
     \"num_images\": 1,
     \"enable_safety_checker\": true
   }"
 ```
 
-> **`strength`** controla cuánto se aleja el modelo de la imagen de referencia.
-> Calibrar según el tipo de producto:
+> **`strength`** — cuánto se aleja la generación de la foto de referencia:
 >
-> | Tipo de producto | `strength` recomendado | Por qué |
-> |---|---|---|
-> | Producto físico con forma definida (rollos, maquinaria, prendas, embalajes) | **0.50–0.60** | El modelo debe preservar la forma y colores exactos |
-> | Producto con textura/patrón (telas, papeles, superficies) | **0.55–0.65** | Balance entre fidelidad y ambientación |
-> | Producto de consumo (alimentos, cosméticos, botellas) | **0.60–0.70** | Forma reconocible, más libertad de escena |
-> | Servicios o conceptos (sin producto físico claro) | **0.70–0.80** | Mayor creatividad, menos literalidad |
+> | Tipo de producto | `strength` |
+> |---|---|
+> | Físico con forma definida (rollos, maquinaria, embalajes) | **0.50–0.60** |
+> | Textura/patrón (telas, papeles, superficies) | **0.55–0.65** |
+> | Consumo (alimentos, cosméticos, botellas) | **0.60–0.70** |
+> | Servicios / conceptos abstractos | **0.70–0.80** |
 >
-> **Valor por defecto**: `0.55` — seguro para la mayoría de productos físicos B2B.
-> Si el producto generado **no se parece a la referencia** → bajar a 0.45–0.50.
-> Si el resultado es **demasiado idéntico a la foto** → subir a 0.65–0.70.
+> **Default**: `0.55`. Si el resultado no se parece a la foto → bajar a 0.45.
+> Si es demasiado idéntico → subir a 0.65–0.70.
 
-> **Para Facebook**: cambiar `"image_size"` a `"landscape_4_3"` (1280×960)
+> **Para Facebook**: cambiar `"image_size"` a `"landscape_4_3"`
 
-#### Modo texto — sin foto de referencia
+#### Sin foto de referencia
 
-**Con personas:** `fal-ai/flux/dev` (28 pasos)
-**Solo producto/objeto:** `fal-ai/flux/schnell` (8 pasos, más rápido y económico)
+Solo prompt conversacional, sin `image_url`:
 
 ```bash
-# Con personas — flux/dev, 28 pasos para mayor calidad anatómica
-curl -s -X POST "https://fal.run/fal-ai/flux/dev" \
+curl -s -X POST "https://fal.run/fal-ai/nano-banana-2" \
   -H "Authorization: Key $FAL_KEY" \
   -H "Content-Type: application/json" \
   -d "{
-    \"prompt\": \"{PROMPT_POSITIVO_CONSTRUIDO}\",
-    \"negative_prompt\": \"$NEGATIVE_PROMPT\",
+    \"prompt\": \"{PROMPT_CONVERSACIONAL_CONSTRUIDO}\",
     \"image_size\": \"square_hd\",
-    \"num_inference_steps\": 28,
-    \"guidance_scale\": 3.5,
-    \"num_images\": 1,
-    \"enable_safety_checker\": true
-  }"
-
-# Solo producto/objeto, sin personas — flux/schnell, 8 pasos
-curl -s -X POST "https://fal.run/fal-ai/flux/schnell" \
-  -H "Authorization: Key $FAL_KEY" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"prompt\": \"{PROMPT_POSITIVO_CONSTRUIDO}\",
-    \"negative_prompt\": \"$NEGATIVE_PROMPT\",
-    \"image_size\": \"square_hd\",
-    \"num_inference_steps\": 8,
     \"num_images\": 1,
     \"enable_safety_checker\": true
   }"
