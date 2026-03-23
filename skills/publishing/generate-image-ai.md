@@ -135,38 +135,46 @@ El prompt varía según el modo detectado en Paso 0.
 
 #### Modo img2img (hay foto de referencia + FAL_KEY)
 
-En img2img, la IA **ya conoce el producto** por la imagen de referencia.
-El prompt debe describir el **contexto y ambiente donde aparece el producto**, NO el producto en sí.
+En img2img el modelo usa la foto como base visual, pero **el prompt ancla el producto**
+para que el modelo sepa qué está generando. Sin un ancla de producto, el modelo lo
+reinterpreta libremente y el resultado no se parece al original.
 
-**Estructura del prompt img2img:**
+**Estructura del prompt img2img — SIEMPRE en dos bloques:**
 ```
-{superficie_o_entorno}, {elementos_de_contexto}, {iluminacion},
-{personas_o_actividad_de_fondo_opcional}, {mood_general},
+{BLOQUE 1 — descripción del producto}: {tipo}, {colores visibles}, {forma/presentación}
+{BLOQUE 2 — contexto/ambiente}: {superficie_o_entorno}, {elementos_contextuales}, {iluminacion}, {mood}
 {anclas_fotorrealismo}
 ```
 
-**Reglas de construcción — lo que SÍ y NO poner:**
+**Bloque 1 — cómo describir el producto (OBLIGATORIO):**
 
-| ✅ SÍ incluir (contexto/ambiente) | ❌ NO incluir (ya está en la referencia) |
+Analizar visualmente la imagen de referencia con la herramienta de visión y extraer:
+- **Tipo de objeto**: "rollos de cinta de polipropileno", "bobinas de hilo", "rollos de tela industrial"
+- **Colores visibles**: "en colores sólidos (negro, crema, rosa, azul marino, verde, lila)"
+- **Forma/presentación**: "enrollados verticalmente", "apilados horizontalmente", "en abanico"
+- **Material** (si es distinguible): "tejido plano liso", "fibra satinada", "material sintético"
+
+| ✅ SÍ incluir en el prompt img2img | ❌ NO inventar ni exagerar |
 |---|---|
-| "sobre mesa de trabajo de madera oscura" | El color del producto |
-| "luz natural de ventana lateral suave" | El material o textura del producto |
-| "sala de reuniones corporativa de fondo" | La forma o dimensiones del producto |
-| "manos de profesional sosteniendo el material" | El nombre o descripción del producto |
-| "entorno industrial limpio y ordenado" | Cualquier característica visual ya visible |
+| Tipo de producto extraído de la referencia | Colores que no aparecen en la foto real |
+| Colores reales observados en la imagen | Materiales no visibles claramente |
+| Forma y presentación tal como se ve | Detalles de producto que no son evidentes |
+| Contexto y ambiente según el tópico | Texturas o acabados que no son distinguibles |
 
-**Adaptar el contexto al tópico del post:**
-- "tip del sector" → producto sobre mesa de trabajo, cuaderno y laptop al lado, luz natural
-- "caso de éxito" → producto en primer plano, personas de traje al fondo desenfocadas
-- "detrás de escena" → producto en proceso de producción, entorno industrial limpio
-- "tendencia de mercado" → producto sobre superficie moderna con elementos de diseño
+**Bloque 2 — adaptar el contexto al tópico del post:**
+- "tip del sector" → sobre mesa de trabajo de madera, muestras y cuaderno al lado, luz natural
+- "caso de éxito" → primer plano destacado, personas de traje al fondo desenfocadas
+- "detrás de escena" → en proceso de producción, entorno industrial limpio y ordenado
+- "tendencia de mercado" → superficie moderna, composición editorial, elementos de diseño
 - "fecha especial" → decoración acorde a la fecha, ambiente festivo o emotivo
-- "nuevo lanzamiento" → producto destacado sobre fondo minimalista, estudio de fotografía
+- "nuevo lanzamiento" → fondo minimalista blanco, estudio de fotografía, iluminación de producto
 
-**Ejemplo de prompt img2img (sector textil, tip de cuidado):**
+**Ejemplo de prompt img2img (sector textil, rollos de cinta, tip de cuidado):**
 ```
-sobre mesa de trabajo de madera clara, muestras de colores y cuaderno abierto al lado,
-luz natural suave de ventana lateral, ambiente de estudio de diseño de moda,
+rollos de cinta plana de polipropileno en colores sólidos (negro, crema, rosa, azul marino,
+celeste, verde, lila, verde amarillento), presentados verticalmente en abanico,
+sobre mesa de trabajo de madera clara con muestras de tela y cuaderno abierto al lado,
+luz natural suave de ventana lateral, ambiente de estudio de diseño textil,
 diseñadora de espaldas revisando material al fondo (desenfocada), tonos neutros y cálidos,
 fotografía real, hiperrealista, fotografía comercial profesional, resolución 8K,
 nitidez perfecta, iluminación natural, sin distorsiones, sin artefactos de IA
@@ -260,7 +268,7 @@ curl -s -X POST "https://fal.run/fal-ai/flux/dev/image-to-image" \
     \"image_url\": \"$IMAGE_DATA_URI\",
     \"prompt\": \"{PROMPT_DE_CONTEXTO_CONSTRUIDO}\",
     \"negative_prompt\": \"$NEGATIVE_PROMPT\",
-    \"strength\": 0.80,
+    \"strength\": 0.55,
     \"num_inference_steps\": 28,
     \"guidance_scale\": 3.5,
     \"image_size\": \"square_hd\",
@@ -269,12 +277,19 @@ curl -s -X POST "https://fal.run/fal-ai/flux/dev/image-to-image" \
   }"
 ```
 
-> **`strength: 0.80`** — 80% creatividad, 20% fidelidad a la referencia.
-> El modelo preserva los colores, materiales y aspecto del producto pero lo coloca
-> en el contexto descrito por el prompt. Ajustar según necesidad:
-> - `strength: 0.65` → más fiel a la foto original, menos recontextualización
-> - `strength: 0.80` → **punto óptimo marketing B2B** — producto reconocible, escena nueva
-> - `strength: 0.90` → muy creativo, el producto es apenas referencia visual
+> **`strength`** controla cuánto se aleja el modelo de la imagen de referencia.
+> Calibrar según el tipo de producto:
+>
+> | Tipo de producto | `strength` recomendado | Por qué |
+> |---|---|---|
+> | Producto físico con forma definida (rollos, maquinaria, prendas, embalajes) | **0.50–0.60** | El modelo debe preservar la forma y colores exactos |
+> | Producto con textura/patrón (telas, papeles, superficies) | **0.55–0.65** | Balance entre fidelidad y ambientación |
+> | Producto de consumo (alimentos, cosméticos, botellas) | **0.60–0.70** | Forma reconocible, más libertad de escena |
+> | Servicios o conceptos (sin producto físico claro) | **0.70–0.80** | Mayor creatividad, menos literalidad |
+>
+> **Valor por defecto**: `0.55` — seguro para la mayoría de productos físicos B2B.
+> Si el producto generado **no se parece a la referencia** → bajar a 0.45–0.50.
+> Si el resultado es **demasiado idéntico a la foto** → subir a 0.65–0.70.
 
 > **Para Facebook**: cambiar `"image_size"` a `"landscape_4_3"` (1280×960)
 
@@ -418,8 +433,8 @@ Crea `.claude/posts/images/{FECHA}.json`:
   "mode": "img2img",
   "product_slug": "tela-algodon",
   "reference_image": ".claude/brand-images/products/tela-algodon/ref-1.jpg",
-  "strength": 0.80,
-  "prompt_used": "sobre mesa de trabajo de madera clara, muestras de colores al lado...",
+  "strength": 0.55,
+  "prompt_used": "rollos de cinta plana de polipropileno en colores sólidos (negro, crema, rosa...), sobre mesa de trabajo de madera clara...",
   "image_url": "https://fal.media/files/xxx/generated.jpeg",
   "topic": "tips de cuidado del algodón",
   "category": "Educativo / tip del sector",
@@ -486,7 +501,8 @@ Mientras tanto, puedes usar este prompt en Midjourney, Firefly o Stable Diffusio
 ## Notas
 
 - **img2img es el modo preferido**: produce resultados más consistentes con la identidad visual real del producto
-- **`strength: 0.80`** es el punto óptimo para marketing B2B — preserva el producto, crea escena nueva
+- **El prompt img2img SIEMPRE debe describir el producto primero** (tipo + colores + forma), luego el contexto/ambiente
+- **`strength: 0.55`** es el punto de partida seguro para productos físicos B2B — preserva forma y colores, crea escena nueva
 - Configurar fotos de referencia ejecutando `/init` desde el proyecto de empresa
 - Las fotos de referencia se leen de `.claude/brand-images/products/{slug}/` (max recomendado: 5 fotos por producto)
 - Las URLs de fal.ai son persistentes (no expiran) — ideales para Instagram Graph API
@@ -505,8 +521,8 @@ Mientras tanto, puedes usar este prompt en Midjourney, Firefly o Stable Diffusio
 | Artefactos y ruido | Pocos pasos de inferencia | Mínimo 28 pasos con personas; 8 para producto |
 | Texto ilegible en imagen | Modelos no generan texto bien | Nunca pedir texto en el prompt |
 | Personas duplicadas | Prompt vago | Especificar cantidad exacta ("una persona", "dos personas") |
-| Producto irreconocible | `strength` muy alto | Reducir a 0.70-0.75 en img2img |
-| Producto idéntico a la foto | `strength` muy bajo | Aumentar a 0.85-0.90 en img2img |
+| Producto generado no se parece a la referencia | `strength` muy alto O prompt sin ancla de producto | Bajar a 0.45-0.50 Y agregar descripción del producto al inicio del prompt |
+| Producto idéntico a la foto, sin recontextualización | `strength` muy bajo | Subir a 0.65-0.70 en img2img |
 | Producto distorsionado | Imagen de referencia de baja resolución | Usar fotos de mínimo 512×512 px como referencia |
 
 **Regla de oro:** usar siempre **img2img con foto de referencia** cuando sea posible.
