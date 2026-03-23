@@ -158,7 +158,142 @@ Si no aplica para tu negocio, escribe "ninguno".
 
 ---
 
-### Fase 5 — Credenciales
+### Fase 5 — Catálogo de productos e imágenes de referencia
+
+Esta fase configura el motor visual del toolkit. Las fotos de referencia permiten al
+generador de imágenes IA crear nuevas imágenes donde el producto aparece ambientado en
+contextos reales (mesas, oficinas, personas de fondo, entornos industriales), preservando
+su aspecto visual real sin publicar las fotos directamente.
+
+**Pregunta 5.1 — ¿Cuántos productos o servicios?**
+```
+¿Tu empresa tiene un solo producto/servicio principal o varios?
+
+Ejemplos:
+  • "Uno solo: telas para confección"
+  • "Varios: tela de algodón, tela de licra, hilos industriales"
+```
+
+**Si responde uno solo:**
+- Usar el nombre de Fase 1.2 como producto principal → slug: `principal`
+- Continuar directamente con Pregunta 5.2 para ese único producto
+
+**Si responde varios:**
+- Pedir que los nombre uno por uno (máximo 8 productos)
+- Convertir cada nombre a slug: minúsculas, sin espacios, sin tildes
+  (Ejemplo: "Tela de Algodón" → `tela-algodon`)
+- Repetir Preguntas 5.2 y 5.3 para cada uno
+
+---
+
+**Pregunta 5.2 — Descripción visual** (repetir por cada producto)
+
+```
+Para [{NOMBRE_PRODUCTO}], descríbeme brevemente cómo se ve físicamente:
+  • ¿Qué colores tiene?
+  • ¿De qué material o textura es?
+  • ¿Cómo lo verías en una fotografía? (forma, tamaño aproximado)
+
+Ejemplo: "Rollos de tela beige claro, textura suave al tacto,
+unos 50cm de ancho, con etiqueta blanca en el centro del rollo"
+```
+
+---
+
+**Pregunta 5.3 — Fotos de referencia** (repetir por cada producto)
+
+```
+¿Tienes fotos o imágenes de [{NOMBRE_PRODUCTO}] que puedas compartir?
+
+Puedes:
+  → Arrastrar las imágenes aquí directamente
+  → Escribir la ruta del archivo (ej: /Users/juan/fotos/producto.jpg)
+  → Escribir "no tengo" si aún no tienes fotos disponibles
+
+Estas fotos se usan como BASE VISUAL para generar imágenes de IA.
+No se publican directamente — la IA las usa para preservar los colores,
+materiales y forma real del producto al crear nuevas imágenes en
+contextos distintos (mesas, oficinas, entornos industriales, etc).
+```
+
+**Para cada imagen proporcionada:**
+
+1. Crear la carpeta del producto:
+   ```bash
+   mkdir -p .claude/brand-images/products/{PRODUCT_SLUG}
+   ```
+
+2. Copiar la imagen:
+   ```bash
+   cp "{RUTA_IMAGEN_USUARIO}" ".claude/brand-images/products/{PRODUCT_SLUG}/ref-{N}.{ext}"
+   ```
+   Donde `N` es el número secuencial (ref-1.jpg, ref-2.jpg, etc.)
+
+3. Analizar visualmente con la herramienta de visión → extraer y registrar:
+   - Colores dominantes (descripción o hex aproximado)
+   - Textura y material aparente
+   - Forma y dimensiones aproximadas
+   - Elementos visuales distintivos
+
+4. Guardar todo en `product-info.json` (ver abajo)
+
+**Si el usuario escribe "no tengo" o no tiene fotos:**
+- Guardar `has_reference_images: false`
+- Registrar solo la descripción textual de Pregunta 5.2
+- Continuar con el siguiente producto
+
+---
+
+**Archivos generados por esta fase:**
+
+Para cada producto, crear la carpeta `.claude/brand-images/products/{product_slug}/`
+con el archivo `product-info.json`:
+
+```json
+{
+  "name": "Tela de Algodón Premium",
+  "slug": "tela-algodon",
+  "description": "Rollos de tela de algodón 100% natural para confección",
+  "visual_description": "Rollo de tela beige claro, textura suave, ~50cm de ancho, acabado mate natural",
+  "colors": ["beige", "crema", "#F5F0E8"],
+  "keywords": ["algodón", "tela", "rollo", "natural", "confección", "textil"],
+  "has_reference_images": true,
+  "reference_images": ["ref-1.jpg", "ref-2.jpg"],
+  "is_default": true
+}
+```
+
+Además, crear el catálogo raíz `.claude/brand-images/products/product-catalog.json`:
+
+```json
+{
+  "updated_at": "{TIMESTAMP_ISO}",
+  "default_product": "{SLUG_DEL_PRIMER_PRODUCTO_O_PRINCIPAL}",
+  "products": [
+    {
+      "slug": "tela-algodon",
+      "name": "Tela de Algodón Premium",
+      "keywords": ["algodón", "tela", "rollo", "natural"],
+      "has_reference_images": true,
+      "is_default": true
+    },
+    {
+      "slug": "tela-licra",
+      "name": "Licra Deportiva",
+      "keywords": ["licra", "elastano", "deportivo", "stretch"],
+      "has_reference_images": false,
+      "is_default": false
+    }
+  ]
+}
+```
+
+> El `default_product` es el que se usa cuando el tópico del post no coincide
+> claramente con ningún producto específico del catálogo.
+
+---
+
+### Fase 6 — Credenciales
 
 Preguntar sobre credenciales de manera no técnica:
 
@@ -193,7 +328,7 @@ Registrar para cada uno: `tiene` / `necesita_obtener` / `no_aplica`
 
 ---
 
-### Fase 6 — Confirmación y generación
+### Fase 7 — Confirmación y generación
 
 Antes de generar los archivos, mostrar un resumen para confirmar:
 
@@ -215,6 +350,11 @@ Perfecto. Déjame resumir lo que registré:
 - Decisor: {DECISION_MAKER_ROLE}
 - Por qué te eligen: {VALUE_PROPOSITION}
 
+🖼️ PRODUCTOS / CATÁLOGO VISUAL
+{PARA_CADA_PRODUCTO:}
+- {PRODUCT_NAME}: {has_reference_images ? N fotos de referencia : sin fotos aún}
+Catálogo: .claude/brand-images/products/product-catalog.json
+
 📊 MERCADO
 - Competidores: {COMPETITORS}
 - Commodities a monitorear: {COMMODITIES}
@@ -234,7 +374,7 @@ Si el usuario pide corregir algo, volver a la pregunta específica y actualizar.
 
 ---
 
-### Fase 7 — Generar archivos de configuración
+### Fase 8 — Generar archivos de configuración
 
 #### Archivo 1: `.claude/company-context.json`
 
@@ -348,7 +488,7 @@ Esta instancia del toolkit está configurada para:
 
 ---
 
-### Fase 8 — Siguiente paso
+### Fase 9 — Siguiente paso
 
 Mostrar resumen de lo generado y preguntar qué hacer a continuación:
 
@@ -358,6 +498,10 @@ Mostrar resumen de lo generado y preguntar qué hacer a continuación:
 📄 .claude/company-context.json — contexto para todos los agentes
 📄 .env.example — plantilla de variables de entorno con comentarios
 📄 CLAUDE.md — actualizado con el contexto de {COMPANY_NAME}
+📁 .claude/brand-images/products/ — catálogo de productos con imágenes de referencia
+   ├── product-catalog.json — índice de todos los productos
+   {PARA_CADA_PRODUCTO:}
+   └── {product_slug}/product-info.json {+ ref-N.jpg si subiste fotos}
 
 ---
 ```
@@ -413,10 +557,20 @@ Si responde no → terminar con mensaje de éxito
   "initialized": true,
   "company": "{COMPANY_NAME}",
   "platforms": ["{PLATFORM_1}", "{PLATFORM_2}"],
+  "products": [
+    {
+      "slug": "{PRODUCT_SLUG}",
+      "name": "{PRODUCT_NAME}",
+      "has_reference_images": true,
+      "reference_images_count": 2
+    }
+  ],
   "files_generated": [
     ".claude/company-context.json",
     ".env.example",
-    "CLAUDE.md (actualizado)"
+    "CLAUDE.md (actualizado)",
+    ".claude/brand-images/products/product-catalog.json",
+    ".claude/brand-images/products/{slug}/product-info.json"
   ],
   "credentials_pending": ["{PLATAFORMA_SIN_CREDENCIALES}"],
   "setup_check_run": true,

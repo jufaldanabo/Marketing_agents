@@ -1,7 +1,12 @@
 # Skill: generate-image-ai
 
-Genera una imagen publicitaria B2B usando IA (fal.ai FLUX o DALL-E 3) a partir del
-estilo visual de la marca y el contexto del post del día.
+Genera una imagen publicitaria B2B usando IA (fal.ai FLUX o DALL-E 3) a partir de las
+fotos de referencia del producto, el estilo visual de la marca y el contexto del post del día.
+
+El modo principal es **imagen a imagen (img2img)**: toma una foto real del producto como
+base y la recrea ambientada en un nuevo contexto (mesa de trabajo, sala de reuniones,
+entorno industrial, personas al fondo), generando imágenes de IA que parecen fotografías
+comerciales profesionales del producto real.
 
 Devuelve una **URL pública** lista para usar directamente en Instagram Graph API.
 
@@ -11,8 +16,8 @@ Devuelve una **URL pública** lista para usar directamente en Instagram Graph AP
 
 | Variable | Descripción |
 |---|---|
-| `FAL_KEY` | API key de fal.ai — proveedor principal (rápido y económico) |
-| `OPENAI_API_KEY` | Alternativa si no hay FAL_KEY — usa DALL-E 3 |
+| `FAL_KEY` | API key de fal.ai — requerida para img2img y text-to-image |
+| `OPENAI_API_KEY` | Alternativa sin FAL_KEY — DALL-E 3 solo texto (no soporta img2img) |
 
 Obtener `FAL_KEY`: https://fal.ai → Dashboard → API Keys
 
@@ -28,15 +33,86 @@ company_name     → Nombre de la empresa
 industry         → Sector de la empresa
 special_date     → Fecha especial si aplica (o null)
 platform         → "instagram" (1:1) | "facebook" (1.91:1)
+product_slug     → Slug del producto a usar (o null para auto-detectar desde topic/category)
 ```
 
 ---
 
 ## Instrucciones para Claude
 
-### Paso 1 — Detectar proveedor disponible
+### Paso 0 — Seleccionar producto y obtener imagen de referencia
 
-Lee `.env` (o las variables de entorno) para detectar cuál API key está disponible:
+Antes de construir el prompt, identificar qué producto usar y si hay fotos disponibles.
+
+#### 0.1 — Leer catálogo de productos
+
+```bash
+cat .claude/brand-images/products/product-catalog.json 2>/dev/null
+```
+
+- Si el archivo **no existe** → `mode = "text"`, `has_catalog = false` → saltar al Paso 1
+- Si el archivo **existe** → continuar con 0.2
+
+#### 0.2 — Seleccionar el producto más relevante
+
+Elegir el producto que mejor coincida con `topic` y `category` del post:
+
+**Reglas de selección (en orden de prioridad):**
+1. Si `product_slug` fue pasado explícitamente → usarlo sin evaluar
+2. Comparar palabras clave de `topic` y `category` contra los `keywords` de cada producto
+3. Si hay un solo producto en el catálogo → usarlo siempre
+4. Si hay múltiples sin coincidencia clara → usar el `default_product` del catálogo
+
+**Ejemplos:**
+```
+topic: "tips de cuidado del algodón"
+keywords del producto: ["algodón", "tela", "natural"]
+→ coincidencia alta → product_slug: "tela-algodon" ✓
+
+topic: "tendencias del mercado textil 2026"
+ninguna coincidencia específica → usar default_product ✓
+```
+
+#### 0.3 — Verificar si hay imágenes de referencia
+
+```bash
+PRODUCT_SLUG="{SLUG_SELECCIONADO}"
+ls .claude/brand-images/products/$PRODUCT_SLUG/ 2>/dev/null | grep -E "\.(jpg|jpeg|png|webp)$"
+```
+
+- **Con imágenes** → `mode = "img2img"` → continuar con 0.4
+- **Sin imágenes** → `mode = "text"` → saltar al Paso 1
+
+#### 0.4 — Preparar imagen de referencia (solo modo img2img)
+
+Seleccionar la primera imagen disponible y codificar para la API:
+
+```bash
+REF_IMAGE=$(ls .claude/brand-images/products/$PRODUCT_SLUG/ | grep -E "\.(jpg|jpeg|png|webp)$" | head -1)
+REF_IMAGE_PATH=".claude/brand-images/products/$PRODUCT_SLUG/$REF_IMAGE"
+
+# Codificar como base64 con data URI
+BASE64_IMG=$(base64 -i "$REF_IMAGE_PATH" 2>/dev/null || base64 "$REF_IMAGE_PATH")
+EXT="${REF_IMAGE##*.}"
+MIME_TYPE="image/jpeg"
+[ "$EXT" = "png" ] && MIME_TYPE="image/png"
+[ "$EXT" = "webp" ] && MIME_TYPE="image/webp"
+IMAGE_DATA_URI="data:$MIME_TYPE;base64,$BASE64_IMG"
+```
+
+Guardar para uso posterior:
+- `PRODUCT_SLUG` → para metadata y logs
+- `REF_IMAGE_PATH` → para verificación visual
+- `IMAGE_DATA_URI` → para llamada API en Paso 2A
+- `mode = "img2img"` → determina qué variante usar en Paso 2A
+
+> Si hay `FAL_KEY`: usar img2img directo con `IMAGE_DATA_URI`.
+> Si solo hay `OPENAI_API_KEY`: analizar visualmente la referencia con la herramienta
+> de visión para extraer descripción detallada → usarla en el prompt de DALL-E 3.
+
+---
+
+### Paso 1 — Detectar proveedor disponible
 
 ```bash
 # Verificar qué key está configurada
@@ -45,85 +121,102 @@ grep -E "^OPENAI_API_KEY=.+" .env 2>/dev/null && echo "openai" || \
 echo "none"
 ```
 
-- Si hay `FAL_KEY` → usar **fal.ai FLUX** (Paso 2A)
-- Si hay `OPENAI_API_KEY` → usar **DALL-E 3** (Paso 2B)
-- Si no hay ninguna → Paso 4 (solo prompt externo)
+| Proveedor | Con imagen referencia | Sin imagen referencia |
+|---|---|---|
+| `FAL_KEY` | img2img con `flux/dev/image-to-image` ⭐ | text-to-image con `flux/dev` o `schnell` |
+| `OPENAI_API_KEY` | Describir referencia via visión → prompt DALL-E 3 | Prompt de texto estándar DALL-E 3 |
+| ninguno | Paso 4 (prompt externo solamente) | Paso 4 (prompt externo solamente) |
 
 ---
 
-### Paso 2 — Construir el prompt positivo
+### Paso 2 — Construir el prompt
 
-Combina el estilo de marca + tópico + anclajes de fotorrealismo.
+El prompt varía según el modo detectado en Paso 0.
 
-**Estructura del prompt:**
+#### Modo img2img (hay foto de referencia + FAL_KEY)
+
+En img2img, la IA **ya conoce el producto** por la imagen de referencia.
+El prompt debe describir el **contexto y ambiente donde aparece el producto**, NO el producto en sí.
+
+**Estructura del prompt img2img:**
 ```
-{estilo_fotografico}, {mood}, colores dominantes {palette}, {descripcion_visual_del_topico},
+{superficie_o_entorno}, {elementos_de_contexto}, {iluminacion},
+{personas_o_actividad_de_fondo_opcional}, {mood_general},
+{anclas_fotorrealismo}
+```
+
+**Reglas de construcción — lo que SÍ y NO poner:**
+
+| ✅ SÍ incluir (contexto/ambiente) | ❌ NO incluir (ya está en la referencia) |
+|---|---|
+| "sobre mesa de trabajo de madera oscura" | El color del producto |
+| "luz natural de ventana lateral suave" | El material o textura del producto |
+| "sala de reuniones corporativa de fondo" | La forma o dimensiones del producto |
+| "manos de profesional sosteniendo el material" | El nombre o descripción del producto |
+| "entorno industrial limpio y ordenado" | Cualquier característica visual ya visible |
+
+**Adaptar el contexto al tópico del post:**
+- "tip del sector" → producto sobre mesa de trabajo, cuaderno y laptop al lado, luz natural
+- "caso de éxito" → producto en primer plano, personas de traje al fondo desenfocadas
+- "detrás de escena" → producto en proceso de producción, entorno industrial limpio
+- "tendencia de mercado" → producto sobre superficie moderna con elementos de diseño
+- "fecha especial" → decoración acorde a la fecha, ambiente festivo o emotivo
+- "nuevo lanzamiento" → producto destacado sobre fondo minimalista, estudio de fotografía
+
+**Ejemplo de prompt img2img (sector textil, tip de cuidado):**
+```
+sobre mesa de trabajo de madera clara, muestras de colores y cuaderno abierto al lado,
+luz natural suave de ventana lateral, ambiente de estudio de diseño de moda,
+diseñadora de espaldas revisando material al fondo (desenfocada), tonos neutros y cálidos,
+fotografía real, hiperrealista, fotografía comercial profesional, resolución 8K,
+nitidez perfecta, iluminación natural, sin distorsiones, sin artefactos de IA
+```
+
+#### Modo texto (sin foto de referencia, o OPENAI_API_KEY sin referencia)
+
+Usar el flujo clásico de descripción completa del producto:
+
+**Estructura del prompt texto:**
+```
+{estilo_fotografico}, {mood}, colores dominantes {palette},
+{descripcion_visual_completa_del_producto_y_contexto},
 {sector_industrial}, {anclas_fotorrealismo}
 ```
 
-**Reglas de construcción:**
+**Reglas:**
+1. **Si existe `brand_style`** → usar `photography_style`, `mood`, `color_palette`, `elements`
+2. **Si NO existe `brand_style`** → construir prompt limpio basado en industria + tópico
+3. **Prioridad de composición** (evitar defectos anatómicos):
+   - Primera opción: producto/objeto/entorno sin personas
+   - Segunda opción: personas de espaldas, de perfil, o plano detalle (manos, etc.)
+   - Tercera opción: personas de frente (solo si la categoría lo requiere)
 
-1. **Si existe `brand_style`** → úsalo como base:
-   - `photography_style` → define el tipo de imagen (producto, lifestyle, abstracto, etc.)
-   - `mood` → tono emocional (profesional, cálido, innovador, etc.)
-   - `color_palette` → mencionar los colores hex o sus equivalentes descriptivos
-   - `elements` → incluir elementos recurrentes de la marca si son visuales
+#### Modo texto con referencia (OPENAI_API_KEY + hay foto)
 
-2. **Si NO existe `brand_style`** → generar un prompt limpio y profesional basado en
-   el sector de la empresa y el tópico del post.
-
-3. **Prioridad de tipo de imagen — evitar problemas anatómicos:**
-   - **Primera opción**: fotografía de **producto, objeto o entorno** sin personas
-     → eliminates el 100% de los problemas de manos, dedos y caras
-   - **Segunda opción**: personas **de espaldas, de perfil, o en plano detalle** (manos con objeto,
-     escritorio con computadora, etc.) → reduce drásticamente los defectos
-   - **Tercera opción**: personas de frente → solo si la categoría lo requiere (ej. "caso de éxito",
-     "equipo"). En ese caso agregar explícitamente los anclas anatómicos del punto 5.
-
-4. **Adaptar el tópico al visual:**
-   - "tips de reducción de desperdicios" → maquinaria limpia, proceso ordenado, sin personas
-   - "caso de éxito" → apretón de manos (plano medio), o producto destacado con cliente de fondo
-   - "tendencia de mercado" → imagen de sala de reunión, datos en pantalla, sin primer plano facial
-   - "detrás de escena" → proceso industrial, herramientas, materiales
-   - "Día Internacional de la Mujer" → mujer profesional de perfil o de espaldas en entorno laboral
-
-5. **Anclas de fotorrealismo — SIEMPRE agregar al final del prompt positivo:**
-   ```
-   fotografía real, hiperrealista, fotografía comercial profesional,
-   resolución 8K, nitidez perfecta, iluminación de estudio natural,
-   proporciones anatómicas correctas, manos con cinco dedos,
-   rasgos faciales naturales, sin distorsiones, sin artefactos de IA
-   ```
-
-6. **Para Instagram**: especificar `square_hd` (1024×1024)
-   **Para Facebook**: especificar `landscape_4_3` (1280×960)
-
-**Ejemplo de prompt resultante (producto, sin personas):**
+1. Analizar la imagen de referencia con la herramienta de visión
+2. Extraer descripción visual detallada: colores, textura, material, forma, acabados
+3. Incorporar esa descripción como primer bloque del prompt:
 ```
-fotografía de producto industrial sobre fondo blanco neutro, ambiente limpio y minimalista,
-tonos cálidos beige y azul oscuro corporativo, maquinaria textil de precisión con
-detalles técnicos visibles, sector manufactura, fotografía real, hiperrealista,
-fotografía comercial profesional, resolución 8K, nitidez perfecta,
-iluminación de estudio natural, sin distorsiones, sin artefactos de IA
+{descripcion_visual_extraida_de_foto_real}, ambientado en {contexto_segun_topico},
+{iluminacion_y_entorno_profesional}, {anclas_fotorrealismo}, RESTRICTIONS: ...
 ```
 
-**Ejemplo de prompt resultante (persona, plano detalle):**
+**Anclas de fotorrealismo — SIEMPRE agregar al final del prompt (todos los modos):**
 ```
-manos de ejecutivo firmando documento sobre escritorio de madera oscura,
-ambiente corporativo formal, luz de ventana lateral, tonos azul y beige,
 fotografía real, hiperrealista, fotografía comercial profesional,
-resolución 8K, proporciones anatómicas correctas, manos con cinco dedos,
-sin distorsiones, sin artefactos de IA
+resolución 8K, nitidez perfecta, iluminación de estudio natural,
+proporciones anatómicas correctas, manos con cinco dedos,
+rasgos faciales naturales, sin distorsiones, sin artefactos de IA
 ```
+
+**Para Instagram**: `square_hd` (1024×1024)
+**Para Facebook**: `landscape_4_3` (1280×960)
 
 ---
 
 ### Paso 2.1 — Negative prompt (SIEMPRE incluir)
 
-El negative prompt le dice a la IA qué **NO generar**. Es tan importante como el prompt positivo.
-Se envía en el campo `negative_prompt` de la API (fal.ai) o embebido en el prompt (DALL-E 3).
-
-**Negative prompt estándar — copiar en cada llamada:**
+**Negative prompt estándar — copiar en cada llamada a fal.ai:**
 ```
 cartoon, illustration, painting, drawing, anime, sketch, CGI, 3D render,
 unrealistic, surreal, abstract art, watercolor, oil painting,
@@ -150,19 +243,48 @@ no AI artifacts, anatomically perfect human proportions --
 
 ### Paso 2A — Generar con fal.ai FLUX
 
-**Modelo recomendado:** `fal-ai/flux/dev` (soporta negative_prompt y más pasos → mayor calidad y
-menos alucinaciones anatómicas, ~$0.025/imagen)
+#### Modo img2img — con foto de referencia del producto ⭐ PREFERIDO
 
-> ⚠️ No usar `flux/schnell` para imágenes con personas: tiene muy pocos pasos de inferencia
-> (4 por defecto) y genera manos/caras defectuosas con frecuencia. Para imágenes de producto
-> sin personas, schnell sí es suficiente.
+**Modelo:** `fal-ai/flux/dev/image-to-image`
 
 ```bash
 FAL_KEY=$(grep "^FAL_KEY=" .env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
 
 NEGATIVE_PROMPT="cartoon, illustration, painting, drawing, anime, sketch, CGI, 3D render, unrealistic, surreal, abstract art, watercolor, deformed hands, extra fingers, six fingers, 6 fingers, missing fingers, fused fingers, extra thumbs, malformed hands, extra limbs, extra arms, extra legs, disfigured face, deformed face, distorted face, asymmetrical face, extra eyes, three eyes, cyclops, two mouths, extra mouths, extra lips, melted face, bad anatomy, bad proportions, incorrect anatomy, mutation, mutated body, cloned faces, duplicate features, body horror, gross proportions, blurry, pixelated, low quality, watermark, text overlay, signature, logo on image, AI artifacts, bad art, worst quality, plastic skin, wax skin, unnatural skin texture, toy-like appearance"
 
-# Para Instagram (cuadrado) — imagen con personas
+# IMG2IMG — product reference + ambient context
+curl -s -X POST "https://fal.run/fal-ai/flux/dev/image-to-image" \
+  -H "Authorization: Key $FAL_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"image_url\": \"$IMAGE_DATA_URI\",
+    \"prompt\": \"{PROMPT_DE_CONTEXTO_CONSTRUIDO}\",
+    \"negative_prompt\": \"$NEGATIVE_PROMPT\",
+    \"strength\": 0.80,
+    \"num_inference_steps\": 28,
+    \"guidance_scale\": 3.5,
+    \"image_size\": \"square_hd\",
+    \"num_images\": 1,
+    \"enable_safety_checker\": true
+  }"
+```
+
+> **`strength: 0.80`** — 80% creatividad, 20% fidelidad a la referencia.
+> El modelo preserva los colores, materiales y aspecto del producto pero lo coloca
+> en el contexto descrito por el prompt. Ajustar según necesidad:
+> - `strength: 0.65` → más fiel a la foto original, menos recontextualización
+> - `strength: 0.80` → **punto óptimo marketing B2B** — producto reconocible, escena nueva
+> - `strength: 0.90` → muy creativo, el producto es apenas referencia visual
+
+> **Para Facebook**: cambiar `"image_size"` a `"landscape_4_3"` (1280×960)
+
+#### Modo texto — sin foto de referencia
+
+**Con personas:** `fal-ai/flux/dev` (28 pasos)
+**Solo producto/objeto:** `fal-ai/flux/schnell` (8 pasos, más rápido y económico)
+
+```bash
+# Con personas — flux/dev, 28 pasos para mayor calidad anatómica
 curl -s -X POST "https://fal.run/fal-ai/flux/dev" \
   -H "Authorization: Key $FAL_KEY" \
   -H "Content-Type: application/json" \
@@ -176,7 +298,7 @@ curl -s -X POST "https://fal.run/fal-ai/flux/dev" \
     \"enable_safety_checker\": true
   }"
 
-# Para Instagram (cuadrado) — solo producto/objeto, sin personas
+# Solo producto/objeto, sin personas — flux/schnell, 8 pasos
 curl -s -X POST "https://fal.run/fal-ai/flux/schnell" \
   -H "Authorization: Key $FAL_KEY" \
   -H "Content-Type: application/json" \
@@ -190,11 +312,7 @@ curl -s -X POST "https://fal.run/fal-ai/flux/schnell" \
   }"
 ```
 
-> `num_inference_steps`: más pasos = más calidad y menos defectos anatómicos.
-> Mínimo recomendado con personas: **28 pasos** (flux/dev).
-> Para producto sin personas: **8 pasos** (flux/schnell) es suficiente.
-
-**Respuesta esperada:**
+**Respuesta esperada (todos los modelos fal.ai):**
 ```json
 {
   "images": [
@@ -214,23 +332,26 @@ Extraer: `images[0].url` → URL pública persistente, lista para Instagram Grap
 
 **Si `has_nsfw_concepts[0]` es `true`** → regenerar (máximo 2 intentos).
 
-**Verificación de calidad antes de publicar:** Revisar visualmente la imagen generada
-con la herramienta de visión. Si se detectan manos con más de 5 dedos, caras deformadas
-o artefactos evidentes → regenerar con una variación del prompt (agregar más contexto
-fotográfico, cambiar composición). Máximo 3 intentos.
+**Verificación de calidad:** Revisar visualmente la imagen con la herramienta de visión.
+Si hay defectos (manos deformes, caras, artefactos) → regenerar con variación del prompt o ajustar `strength`. Máximo 3 intentos.
 
 ---
 
-### Paso 2B — Generar con DALL-E 3 (alternativa)
+### Paso 2B — Generar con DALL-E 3 (alternativa cuando no hay FAL_KEY)
 
-DALL-E 3 no acepta `negative_prompt` como campo separado. Las restricciones anatómicas
-se embeben directamente en el prompt positivo usando el bloque `RESTRICTIONS`.
+> ⚠️ DALL-E 3 **no soporta img2img**. Cuando hay fotos de referencia, se usa la visión
+> de Claude para describir el producto detalladamente e incorporar esa descripción en el prompt.
 
-**Prompt final para DALL-E 3** = `{PROMPT_POSITIVO}` + bloque de restricciones:
+#### Con imagen de referencia del producto
+
+1. Analizar `REF_IMAGE_PATH` con la herramienta de visión
+2. Extraer descripción visual: colores exactos, textura, material, forma, acabados, proporciones
+3. Construir el prompt combinando la descripción extraída + contexto ambiental del tópico:
 
 ```
-{PROMPT_POSITIVO_CONSTRUIDO}
-
+{descripcion_visual_extraida_de_la_foto_real},
+ambientado en {contexto_segun_topico}, {iluminacion_y_entorno},
+{sector_industrial_si_aplica},
 RESTRICTIONS: photorealistic commercial photography only, absolutely no cartoon or
 illustration style, no extra fingers (exactly 5 fingers per hand, no more, no less),
 no extra eyes or facial features, no deformed faces, no extra limbs, no body mutations,
@@ -239,10 +360,14 @@ anatomically perfect and natural human proportions if humans appear,
 high resolution, sharp focus, professional studio lighting
 ```
 
+#### Sin imagen de referencia
+
+Usar prompt de texto estándar con el bloque RESTRICTIONS al final.
+
 ```bash
 OPENAI_KEY=$(grep "^OPENAI_API_KEY=" .env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
 
-# DALL-E 3 siempre usar "hd" quality para marketing — reduce artefactos vs "standard"
+# DALL-E 3 — siempre "hd" para marketing
 curl -s -X POST "https://api.openai.com/v1/images/generations" \
   -H "Authorization: Bearer $OPENAI_KEY" \
   -H "Content-Type: application/json" \
@@ -256,8 +381,8 @@ curl -s -X POST "https://api.openai.com/v1/images/generations" \
   }'
 ```
 
-> Usar `"quality": "hd"` (no "standard") — genera el doble de detalle y reduce
-> significativamente los defectos anatómicos. Precio: $0.080 vs $0.040 por imagen.
+> Usar `"quality": "hd"` (no "standard") — doble detalle, menos defectos anatómicos.
+> Precio: $0.080 vs $0.040 por imagen.
 
 **Respuesta esperada:**
 ```json
@@ -273,51 +398,53 @@ curl -s -X POST "https://api.openai.com/v1/images/generations" \
 
 Extraer: `data[0].url`
 
-> ⚠️ Las URLs de DALL-E expiran en ~60 minutos. Publicar en Instagram inmediatamente
-> tras generarla. Guardar `revised_prompt` por si hay que regenerar.
+> ⚠️ Las URLs de DALL-E expiran en ~60 minutos. Publicar en Instagram inmediatamente.
+> Guardar `revised_prompt` por si hay que regenerar.
 
 ---
 
 ### Paso 3 — Guardar resultado
 
-Guarda los metadatos de la imagen generada en `.claude/posts/images/`:
-
 ```bash
 mkdir -p .claude/posts/images
 ```
 
-Crea el archivo `.claude/posts/images/{FECHA}.json`:
+Crea `.claude/posts/images/{FECHA}.json`:
 ```json
 {
-  "date": "2026-03-21",
+  "date": "2026-03-22",
   "provider": "fal",
-  "model": "flux/schnell",
-  "prompt_used": "fotografía de producto industrial...",
+  "model": "flux/dev/image-to-image",
+  "mode": "img2img",
+  "product_slug": "tela-algodon",
+  "reference_image": ".claude/brand-images/products/tela-algodon/ref-1.jpg",
+  "strength": 0.80,
+  "prompt_used": "sobre mesa de trabajo de madera clara, muestras de colores al lado...",
   "image_url": "https://fal.media/files/xxx/generated.jpeg",
-  "topic": "reducción de desperdicios en manufactura",
+  "topic": "tips de cuidado del algodón",
   "category": "Educativo / tip del sector",
   "platform": "instagram",
   "expires_at": null
 }
 ```
 
-> `expires_at`: null para fal.ai (URLs persistentes), timestamp ISO para DALL-E (+60min).
+> `mode`: `"img2img"` (con foto de referencia) | `"text"` (sin referencia)
+> `expires_at`: null para fal.ai (URLs persistentes), timestamp ISO para DALL-E (+60min)
 
 ---
 
 ### Paso 4 — Si no hay API key disponible
 
-Informar claramente:
 ```
 ⚠️  No se encontró FAL_KEY ni OPENAI_API_KEY en .env
 
 Para generar imágenes automáticamente, agrega una de estas variables:
 
-  Opción A — fal.ai (recomendado, ~$0.003/imagen):
+  Opción A — fal.ai (recomendado, soporta img2img desde fotos de tus productos):
     FAL_KEY=tu_key_aqui
     Obtener en: https://fal.ai → Dashboard → API Keys
 
-  Opción B — DALL-E 3 (~$0.04/imagen):
+  Opción B — DALL-E 3 (~$0.08/imagen, solo texto):
     OPENAI_API_KEY=tu_key_aqui
 
 Mientras tanto, puedes usar este prompt en Midjourney, Firefly o Stable Diffusion:
@@ -332,6 +459,9 @@ Mientras tanto, puedes usar este prompt en Midjourney, Firefly o Stable Diffusio
 {
   "success": true,
   "provider": "fal | openai | none",
+  "mode": "img2img | text",
+  "product_slug": "tela-algodon | null",
+  "reference_image_used": ".claude/brand-images/products/tela-algodon/ref-1.jpg | null",
   "image_url": "https://...",
   "prompt_used": "...",
   "dimensions": "1024x1024",
@@ -343,21 +473,25 @@ Mientras tanto, puedes usar este prompt en Midjourney, Firefly o Stable Diffusio
 
 ## Precios de referencia
 
-| Proveedor | Modelo | Precio/imagen | Velocidad | Recomendado para |
-|---|---|---|---|---|
-| fal.ai | FLUX Schnell (8 pasos) | ~$0.003 | ~3 seg | Solo producto/objeto, sin personas |
-| fal.ai | FLUX Dev (28 pasos) | ~$0.025 | ~15 seg | Con personas — mejor calidad anatómica |
-| OpenAI | DALL-E 3 Standard | ~$0.040 | ~10 seg | No recomendado — usar HD |
-| OpenAI | DALL-E 3 HD | ~$0.080 | ~15 seg | Alternativa cuando no hay FAL_KEY |
+| Proveedor | Modelo | Modo | Precio/imagen | Velocidad | Recomendado para |
+|---|---|---|---|---|---|
+| fal.ai | FLUX Dev img2img (28 pasos) | img2img | ~$0.025 | ~15 seg | ⭐ Con fotos reales del producto |
+| fal.ai | FLUX Dev (28 pasos) | texto | ~$0.025 | ~15 seg | Con personas, sin foto de referencia |
+| fal.ai | FLUX Schnell (8 pasos) | texto | ~$0.003 | ~3 seg | Solo producto/objeto, sin personas |
+| OpenAI | DALL-E 3 HD | texto | ~$0.080 | ~15 seg | Alternativa cuando no hay FAL_KEY |
+| OpenAI | DALL-E 3 Standard | texto | ~$0.040 | ~10 seg | No recomendado — usar HD |
 
 ---
 
 ## Notas
 
+- **img2img es el modo preferido**: produce resultados más consistentes con la identidad visual real del producto
+- **`strength: 0.80`** es el punto óptimo para marketing B2B — preserva el producto, crea escena nueva
+- Configurar fotos de referencia ejecutando `/init` desde el proyecto de empresa
+- Las fotos de referencia se leen de `.claude/brand-images/products/{slug}/` (max recomendado: 5 fotos por producto)
 - Las URLs de fal.ai son persistentes (no expiran) — ideales para Instagram Graph API
-- Si el post tiene una fecha especial (ej. Día de la Mujer), incluirlo en el prompt
+- Si el post tiene fecha especial, incluirla en el contexto ambiental del prompt img2img
 - El prompt nunca debe pedir texto dentro de la imagen — Instagram lo procesa mejor sin texto
-- Si la empresa tiene colores de marca en `brand_style.color_palette`, incluirlos siempre
 - Compatible con la Instagram Graph API: `image_url` se pasa directamente al crear el media container
 
 ## Guía anti-alucinaciones
@@ -371,7 +505,9 @@ Mientras tanto, puedes usar este prompt en Midjourney, Firefly o Stable Diffusio
 | Artefactos y ruido | Pocos pasos de inferencia | Mínimo 28 pasos con personas; 8 para producto |
 | Texto ilegible en imagen | Modelos no generan texto bien | Nunca pedir texto en el prompt |
 | Personas duplicadas | Prompt vago | Especificar cantidad exacta ("una persona", "dos personas") |
+| Producto irreconocible | `strength` muy alto | Reducir a 0.70-0.75 en img2img |
+| Producto idéntico a la foto | `strength` muy bajo | Aumentar a 0.85-0.90 en img2img |
+| Producto distorsionado | Imagen de referencia de baja resolución | Usar fotos de mínimo 512×512 px como referencia |
 
-**Regla de oro para marketing B2B:** si el tópico lo permite, preferir siempre
-**fotografía de producto o entorno** sin personas. Evita el 100% de los problemas
-anatómicos y la imagen queda más limpia para redes sociales.
+**Regla de oro:** usar siempre **img2img con foto de referencia** cuando sea posible.
+El resultado es más profesional, más fiel a la marca y más rápido de aprobar internamente.
