@@ -40,6 +40,14 @@ product_slug     → Slug del producto a usar (o null para auto-detectar desde t
 
 ## Instrucciones para Claude
 
+> **🔒 REGLA FUNDAMENTAL — NO NEGOCIABLE:**
+> Las fotos de referencia del producto son **solo input para la generación de IA**.
+> La imagen que se publica en redes sociales es **SIEMPRE una imagen nueva generada por IA**,
+> nunca la foto original. Si hay fotos de referencia disponibles → obligatoriamente img2img.
+> Si no hay fotos → generar de texto. En ningún caso publicar una foto sin procesar.
+
+---
+
 ### Paso 0 — Seleccionar producto y obtener imagen de referencia
 
 Antes de construir el prompt, identificar qué producto usar y si hay fotos disponibles.
@@ -84,7 +92,9 @@ PRODUCT_SLUG="{SLUG_SELECCIONADO}"
 ls .claude/brand-images/products/$PRODUCT_SLUG/ 2>/dev/null | grep -E "\.(jpg|jpeg|png|webp)$"
 ```
 
-- **Con imágenes** → `mode = "img2img"` → continuar con 0.4
+- **Con imágenes** → `mode = "img2img"` (OBLIGATORIO) → continuar con 0.4
+  > La foto de referencia es el input de la generación, no la imagen final.
+  > `REF_IMAGE_PATH` se usa únicamente para pasar a la API. Nunca como `image_url` de publicación.
 - **Sin imágenes** → `mode = "text"` → saltar al Paso 1
 
 #### 0.4 — Preparar imagen de referencia (solo modo img2img)
@@ -383,8 +393,12 @@ Extraer: `images[0].url` → URL pública persistente, lista para Instagram Grap
 
 **Si `has_nsfw_concepts[0]` es `true`** → regenerar (máximo 2 intentos).
 
-**Verificación de calidad:** Revisar visualmente la imagen con la herramienta de visión.
+**Verificación de calidad:** Revisar visualmente la imagen generada con la herramienta de visión.
 Si hay defectos (manos deformes, caras, artefactos) → regenerar con variación del prompt o ajustar `strength`. Máximo 3 intentos.
+
+**Verificación de integridad — antes de continuar al Paso 3:**
+- `image_url` debe ser una URL pública de IA (`fal.media/...` o `oaidalleapiprodscus...`), nunca una ruta local.
+- Si `image_url` apunta a un archivo local o a `REF_IMAGE_PATH` → error: la generación no se completó. Reintentar o pasar a Paso 4.
 
 ---
 
@@ -489,17 +503,24 @@ Crea `.claude/posts/images/{FECHA}.json`:
 ```
 ⚠️  No se encontró FAL_KEY ni OPENAI_API_KEY en .env
 
-Para generar imágenes automáticamente, agrega una de estas variables:
+La imagen del post NO puede ser la foto de referencia original.
+Debes generar una imagen nueva antes de publicar.
 
-  Opción A — fal.ai (recomendado, soporta img2img desde fotos de tus productos):
-    FAL_KEY=tu_key_aqui
+Opciones para continuar:
+
+  Opción A — fal.ai (recomendado, soporta img2img desde tus fotos):
+    Agrega al .env:  FAL_KEY=tu_key_aqui
     Obtener en: https://fal.ai → Dashboard → API Keys
 
-  Opción B — DALL-E 3 (~$0.08/imagen, solo texto):
-    OPENAI_API_KEY=tu_key_aqui
+  Opción B — DALL-E 3 (~$0.08/imagen, genera desde descripción de tu foto):
+    Agrega al .env:  OPENAI_API_KEY=tu_key_aqui
 
-Mientras tanto, puedes usar este prompt en Midjourney, Firefly o Stable Diffusion:
-{PROMPT_CONSTRUIDO}
+  Opción C — Generación manual (sin API):
+    Usa este prompt en Midjourney, Firefly, Adobe Express o Stable Diffusion:
+    {PROMPT_CONSTRUIDO}
+    Una vez generada, copia la URL pública de la imagen aquí para continuar.
+
+⛔ NO publicar la foto de referencia original como imagen del post.
 ```
 
 ---
