@@ -1,7 +1,9 @@
 # Skill: generate-image-prompt
 
-**Propósito**: Genera prompts optimizados para herramientas de IA generativa de imágenes,
-basados en el contenido del post y la identidad visual de la empresa.
+**Propósito**: Genera un prompt conversacional con contexto de negocio para herramientas
+de imagen IA: `fal-ai/nano-banana-2`, Midjourney, DALL-E 3, Adobe Firefly o Stable Diffusion.
+Se usa cuando el usuario quiere ejecutar la generación manualmente o como paso previo
+a `generate-image-ai`.
 **Modelo**: `claude-sonnet-4-6`
 **Usado por**: `publisher-agent.md`, `/publish-today`
 
@@ -10,165 +12,223 @@ basados en el contenido del post y la identidad visual de la empresa.
 ## Por qué este skill es crítico
 
 Instagram requiere imagen para publicar en feed. Sin imagen, el Agente Publicador
-solo puede publicar en Facebook. Este skill cierra ese gap generando el prompt
-necesario para crear la imagen con Midjourney, DALL-E, Adobe Firefly u otras herramientas.
+solo puede publicar en Facebook. Este skill genera el prompt necesario para crear la imagen,
+ya sea de forma automática (via `generate-image-ai`) o manualmente con Midjourney/DALL-E/Firefly.
 
 ## Inputs requeridos
 
 | Input | Tipo | Descripción | Ejemplo |
 |---|---|---|---|
-| `post_content` | dict | Output del skill generate-b2b-content | `{"caption": "...", "hashtags": [...]}` |
-| `topic` | string | Tema del post | "telas recicladas sostenibles" |
-| `industry` | string | Sector industrial | "textil" |
-| `brand_style` | string | Estilo visual de la marca | "profesional, colores tierra, minimalista" |
-| `tool` | enum | Herramienta de destino | `midjourney` / `dalle` / `firefly` / `stable-diffusion` / `generic` |
+| `topic` | string | Tema del post | "tendencias de embalaje sostenible" |
+| `company_name` | string | Nombre de la empresa | "Botas García" |
+| `industry` | string | Sector industrial | "calzado" |
+| `brand_style` | string | Estilo visual (opcional) | "colores tierra, minimalista" |
+| `special_date` | string | Fecha especial (opcional) | "Día de la Mujer" |
+| `tool` | enum | Herramienta destino | `fal-ai` / `midjourney` / `dalle` / `firefly` / `stable-diffusion` / `generic` |
 | `format` | enum | Formato de la imagen | `square` (1:1) / `portrait` (4:5) / `landscape` (16:9) |
 
 ## Especificaciones por plataforma
 
 | Plataforma | Formato recomendado | Resolución mínima |
 |---|---|---|
-| Instagram Feed | 1:1 (cuadrado) o 4:5 (portrait) | 1080x1080 px |
-| Instagram Stories | 9:16 (vertical) | 1080x1920 px |
-| Facebook Feed | 1:1 o 16:9 | 1200x630 px |
-| LinkedIn | 1.91:1 | 1200x627 px |
+| Instagram Feed | 1:1 (cuadrado) o 4:5 (portrait) | 1080×1080 px |
+| Instagram Stories | 9:16 (vertical) | 1080×1920 px |
+| Facebook Feed | 1:1 o 16:9 | 1200×630 px |
+| LinkedIn | 1.91:1 | 1200×627 px |
 
-## Prompt de generación para Claude
+---
+
+## Construir el prompt conversacional
+
+> **Principio clave:** Los modelos modernos (nano-banana-2, FLUX, DALL-E 3) responden mejor
+> a lenguaje conversacional con contexto de negocio que a descripciones técnicas de fotografía.
+> El prompt debe sonar como si el dueño de la empresa le pidiera la imagen a un diseñador.
+
+**Plantilla base:**
 
 ```
-SYSTEM:
-Eres un director de arte especializado en marketing B2B y fotografía comercial.
-Generas prompts de imagen que producen resultados profesionales y relevantes para negocios.
-Conoces las diferencias de sintaxis entre herramientas de IA generativa.
-Nunca sugieres imágenes con texto integrado (las IAs generativas no manejan texto bien).
+Soy {dueño/responsable de marketing} de {COMPANY_NAME}, una empresa de {INDUSTRY}.
+Necesito crear una imagen para publicar en redes sociales.
 
-USER:
-Genera un prompt de imagen para este post de redes sociales B2B:
+La temática del post de hoy es: {TOPIC}.
+{Si hay SPECIAL_DATE → agregar: La ocasión especial es: {SPECIAL_DATE}.}
+{Si hay brand_style → agregar: El estilo visual de mi marca es: {BRAND_STYLE}.}
 
-CONTENIDO DEL POST:
-{POST_CONTENT}
-
-CONTEXTO:
-- Empresa: {COMPANY_NAME}
-- Sector: {INDUSTRY}
-- Tema: {TOPIC}
-- Estilo visual de la marca: {BRAND_STYLE}
-- Herramienta destino: {TOOL}
-- Formato: {FORMAT}
-
-La imagen debe:
-1. Reforzar el mensaje del post sin necesitar texto explicativo
-2. Verse profesional y apropiada para audiencia B2B
-3. Evitar clichés de stock (apretones de manos, gente sonriendo genérica)
-4. Usar composición limpia y bien iluminada
-5. NO incluir texto, logos ni marcas (se agregan por separado)
-
-Devuelve JSON:
-{
-  "tool": "{TOOL}",
-  "format": "{FORMAT}",
-  "main_prompt": "el prompt principal optimizado para {TOOL}",
-  "negative_prompt": "lo que debe evitar (para herramientas que lo soporten)",
-  "style_modifiers": ["modificador1", "modificador2"],
-  "alternative_concepts": [
-    "concepto alternativo 1 si el principal no funciona",
-    "concepto alternativo 2"
-  ],
-  "subject_description": "descripción en español de qué debería mostrar la imagen",
-  "photography_notes": "tipo de fotografía, ángulo, iluminación recomendada"
-}
+Crea una imagen atractiva y creativa para redes sociales que represente esta temática
+en el contexto de {INDUSTRY}. La imagen debe verse real y profesional,
+sin texto ni logos superpuestos.
 ```
+
+**Adaptar la instrucción final según el tópico:**
+
+| Tipo de tópico | Agregar al final |
+|---|---|
+| Tip del sector | "Muéstralo en un ambiente de trabajo o producción, con elementos propios del sector." |
+| Caso de éxito / cliente satisfecho | "Contexto profesional, ambiente de éxito y confianza." |
+| Detrás de escena / proceso | "Ambiente de producción o taller, contexto de trabajo real." |
+| Tendencia / mercado | "Estilo editorial moderno, composición limpia y contemporánea." |
+| Fecha especial | "La imagen debe evocar {SPECIAL_DATE}, con ambientación acorde." |
+| Nuevo lanzamiento | "Presentación destacada del tema, protagonismo total, fondo limpio." |
+
+---
+
+## Ejemplos multi-industria
+
+*Textil — Día de la Mujer:*
+```
+Soy dueño de Sesgo Express, una fábrica de sesgo textil.
+Necesito crear una imagen para publicar en redes sociales.
+
+La temática del post de hoy es: sesgo planchado para el Día de la Mujer.
+La ocasión especial es: Día de la Mujer.
+
+Crea una imagen festiva y atractiva para redes sociales que represente esta temática
+en el contexto del sector textil. La imagen debe verse real y profesional,
+sin texto ni logos superpuestos.
+```
+
+*Calzado — Halloween:*
+```
+Soy fabricante de calzado en Botas García.
+Necesito crear una imagen para publicar en redes sociales.
+
+La temática del post de hoy es: botas de cuero en Halloween.
+La ocasión especial es: Halloween.
+
+Crea una imagen oscura y creativa para redes sociales que evoque Halloween
+en el contexto del calzado. La imagen debe verse real y profesional,
+sin texto ni logos superpuestos.
+```
+
+*Manufactura — tendencia:*
+```
+Soy responsable de marketing en MetalParts, empresa de manufactura de piezas de metal.
+Necesito crear una imagen para publicar en redes sociales.
+
+La temática del post de hoy es: tendencias de automatización industrial 2026.
+
+Crea una imagen editorial moderna que represente la automatización industrial.
+Estilo editorial, composición limpia y contemporánea. La imagen debe verse real
+y profesional, sin texto ni logos superpuestos.
+```
+
+*Alimentos — lanzamiento:*
+```
+Soy responsable de marketing en Miel del Valle, productora de miel artesanal.
+Necesito crear una imagen para publicar en redes sociales.
+
+La temática del post de hoy es: lanzamiento de nuestra miel de flores silvestres.
+
+Crea una imagen hermosa para redes sociales con luz cálida y elementos naturales,
+que destaque el lanzamiento del producto. La imagen debe verse real y profesional,
+sin texto ni logos superpuestos.
+```
+
+---
 
 ## Sintaxis por herramienta
 
-### Midjourney
-```
-[descripción detallada], [estilo fotográfico], [iluminación], [composición],
-professional photography, commercial photography, high quality,
---ar 1:1 --v 6 --style raw --q 2
-```
-- Separar conceptos con comas
-- Parámetros al final: `--ar` (aspect ratio), `--v 6` (versión), `--style raw` (menos artístico)
-- Negative prompt: `--no text, logos, watermarks, people looking at camera`
+Con el prompt conversacional construido, adaptarlo según la herramienta destino:
 
-### DALL-E 3 (via API o ChatGPT)
-```
-Professional commercial photograph of [descripción].
-[Estilo]: [detalles de iluminación y composición].
-[Ambiente]: [contexto y atmósfera].
-No text, no logos, no watermarks.
-```
-- Oraciones completas funcionan mejor
-- Ser muy específico en la descripción
-- Mencionar explícitamente lo que NO debe aparecer
+### fal-ai/nano-banana-2 (recomendado)
 
-### Adobe Firefly
-```
-[descripción], [estilo fotográfico], [iluminación], professional,
-commercial photography, high resolution, clean background
-```
-- Similar a Midjourney pero sin parámetros especiales
-- Funciona bien con referencias de estilo ("editorial photography", "product photography")
-- Negative prompt en el campo separado de la interfaz
-
-### Stable Diffusion
-```
-(professional commercial photograph:1.3), [descripción],
-(studio lighting:1.2), (high quality:1.4), (8k:1.2),
-masterpiece, sharp focus, detailed
-Negative: text, watermark, logo, low quality, blurry, distorted
-```
-- Usar pesos con paréntesis `(concepto:peso)`
-- Negative prompt es clave para calidad
-
-### Generic (cualquier herramienta)
-```
-Professional B2B commercial photograph: [descripción].
-Style: [estilo]. Lighting: [iluminación]. Composition: [composición].
-No text, logos or watermarks. High quality, clean, professional.
-```
-
-## Conceptos visuales por industria
-
-| Industria | Conceptos que funcionan bien |
-|---|---|
-| Textil / Moda | Close-up de texturas de tela, maquinaria industrial elegante, paletas de color ordenadas, muestras de material |
-| Manufactura | Planta industrial limpia y moderna, maquinaria de precisión, control de calidad, materias primas ordenadas |
-| Tecnología | Interfaces limpias en pantallas, hardware en ambiente oscuro con luces LED, equipo técnico trabajando |
-| Alimenticio | Ingredientes frescos, proceso de producción higiénico, empaque premium, materias primas naturales |
-| Construcción | Materiales de construcción de calidad, obra en progreso con perspectiva arquitectónica, herramientas profesionales |
-| Logística | Almacenes ordenados, camiones en ruta, sistemas de trazabilidad, mapas de rutas |
-| Financiero | Gráficos en pantallas de escritorio, reuniones ejecutivas formales, documentos bien organizados |
-
-## Output esperado
+Pasar el prompt directamente al skill `generate-image-ai` — no requiere adaptación:
 
 ```json
 {
-  "tool": "midjourney",
-  "format": "square",
-  "main_prompt": "Close-up macro photograph of recycled fabric texture, GOTS certification tag visible, earthy tones, natural cotton fibers detail, studio lighting, white clean background, professional product photography, commercial quality --ar 1:1 --v 6 --style raw --q 2",
-  "negative_prompt": "--no text, watermarks, logos, people, busy backgrounds, synthetic looking",
-  "style_modifiers": ["macro photography", "studio lighting", "clean background", "earthy tones"],
-  "alternative_concepts": [
-    "Aerial view of sorted recycled fabric rolls in a modern textile factory, organized by color",
-    "Hands of textile worker examining sustainable fabric quality, blurred factory background"
-  ],
-  "subject_description": "Textura de close-up de tela reciclada con etiqueta de certificación GOTS visible, tonos tierra, fondo blanco limpio",
-  "photography_notes": "Macro photography, luz de estudio difusa desde arriba, fondo blanco o neutro, alta definición de textura"
+  "prompt": "{PROMPT_CONVERSACIONAL}",
+  "image_size": "square_hd",
+  "num_images": 1,
+  "enable_safety_checker": true
 }
 ```
 
+→ Ver instrucciones completas de llamada API en `generate-image-ai.md`
+
+### Midjourney
+
+```
+/imagine {PROMPT_CONVERSACIONAL} --ar 1:1 --v 6 --style raw
+```
+
+- Pegar el prompt conversacional directamente en `/imagine`
+- Ajustar `--ar` según formato: `1:1` (square), `4:5` (portrait), `16:9` (landscape)
+- Agregar `--no text, logos, watermarks` si aparece texto no deseado
+
+### DALL-E 3 (via ChatGPT o API)
+
+```
+{PROMPT_CONVERSACIONAL}
+Sin texto superpuesto, sin watermarks, sin logos.
+```
+
+- El prompt conversacional funciona directo — no requiere adaptación técnica
+- Agregar "Sin texto, sin watermarks, sin logos" al final
+- Usar `quality: "hd"` y `style: "natural"` en la API
+
+### Adobe Firefly
+
+```
+{PROMPT_CONVERSACIONAL}
+```
+
+- Pegar el prompt en el campo de texto de Firefly
+- Ajustar "Photographic" en los controles de estilo de la interfaz
+- Negative prompt en el campo separado: `text, logo, watermark, cartoon, illustration`
+
+### Stable Diffusion / ComfyUI
+
+```
+{PROMPT_CONVERSACIONAL}, (photorealistic:1.3), (high quality:1.4), (professional photography:1.2)
+```
+
+Negative prompt (campo separado):
+```
+text, watermark, logo, cartoon, illustration, low quality, blurry, deformed hands,
+extra fingers, bad anatomy, AI artifacts
+```
+
+### Generic (cualquier herramienta)
+
+```
+{PROMPT_CONVERSACIONAL}
+```
+
+El prompt conversacional funciona en cualquier modelo moderno sin adaptación.
+
+---
+
+## Output del skill
+
+```json
+{
+  "tool": "{TOOL}",
+  "format": "{FORMAT}",
+  "prompt": "Soy {rol} de {COMPANY_NAME}, una empresa de {INDUSTRY}...",
+  "negative_prompt": "text, watermark, logo, cartoon, illustration, low quality",
+  "alternative_prompts": [
+    "variación 1 del mismo tema con diferente enfoque visual",
+    "variación 2 si la primera no produce el resultado esperado"
+  ],
+  "ready_for_generate_image_ai": true
+}
+```
+
+---
+
 ## Flujo de uso con el Agente Publicador
 
+**Opción A — Automático (recomendado):**
 ```
-1. /publish-today genera el contenido del post
-2. Este skill genera el prompt de imagen
-3. Usuario usa el prompt en Midjourney/DALL-E/Firefly
-4. Usuario sube la imagen generada y proporciona la URL
-5. /publish-today publica el post con esa URL de imagen
+1. /publish-today llama a este skill para construir el prompt
+2. → generate-image-ai ejecuta la generación con fal-ai/nano-banana-2
+3. → imagen publicada directamente en Instagram/Facebook
 ```
 
-Si el usuario no tiene herramienta de generación de imágenes, ofrecer alternativas:
-- Unsplash / Pexels (fotos stock gratuitas): buscar con `{TEMA} {INDUSTRIA} professional`
-- Canva (crear imagen con texto): plantilla de post con la cita del caption
-- Fotografía propia: usar el `photography_notes` como guía para la sesión
+**Opción B — Manual (cuando no hay FAL_KEY):**
+```
+1. /publish-today llama a este skill y obtiene el prompt
+2. Usuario copia el prompt y lo usa en Midjourney/DALL-E/Firefly
+3. Usuario proporciona la URL pública de la imagen generada
+4. /publish-today publica el post con esa URL
+```
