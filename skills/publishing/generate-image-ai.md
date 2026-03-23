@@ -65,11 +65,15 @@ Elegir el producto que mejor coincida con `topic` y `category` del post:
 
 **Ejemplos:**
 ```
-topic: "tips de cuidado del algodón"
-keywords del producto: ["algodón", "tela", "natural"]
-→ coincidencia alta → product_slug: "tela-algodon" ✓
+topic: "cómo elegir el producto correcto para tu proyecto"
+keywords del producto: ["tornillo", "fijación", "acero", "hardware"]
+→ coincidencia alta → product_slug: "tornillo-acero" ✓
 
-topic: "tendencias del mercado textil 2026"
+topic: "beneficios del producto premium"
+keywords del producto: ["premium", "calidad"]
+→ coincidencia media → product_slug: "linea-premium" ✓
+
+topic: "tendencias del mercado 2026"
 ninguna coincidencia específica → usar default_product ✓
 ```
 
@@ -149,10 +153,20 @@ reinterpreta libremente y el resultado no se parece al original.
 **Bloque 1 — cómo describir el producto (OBLIGATORIO):**
 
 Analizar visualmente la imagen de referencia con la herramienta de visión y extraer:
-- **Tipo de objeto**: "rollos de cinta de polipropileno", "bobinas de hilo", "rollos de tela industrial"
-- **Colores visibles**: "en colores sólidos (negro, crema, rosa, azul marino, verde, lila)"
-- **Forma/presentación**: "enrollados verticalmente", "apilados horizontalmente", "en abanico"
-- **Material** (si es distinguible): "tejido plano liso", "fibra satinada", "material sintético"
+- **Tipo de objeto**: lo que realmente se ve en la foto — inferir sin asumir
+- **Colores visibles**: los colores reales presentes en la imagen
+- **Forma/presentación**: cómo está dispuesto en la foto (apilado, en fila, en expositor, etc.)
+- **Material** (solo si es claramente visible): no inventar si no es evidente
+
+**Ejemplos de descripciones por industria:**
+```
+Manufactura/industrial: "sacos de cemento de 50kg apilados en pallet, color gris claro, impresos con logo"
+Alimentos: "frascos de vidrio transparente con producto en polvo naranja, tapas metálicas doradas, en fila"
+Tecnología: "dispositivo electrónico rectangular negro con pantalla LED frontal y botones laterales"
+Construcción: "tubos de PVC blanco de distintos diámetros, apilados horizontalmente en almacén"
+Servicios: "profesional en traje azul marino, de perfil, con documentos en mano"
+Agro/campo: "bolsas de semillas de 10kg apiladas, etiquetas verdes con texto, sobre superficie de madera"
+```
 
 | ✅ SÍ incluir en el prompt img2img | ❌ NO inventar ni exagerar |
 |---|---|
@@ -169,15 +183,37 @@ Analizar visualmente la imagen de referencia con la herramienta de visión y ext
 - "fecha especial" → decoración acorde a la fecha, ambiente festivo o emotivo
 - "nuevo lanzamiento" → fondo minimalista blanco, estudio de fotografía, iluminación de producto
 
-**Ejemplo de prompt img2img (sector textil, rollos de cinta, tip de cuidado):**
+**Estructura del prompt final (aplicable a cualquier industria):**
 ```
-rollos de cinta plana de polipropileno en colores sólidos (negro, crema, rosa, azul marino,
-celeste, verde, lila, verde amarillento), presentados verticalmente en abanico,
-sobre mesa de trabajo de madera clara con muestras de tela y cuaderno abierto al lado,
-luz natural suave de ventana lateral, ambiente de estudio de diseño textil,
-diseñadora de espaldas revisando material al fondo (desenfocada), tonos neutros y cálidos,
+{descripción del producto extraída de la referencia},
+{contexto/entorno según el tópico},
+{iluminación y ambiente},
+{personas si aplica — de espaldas o perfil},
 fotografía real, hiperrealista, fotografía comercial profesional, resolución 8K,
 nitidez perfecta, iluminación natural, sin distorsiones, sin artefactos de IA
+```
+
+**Ejemplos multi-industria:**
+
+*Manufactura — tip de producción:*
+```
+sacos de cemento gris claro de 50kg con logo impreso, apilados en pallet de madera,
+en nave industrial ordenada con iluminación cenital, operario con casco amarillo
+de espaldas supervisando al fondo (desenfocado), fotografía industrial profesional...
+```
+
+*Alimentos — lanzamiento de producto:*
+```
+frascos de vidrio transparente con miel artesanal dorada y tapas metálicas, en fila sobre
+tabla de madera rústica con flores silvestres al lado, luz natural cálida de ventana,
+ambiente de cocina gourmet, fotografía comercial de alimentos, hiperrealista...
+```
+
+*Tecnología — caso de éxito:*
+```
+dispositivo electrónico negro rectangular con pantalla LED encendida, sobre escritorio de
+oficina moderno, laptop y smartphone al fondo desenfocados, luz de estudio fría y nítida,
+ambiente corporativo premium, fotografía de producto tecnológico profesional...
 ```
 
 #### Modo texto (sin foto de referencia, o OPENAI_API_KEY sin referencia)
@@ -427,17 +463,17 @@ mkdir -p .claude/posts/images
 Crea `.claude/posts/images/{FECHA}.json`:
 ```json
 {
-  "date": "2026-03-22",
+  "date": "{FECHA_ISO}",
   "provider": "fal",
   "model": "flux/dev/image-to-image",
   "mode": "img2img",
-  "product_slug": "tela-algodon",
-  "reference_image": ".claude/brand-images/products/tela-algodon/ref-1.jpg",
+  "product_slug": "{SLUG_DEL_PRODUCTO}",
+  "reference_image": ".claude/brand-images/products/{SLUG_DEL_PRODUCTO}/ref-1.jpg",
   "strength": 0.55,
-  "prompt_used": "rollos de cinta plana de polipropileno en colores sólidos (negro, crema, rosa...), sobre mesa de trabajo de madera clara...",
+  "prompt_used": "{descripción del producto extraída de la referencia}, sobre {contexto}...",
   "image_url": "https://fal.media/files/xxx/generated.jpeg",
-  "topic": "tips de cuidado del algodón",
-  "category": "Educativo / tip del sector",
+  "topic": "{TOPIC_DEL_POST}",
+  "category": "{CATEGORIA_DEL_POST}",
   "platform": "instagram",
   "expires_at": null
 }
@@ -475,8 +511,8 @@ Mientras tanto, puedes usar este prompt en Midjourney, Firefly o Stable Diffusio
   "success": true,
   "provider": "fal | openai | none",
   "mode": "img2img | text",
-  "product_slug": "tela-algodon | null",
-  "reference_image_used": ".claude/brand-images/products/tela-algodon/ref-1.jpg | null",
+  "product_slug": "{slug-del-producto} | null",
+  "reference_image_used": ".claude/brand-images/products/{slug}/ref-1.jpg | null",
   "image_url": "https://...",
   "prompt_used": "...",
   "dimensions": "1024x1024",
