@@ -41,21 +41,31 @@ Esto devuelve todos los mensajes recibidos por el bot desde el último offset.
 
 ### Paso 3 — Parsear respuestas del manager
 
-Para cada mensaje recibido, buscar patrones:
+Para cada mensaje recibido, clasificar la intención en lenguaje natural (case insensitive).
 
-**Aprobación:**
-- Patrón: `aprobar {DRAFT_ID}` (case insensitive, con o sin espacios extra)
-- Ejemplo: "aprobar a3f9c21b", "APROBAR A3F9C21B", "apruebo a3f9c21b"
+**Aprobación** — el mensaje es una afirmación o aprobación:
+- Con draft_id: `aprobar {DRAFT_ID}`, `apruebo {DRAFT_ID}`
+- Sin draft_id (solo si hay **un único** borrador pendiente):
+  `sí`, `si`, `ok`, `dale`, `va`, `listo`, `aprobado`, `publícalo`,
+  `publicar`, `adelante`, `perfecto`, `está bien`, `sale`
+- Ejemplo: "aprobar a3f9c21b", "sí", "dale", "ok"
 - Acción: publicar el borrador en todas sus plataformas
+- Si hay múltiples borradores pendientes y no se especifica draft_id,
+  responder en Telegram: `🤔 Tienes {N} borradores pendientes. Especifica cuál: aprobar {DRAFT_ID}`
 
 **Edición:**
-- Patrón: `editar {DRAFT_ID}: {INSTRUCCIONES}`
-- Ejemplo: "editar a3f9c21b: cambiar el tono a más informal, quitar el precio"
+- Con draft_id: `editar {DRAFT_ID}: {INSTRUCCIONES}`
+- Sin draft_id (solo si hay un único borrador pendiente):
+  cualquier mensaje que pida cambios al contenido
+  (ej. "ponle otro tono", "quita el precio", "hazlo más corto")
+- Ejemplo: "editar a3f9c21b: cambiar el tono a más informal", "hazlo más corto"
 - Acción: regenerar el contenido con las instrucciones y enviar nuevo borrador para aprobación
 
-**Rechazo:**
-- Patrón: `rechazar {DRAFT_ID}: {MOTIVO}` o `rechazar {DRAFT_ID}`
-- Ejemplo: "rechazar a3f9c21b: no es el momento para este tema"
+**Rechazo** — el mensaje es una negación clara:
+- Con draft_id: `rechazar {DRAFT_ID}` o `rechazar {DRAFT_ID}: {MOTIVO}`
+- Sin draft_id (solo si hay un único borrador pendiente):
+  `no`, `rechazar`, `cancelar`, `no publicar`, `descarta`, `mejor no`
+- Ejemplo: "rechazar a3f9c21b: no es el momento", "no", "mejor no"
 - Acción: marcar como rechazado y guardar el motivo
 
 **Actualizar offset:**

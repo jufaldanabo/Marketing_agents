@@ -100,10 +100,10 @@ _Hashtags: {PRIMEROS 5 HASHTAGS}_
 🖼 _Imagen sugerida: {IMAGE_DESCRIPTION}_
 
 ━━━━━━━━━━━━━━━━━━━━
-Para aprobar, escribe en este chat:
-✅ `aprobar {DRAFT_ID}`
-✍️ `editar {DRAFT_ID}: [describe los cambios]`
-❌ `rechazar {DRAFT_ID}: [motivo]`
+Responde en este chat:
+✅ *Sí* / *ok* / *dale* / *aprobar {DRAFT_ID}* → publica
+✍️ *editar {DRAFT_ID}: [cambios]* → corrige y reenvía
+❌ *no* / *rechazar {DRAFT_ID}* → cancela
 ```
 
 ### Enviar a Telegram

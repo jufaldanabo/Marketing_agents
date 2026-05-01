@@ -238,7 +238,7 @@ POST https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage
 {
   "chat_id": "{TELEGRAM_CHAT_ID}",
   "parse_mode": "Markdown",
-  "text": "📝 *BORRADOR #{DRAFT_ID} listo para publicar*\n📅 {FECHA} | 🏢 {COMPANY_NAME}\nTema: _{TOPICO}_\n\n━━━ 📸 INSTAGRAM ━━━\n{CAPTION_COMPLETO}\n\n_{HASHTAGS}_\n\n━━━ 👥 FACEBOOK ━━━\n{MENSAJE_FACEBOOK}\n\n🖼 _Imagen: {imagen.descripcion_alt}_\n{si imagen.url_generada: imagen.url_generada}\n\n━━━━━━━━━━━━━━━━━━━━\nResponde en este chat:\n✅ `aprobar {DRAFT_ID}`\n✍️ `editar {DRAFT_ID}: [cambios]`\n❌ `rechazar {DRAFT_ID}: [motivo]`"
+  "text": "📝 *BORRADOR #{DRAFT_ID} listo para publicar*\n📅 {FECHA} | 🏢 {COMPANY_NAME}\nTema: _{TOPICO}_\n\n━━━ 📸 INSTAGRAM ━━━\n{CAPTION_COMPLETO}\n\n_{HASHTAGS}_\n\n━━━ 👥 FACEBOOK ━━━\n{MENSAJE_FACEBOOK}\n\n🖼 _Imagen: {imagen.descripcion_alt}_\n{si imagen.url_generada: imagen.url_generada}\n\n━━━━━━━━━━━━━━━━━━━━\nResponde en este chat:\n✅ *Sí* / *ok* / *dale* / *aprobado* → publica\n✍️ *editar: [cambios]* → corrige y reenvía\n❌ *no* / *rechazar* → cancela"
 }
 ```
 
@@ -277,10 +277,26 @@ GET https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates
 Para cada mensaje recibido en `result[]`:
 
 1. Verificar que `message.chat.id == TELEGRAM_CHAT_ID`
-2. Buscar patrones (case insensitive):
-   - `aprobar {DRAFT_ID}` o `apruebo {DRAFT_ID}` → **APROBADO**
-   - `editar {DRAFT_ID}: {instrucciones}` → **EDITAR**
-   - `rechazar {DRAFT_ID}` o `rechazar {DRAFT_ID}: {motivo}` → **RECHAZADO**
+2. Clasificar la intención del mensaje en lenguaje natural (case insensitive).
+   No se requiere el `draft_id` — el agente ya sabe qué borrador está esperando.
+
+   **APROBADO** — cualquiera de estas expresiones (o similares):
+   `sí`, `si`, `ok`, `dale`, `va`, `listo`, `aprobado`, `aprobar`, `apruebo`,
+   `publícalo`, `publicar`, `adelante`, `perfecto`, `está bien`, `sale`
+
+   **EDITAR** — el mensaje contiene instrucciones de cambio:
+   `editar: {instrucciones}`, `cambiar: {instrucciones}`, `cambia {instrucciones}`,
+   o cualquier mensaje que pida modificaciones al contenido
+   (ej. "ponle otro tono", "quita el precio", "hazlo más corto")
+
+   **RECHAZADO** — negación clara:
+   `no`, `rechazar`, `rechazado`, `cancelar`, `no publicar`, `descarta`,
+   `no me gusta`, `mejor no`
+
+   Si el mensaje es ambiguo (no encaja claramente en ninguna categoría),
+   responder en Telegram: `🤔 No entendí. Responde *sí* para publicar, *no* para cancelar, o escribe los cambios que quieres.`
+   y seguir esperando.
+
 3. Actualizar offset a `update_id + 1` y guardar en `_telegram_offset.json`
 
 #### Si la respuesta es APROBADO:
