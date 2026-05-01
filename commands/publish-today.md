@@ -214,40 +214,119 @@ Genera el siguiente JSON:
 
 ---
 
-### Paso 8 — Mostrar preview completo
+### Paso 8 — Enviar preview a Telegram para aprobación
+
+En lugar de pedir confirmación en la consola, envía el contenido completo al manager
+por Telegram y espera su respuesta directamente en ese chat.
+
+#### 8a — Generar draft_id
 
 ```
-📋 PREVIEW DEL CONTENIDO — {FECHA}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📌 Categoría: {categoria} | Tópico: {topico}
-{si hay fecha especial: "🗓️ Contexto: {fecha_especial}"}
+draft_id = primeros 8 caracteres del SHA1 de (TIMESTAMP + TOPICO)
+```
 
-📸 INSTAGRAM
-{caption}
+#### 8b — Guardar borrador en disco
 
-{hashtags}
+Guardar en `.claude/drafts/{draft_id}.json` con `status: "pending_approval"` y todo
+el contenido generado (instagram, facebook, imagen). Mismo formato que
+`skills/publishing/content-approval.md`.
 
-📘 FACEBOOK
-{mensaje}
+#### 8c — Enviar mensaje de preview a Telegram
 
-🖼️ IMAGEN
-{si imagen.url_generada existe:
-  "✅ Imagen generada con {imagen.provider}: {imagen.url_generada}"
-  "📝 Prompt usado: {imagen.prompt_usado[0:120]}..."
-sino:
-  "⚠️  Sin API key — usa este prompt en Artlist/Midjourney/Firefly:"
-  "{imagen.prompt_externo}"
+```
+POST https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage
+{
+  "chat_id": "{TELEGRAM_CHAT_ID}",
+  "parse_mode": "Markdown",
+  "text": "📝 *BORRADOR #{DRAFT_ID} listo para publicar*\n📅 {FECHA} | 🏢 {COMPANY_NAME}\nTema: _{TOPICO}_\n\n━━━ 📸 INSTAGRAM ━━━\n{CAPTION_COMPLETO}\n\n_{HASHTAGS}_\n\n━━━ 👥 FACEBOOK ━━━\n{MENSAJE_FACEBOOK}\n\n🖼 _Imagen: {imagen.descripcion_alt}_\n{si imagen.url_generada: imagen.url_generada}\n\n━━━━━━━━━━━━━━━━━━━━\nResponde en este chat:\n✅ `aprobar {DRAFT_ID}`\n✍️ `editar {DRAFT_ID}: [cambios]`\n❌ `rechazar {DRAFT_ID}: [motivo]`"
 }
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-¿Publicar en ambas plataformas? [Sí / No / Editar]
 ```
+
+Guardar el `message_id` de la respuesta en el draft JSON (`telegram_message_id`).
+
+Mostrar en consola:
+```
+📨 Preview enviado a Telegram. Esperando respuesta del manager...
+   (Draft ID: {DRAFT_ID})
+   Timeout: 10 minutos. Si no hay respuesta, el borrador queda guardado
+   y puedes publicarlo después con /check-approvals.
+```
+
+---
+
+### Paso 8.1 — Esperar respuesta del manager en Telegram
+
+Hacer polling al endpoint `getUpdates` de Telegram hasta recibir una respuesta
+del manager o alcanzar el timeout.
+
+#### Leer offset actual
+
+Leer `.claude/drafts/_telegram_offset.json`. Si no existe, crearlo con `{"offset": 0}`.
+
+#### Loop de polling (máx 10 minutos)
+
+Repetir cada **15 segundos** hasta recibir respuesta o agotar 10 minutos (40 intentos):
+
+```
+GET https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates
+  ?offset={OFFSET}
+  &limit=10
+  &timeout=10
+```
+
+Para cada mensaje recibido en `result[]`:
+
+1. Verificar que `message.chat.id == TELEGRAM_CHAT_ID`
+2. Buscar patrones (case insensitive):
+   - `aprobar {DRAFT_ID}` o `apruebo {DRAFT_ID}` → **APROBADO**
+   - `editar {DRAFT_ID}: {instrucciones}` → **EDITAR**
+   - `rechazar {DRAFT_ID}` o `rechazar {DRAFT_ID}: {motivo}` → **RECHAZADO**
+3. Actualizar offset a `update_id + 1` y guardar en `_telegram_offset.json`
+
+#### Si la respuesta es APROBADO:
+
+Mostrar en consola: `✅ Manager aprobó el borrador #{DRAFT_ID}. Publicando...`
+Actualizar el draft: `status = "approved"`, `approved_at = NOW`.
+→ Continuar al **Paso 9** (publicar).
+
+#### Si la respuesta es EDITAR:
+
+1. Regenerar el contenido con Claude aplicando las instrucciones del manager
+2. Guardar nuevo borrador con nuevo `draft_id`
+3. Enviar el nuevo preview a Telegram (repetir desde Paso 8c con el contenido editado)
+4. Esperar nueva respuesta (repetir Paso 8.1)
+
+#### Si la respuesta es RECHAZADO:
+
+Actualizar el draft: `status = "rejected"`, `rejection_reason = {motivo}`.
+Enviar confirmación a Telegram: `❌ Borrador #{DRAFT_ID} rechazado. No se publicará.`
+Mostrar en consola:
+```
+❌ Manager rechazó el borrador #{DRAFT_ID}
+   Motivo: {motivo}
+   No se publicará. Ejecuta /publish-today para generar nuevo contenido.
+```
+→ **Terminar** (no continuar a Paso 9).
+
+#### Si se agota el timeout (10 min sin respuesta):
+
+Mostrar en consola:
+```
+⏰ Timeout: no se recibió respuesta en 10 minutos.
+   El borrador #{DRAFT_ID} queda guardado en .claude/drafts/{draft_id}.json
+   Opciones:
+   • Responde en Telegram y luego ejecuta /check-approvals
+   • /check-approvals --force {DRAFT_ID} para publicar sin aprobación
+```
+→ **Terminar** (el borrador queda pendiente para `/check-approvals`).
 
 ---
 
 ### Paso 9 — Publicar en Instagram
 
-Si el usuario confirma, publica usando la **Instagram Graph API**.
+Solo se ejecuta si el manager aprobó en el Paso 8.1.
+
+Publica usando la **Instagram Graph API**.
 
 Usa `imagen.url_generada` del Paso 6B como `image_url`. Si es null, Instagram requiere
 una URL pública — informar al usuario y guardar el post como borrador.
@@ -291,12 +370,15 @@ POST https://graph.facebook.com/v21.0/{FACEBOOK_PAGE_ID}/photos
 
 ### Paso 11 — Guardar en historial y confirmar
 
+**Actualizar el borrador:** `status = "published"`, `published_at = NOW`.
+
 **Guarda el post en `.claude/posts/{FECHA}.json`:**
 ```json
 {
   "date": "2026-03-21",
   "category": "Fecha especial / coyuntura",
   "topic": "Día Internacional de la Mujer",
+  "draft_id": "a3f9c21b",
   "instagram_post_id": "...",
   "facebook_post_id": "...",
   "caption_preview": "Primeros 100 caracteres...",
@@ -309,7 +391,17 @@ POST https://graph.facebook.com/v21.0/{FACEBOOK_PAGE_ID}/photos
 
 **Actualiza `.claude/posts/history.json`** — agrega este post al array `posts[]`, mantén solo los últimos 30.
 
-**Muestra confirmación:**
+**Envía confirmación por Telegram:**
+```
+POST https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage
+{
+  "chat_id": "{TELEGRAM_CHAT_ID}",
+  "text": "✅ Borrador #{DRAFT_ID} publicado con éxito\n📸 Instagram: Post ID {ID}\n👥 Facebook: Post ID {ID}\n📅 {FECHA}",
+  "parse_mode": "Markdown"
+}
+```
+
+**Muestra confirmación en consola:**
 ```
 ✅ PUBLICACIÓN COMPLETADA
 
@@ -319,6 +411,7 @@ POST https://graph.facebook.com/v21.0/{FACEBOOK_PAGE_ID}/photos
 📌 Tópico: {topico}
 📅 Fecha: {HOY}
 🏢 Empresa: {COMPANY_NAME}
+📨 Confirmación enviada a Telegram
 
 💾 Historial actualizado: .claude/posts/history.json
    Próxima categoría sugerida: {siguiente_categoria_en_rotación}
@@ -336,6 +429,8 @@ POST https://graph.facebook.com/v21.0/{FACEBOOK_PAGE_ID}/photos
 | `INSTAGRAM_BUSINESS_ACCOUNT_ID` | `.env` | ID de cuenta Instagram |
 | `FACEBOOK_ACCESS_TOKEN` | `.env` | Token de Facebook |
 | `FACEBOOK_PAGE_ID` | `.env` | ID de página Facebook |
+| `TELEGRAM_BOT_TOKEN` | `.env` | Token del bot de Telegram (aprobación de contenido) |
+| `TELEGRAM_CHAT_ID` | `.env` | Chat ID donde enviar previews y recibir aprobación |
 | `FAL_KEY` | `.env` | **Generación de imágenes** — fal.ai (recomendado) |
 | `OPENAI_API_KEY` | `.env` | **Generación de imágenes** — DALL-E 3 (alternativa) |
 
@@ -349,6 +444,8 @@ POST https://graph.facebook.com/v21.0/{FACEBOOK_PAGE_ID}/photos
 | `.claude/content-calendar.json` | Parrilla de categorías y tópicos |
 | `.claude/brand-images/` | Carpeta con imágenes de marca (opcional) |
 | `.claude/brand-images/brand-style.json` | Análisis visual del brand kit (auto-generado) |
+| `.claude/drafts/{draft_id}.json` | Borrador pendiente de aprobación por Telegram |
+| `.claude/drafts/_telegram_offset.json` | Último update_id procesado del bot de Telegram |
 
 ## Comportamiento ante errores
 
