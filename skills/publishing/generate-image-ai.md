@@ -143,122 +143,61 @@ echo "none"
 
 ---
 
-### Paso 2 — Construir el prompt
+### Paso 2 — Construir el prompt (delegado a `generate-image-prompt.md`)
 
-> **Principio clave:** El modelo `nano-banana-2` responde mejor a lenguaje conversacional
-> con contexto de negocio que a descripciones técnicas de fotografía. El prompt debe sonar
-> como si un dueño de empresa le pidiera la imagen a un diseñador, no como un parámetro técnico.
+La construcción del prompt se delega al skill `generate-image-prompt.md`, que es la
+fuente única de verdad para la estructura conversacional, las plantillas por tópico
+y la adaptación por herramienta.
 
-#### Con foto de referencia (hay imágenes en la carpeta del producto)
+#### 2.1 — Si hay foto de referencia: extraer descripción visual
 
-**Paso previo obligatorio:** Analizar `REF_IMAGE_PATH` con la herramienta de visión para extraer:
+**Solo cuando `mode == "img2img"`:** Analizar `REF_IMAGE_PATH` con la herramienta de visión
+para extraer una descripción del producto:
 - Qué tipo de producto/objeto se ve en la foto
 - Colores reales presentes
 - Cómo está presentado (forma, disposición)
 - Material o acabado si es evidente
 
-Con esa descripción visual, construir el prompt conversacional:
+Guardar como `product_description` (string). Ejemplo:
+`"tortas de sesgo planchado en colores vibrantes, presentadas como rollos planos apilados"`
 
-**Plantilla:**
-```
-Soy {dueño/responsable de marketing} de {COMPANY_NAME}, una empresa de {INDUSTRY}.
-Necesito crear una imagen para publicar en redes sociales.
+**Si `mode == "text"`:** `product_description = null`
 
-Mi producto es {DESCRIPCIÓN_VISUAL_EXTRAÍDA_DE_LA_FOTO: tipo, colores, forma}.
-La temática del post de hoy es: {TOPIC}.
-{Si hay SPECIAL_DATE: La ocasión especial es: {SPECIAL_DATE}.}
+#### 2.2 — Ejecutar `generate-image-prompt.md`
 
-Crea una imagen atractiva y creativa para redes sociales que muestre mi producto
-en un contexto relacionado con la temática. La imagen debe verse real y profesional,
-sin texto ni logos superpuestos.
-```
+Llamar al skill con estos inputs:
 
-**Adaptar según el tópico:**
-- "tip del sector" → agregar: "Muéstralo en un ambiente de trabajo o estudio, con elementos relacionados al oficio."
-- "caso de éxito / cliente satisfecho" → agregar: "Contexto profesional, ambiente de éxito y confianza."
-- "detrás de escena / proceso" → agregar: "Ambiente de producción o taller, contexto de trabajo real."
-- "tendencia / mercado" → agregar: "Estilo editorial moderno, composición limpia y contemporánea."
-- "fecha especial" → agregar: "La imagen debe evocar {SPECIAL_DATE}, con ambientación acorde."
-- "nuevo lanzamiento" → agregar: "Presentación destacada del producto, fondo limpio, protagonismo total."
+| Input | Valor |
+|---|---|
+| `topic` | `{TOPIC}` del post |
+| `company_name` | `{COMPANY_NAME}` |
+| `industry` | `{INDUSTRY}` |
+| `product_description` | Descripción extraída de la foto (o null) |
+| `brand_style` | Contenido de `brand-style.json` (o null) |
+| `special_date` | `{SPECIAL_DATE}` (o null) |
+| `tool` | `fal-ai` si hay `FAL_KEY`, `dalle` si hay `OPENAI_API_KEY`, `generic` si ninguno |
+| `format` | `square` para Instagram, `landscape` para Facebook |
 
-**Ejemplos multi-industria:**
-
-*Textil — Día de la Mujer:*
-```
-Soy dueño de Sesgo Express, una fábrica de sesgo textil.
-Necesito crear una imagen para publicar en redes sociales.
-
-Mi producto son tortas de sesgo planchado en colores vibrantes (amarillo, verde lima,
-morado, marrón, naranja), presentadas como rollos planos apilados en forma de torta.
-La temática del post de hoy es: sesgo planchado para el Día de la Mujer.
-
-Crea una imagen atractiva para redes sociales que muestre mi producto en un contexto
-festivo relacionado con el Día de la Mujer. La imagen debe verse real y profesional,
-sin texto ni logos superpuestos.
+El skill devuelve:
+```json
+{
+  "prompt": "Soy dueño de {COMPANY_NAME}...",
+  "negative_prompt": "text, watermark, logo...",
+  "ready_for_generate_image_ai": true
+}
 ```
 
-*Calzado — Halloween:*
-```
-Soy fabricante de calzado en Botas García.
-Necesito crear una imagen para publicar en redes sociales.
+Usar `prompt` como `{PROMPT_CONVERSACIONAL_CONSTRUIDO}` en los pasos siguientes (2A y 2B).
 
-Mi producto son botas de cuero negro con suela gruesa y detalle de hebillas laterales.
-La temática del post de hoy es: botas en Halloween.
+#### 2.3 — Negative prompt
 
-Crea una imagen creativa para redes sociales que muestre mis botas en un contexto
-oscuro y festivo de Halloween. La imagen debe verse real y profesional,
-sin texto ni logos superpuestos.
-```
+Usar el `negative_prompt` devuelto por `generate-image-prompt.md`.
 
-*Alimentos — lanzamiento:*
-```
-Soy responsable de marketing en Miel del Valle, productora de miel artesanal.
-Necesito crear una imagen para publicar en redes sociales.
+Para `nano-banana-2`: generalmente no necesita negative prompt con prompts conversacionales.
+Incluir solo si la primera generación tiene defectos visibles.
 
-Mi producto son frascos de vidrio con miel dorada artesanal, tapas metálicas plateadas.
-La temática del post de hoy es: lanzamiento de nuestra miel de flores silvestres.
-
-Crea una imagen hermosa para redes sociales que destaque los frascos con luz cálida
-y elementos naturales. La imagen debe verse real y profesional, sin texto ni logos.
-```
-
-#### Sin foto de referencia (no hay imágenes en la carpeta del producto)
-
-Usar el mismo formato conversacional, describiendo el producto desde el contexto de la empresa:
-
-**Plantilla:**
-```
-Soy {dueño/responsable de marketing} de {COMPANY_NAME}, una empresa de {INDUSTRY}.
-Necesito crear una imagen para publicar en redes sociales.
-
-La temática del post de hoy es: {TOPIC}.
-{Si hay SPECIAL_DATE: La ocasión especial es: {SPECIAL_DATE}.}
-
-Crea una imagen atractiva para redes sociales que represente visualmente esta temática
-en el contexto de {INDUSTRY}. La imagen debe verse real y profesional,
-sin texto ni logos superpuestos.
-```
-
-**Para Instagram**: `square_hd` (1024×1024)
-**Para Facebook**: `landscape_4_3` (1280×960)
-
----
-
-### Paso 2.1 — Negative prompt (opcional para nano-banana-2)
-
-> El modelo `nano-banana-2` con prompts conversacionales generalmente no necesita
-> negative prompt extenso. Incluir solo si la primera generación tiene defectos visibles.
-
-**Negative prompt mínimo (usar si hay problemas):**
-```
-text, watermark, logo, cartoon, illustration, low quality, blurry, deformed hands,
-extra fingers, bad anatomy, AI artifacts
-```
-
-**Para DALL-E 3** (no acepta negative_prompt separado): agregar al final del prompt:
-```
-Sin texto, sin watermarks, sin logos, fotografía real, sin ilustración, sin caricatura.
-```
+Para DALL-E 3 (no acepta negative_prompt separado): ya viene integrado en el prompt
+por `generate-image-prompt.md` cuando `tool == "dalle"`.
 
 ---
 
@@ -349,30 +288,12 @@ Si hay defectos (manos deformes, caras, artefactos) → regenerar con variación
 
 ### Paso 2B — Generar con DALL-E 3 (alternativa cuando no hay FAL_KEY)
 
-> ⚠️ DALL-E 3 **no soporta img2img**. Cuando hay fotos de referencia, se usa la visión
-> de Claude para describir el producto detalladamente e incorporar esa descripción en el prompt.
+> ⚠️ DALL-E 3 **no soporta img2img**. Cuando hay fotos de referencia, la descripción
+> visual ya fue extraída en el Paso 2.1 y pasada a `generate-image-prompt.md` como
+> `product_description`, por lo que el prompt ya la incorpora.
 
-#### Con imagen de referencia del producto
-
-1. Analizar `REF_IMAGE_PATH` con la herramienta de visión
-2. Extraer descripción visual: colores exactos, textura, material, forma, acabados, proporciones
-3. Construir el prompt combinando la descripción extraída + contexto ambiental del tópico:
-
-```
-{descripcion_visual_extraida_de_la_foto_real},
-ambientado en {contexto_segun_topico}, {iluminacion_y_entorno},
-{sector_industrial_si_aplica},
-RESTRICTIONS: photorealistic commercial photography only, absolutely no cartoon or
-illustration style, no extra fingers (exactly 5 fingers per hand, no more, no less),
-no extra eyes or facial features, no deformed faces, no extra limbs, no body mutations,
-no AI-generated artifacts, no text or watermarks overlaid on image,
-anatomically perfect and natural human proportions if humans appear,
-high resolution, sharp focus, professional studio lighting
-```
-
-#### Sin imagen de referencia
-
-Usar prompt de texto estándar con el bloque RESTRICTIONS al final.
+Usar el `{PROMPT_CONVERSACIONAL_CONSTRUIDO}` devuelto por `generate-image-prompt.md`
+en el Paso 2.2 (ya adaptado para DALL-E cuando `tool == "dalle"`).
 
 ```bash
 OPENAI_KEY=$(grep "^OPENAI_API_KEY=" .env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
@@ -383,7 +304,7 @@ curl -s -X POST "https://api.openai.com/v1/images/generations" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "dall-e-3",
-    "prompt": "{PROMPT_CON_RESTRICCIONES}",
+    "prompt": "{PROMPT_CONVERSACIONAL_CONSTRUIDO}",
     "size": "1024x1024",
     "quality": "hd",
     "style": "natural",

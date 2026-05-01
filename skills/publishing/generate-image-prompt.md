@@ -2,10 +2,10 @@
 
 **Propósito**: Genera un prompt conversacional con contexto de negocio para herramientas
 de imagen IA: `fal-ai/nano-banana-2`, Midjourney, DALL-E 3, Adobe Firefly o Stable Diffusion.
-Se usa cuando el usuario quiere ejecutar la generación manualmente o como paso previo
-a `generate-image-ai`.
+Es el paso de construcción de prompt que usa `generate-image-ai.md` internamente,
+y también se puede usar de forma independiente para generación manual.
 **Modelo**: `claude-sonnet-4-6`
-**Usado por**: `publisher-agent.md`, `/publish-today`
+**Usado por**: `generate-image-ai.md`, `publisher-agent.md`, `/publish-today`
 
 ---
 
@@ -22,7 +22,8 @@ ya sea de forma automática (via `generate-image-ai`) o manualmente con Midjourn
 | `topic` | string | Tema del post | "tendencias de embalaje sostenible" |
 | `company_name` | string | Nombre de la empresa | "Botas García" |
 | `industry` | string | Sector industrial | "calzado" |
-| `brand_style` | string | Estilo visual (opcional) | "colores tierra, minimalista" |
+| `product_description` | string | Descripción visual del producto extraída de foto de referencia (opcional) | "botas de cuero negro con suela gruesa y hebillas laterales" |
+| `brand_style` | string | Estilo visual de la marca (opcional) | "colores tierra, minimalista" |
 | `special_date` | string | Fecha especial (opcional) | "Día de la Mujer" |
 | `tool` | enum | Herramienta destino | `fal-ai` / `midjourney` / `dalle` / `firefly` / `stable-diffusion` / `generic` |
 | `format` | enum | Formato de la imagen | `square` (1:1) / `portrait` (4:5) / `landscape` (16:9) |
@@ -50,13 +51,21 @@ ya sea de forma automática (via `generate-image-ai`) o manualmente con Midjourn
 Soy {dueño/responsable de marketing} de {COMPANY_NAME}, una empresa de {INDUSTRY}.
 Necesito crear una imagen para publicar en redes sociales.
 
+{Si hay PRODUCT_DESCRIPTION → agregar: Mi producto es {PRODUCT_DESCRIPTION}.}
 La temática del post de hoy es: {TOPIC}.
 {Si hay SPECIAL_DATE → agregar: La ocasión especial es: {SPECIAL_DATE}.}
 {Si hay brand_style → agregar: El estilo visual de mi marca es: {BRAND_STYLE}.}
 
-Crea una imagen atractiva y creativa para redes sociales que represente esta temática
-en el contexto de {INDUSTRY}. La imagen debe verse real y profesional,
-sin texto ni logos superpuestos.
+{Si hay PRODUCT_DESCRIPTION:
+  Crea una imagen atractiva y creativa para redes sociales que muestre mi producto
+  en un contexto relacionado con la temática. La imagen debe verse real y profesional,
+  sin texto ni logos superpuestos.
+}
+{Si NO hay PRODUCT_DESCRIPTION:
+  Crea una imagen atractiva y creativa para redes sociales que represente esta temática
+  en el contexto de {INDUSTRY}. La imagen debe verse real y profesional,
+  sin texto ni logos superpuestos.
+}
 ```
 
 **Adaptar la instrucción final según el tópico:**
