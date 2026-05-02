@@ -123,7 +123,7 @@ POST https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage
 {
   "chat_id": "{TELEGRAM_CHAT_ID}",
   "parse_mode": "Markdown",
-  "text": "🖼 *Imagen para el post de hoy*\n📅 {FECHA} | 🏢 {COMPANY_NAME}\n\n📌 *Categoría:* {CATEGORIA}\n📝 *Tópico:* {TOPICO}\n{si fecha especial: 🗓 *Contexto:* {FECHA_ESPECIAL}}\n\n¿Cómo quieres la imagen?\n\n📸 Envía una *foto* a este chat → la uso como base y la edito con IA\n🤖 Escribe *generar* → creo una imagen desde cero con IA"
+  "text": "🖼 *Imagen para el post de hoy*\n📅 {FECHA} | 🏢 {COMPANY_NAME}\n\n📌 *Categoría:* {CATEGORIA}\n📝 *Tópico:* {TOPICO}\n{si fecha especial: 🗓 *Contexto:* {FECHA_ESPECIAL}}\n\n¿Cómo quieres la imagen?\n\n📸 *Envía una foto* y la convierto en imagen profesional con IA\n🤖 *O dime que la genere* y la creo desde cero\n\nResponde como quieras, por ejemplo:\n_\"te mando una foto\"_ · _\"generala\"_ · _\"dale, no tengo foto\"_"
 }
 ```
 
@@ -147,17 +147,32 @@ GET https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates
   &timeout=10
 ```
 
-Para cada mensaje recibido de `TELEGRAM_CHAT_ID`, clasificar (case insensitive):
+Para cada mensaje recibido de `TELEGRAM_CHAT_ID`, clasificar la **intención** en
+lenguaje natural (case insensitive). No buscar palabras exactas — interpretar
+la intención del mensaje completo.
 
-**GENERAR** — el manager quiere imagen generada por IA:
-`generar`, `genera`, `créala`, `hazla`, `ia`, `automática`, `crear`,
-`genérala`, `dale`, `sí`
+**GENERAR** — el manager quiere que la IA cree la imagen (no tiene foto o prefiere automático):
+- Frases afirmativas sin foto: `sí`, `ok`, `dale`, `adelante`, `genérala`,
+  `hazla`, `créala`, `automática`, `generar`
+- Indicación de no tener foto: `no tengo foto`, `no tengo imagen`,
+  `no tengo una foto`, `hazla tú`, `adelante no tengo`,
+  `genera tú`, `usa IA`, `créala automáticamente`
+- Cualquier mensaje de texto que indique que no va a enviar foto y quiere
+  que el agente se encargue
 
-**FOTO** — el manager envió una imagen:
+**ESPERAR FOTO** — el manager dice que va a enviar una foto (pero aún no la envió):
+- `ya te mando`, `te subo una foto`, `espera`, `ya va`, `un momento`,
+  `déjame tomar la foto`, `ahorita te la mando`, `te la envío`
+- Responder en Telegram: `👍 Listo, esperando tu foto...`
+- **No avanzar** — seguir en el loop de polling esperando que envíe la imagen
+
+**FOTO RECIBIDA** — el manager envió una imagen:
 El mensaje contiene `message.photo` (array de tamaños de foto de Telegram).
+→ Proceder al paso 6d.
 
-**Si el mensaje es ambiguo** (texto sin foto que no encaja en "generar"):
-Responder en Telegram: `🤔 Envía una foto o escribe *generar* para crear una con IA.`
+**Si el mensaje es realmente ambiguo** (no encaja en ninguna de las anteriores):
+Responder en Telegram:
+`🤔 No entendí. ¿Quieres que genere la imagen con IA o me vas a enviar una foto?`
 Seguir esperando.
 
 Actualizar offset a `update_id + 1` y guardar en `_telegram_offset.json`.
