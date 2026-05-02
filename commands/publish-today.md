@@ -111,38 +111,63 @@ Registra la decisión: `{fecha, categoria, topico, fuente: "calendario"|"argumen
 
 ---
 
-### Paso 6A — Analizar brand kit de imágenes (si existe)
+### Paso 6 — Preguntar al manager por Telegram: generar imagen o subir foto
 
-Verifica si existe la carpeta `.claude/brand-images/`:
-```bash
-ls .claude/brand-images/ 2>/dev/null
-```
+Antes de generar la imagen, enviar un mensaje a Telegram informando el tópico del día
+y preguntando cómo quiere manejar la imagen.
 
-**Si la carpeta contiene imágenes** (jpg, png, webp):
-1. Lee hasta 5 imágenes con la herramienta de visión.
-2. Extrae el **estilo visual de la marca**: paleta de colores dominante, tipografía percibida, estilo fotográfico (plano, lifestyle, producto, etc.), elementos recurrentes.
-3. Guarda este análisis en `.claude/brand-images/brand-style.json` para no repetirlo cada vez:
-   ```json
-   {
-     "color_palette": ["#1A2B3C", "#F5E6D0", "#FFFFFF"],
-     "photography_style": "fotografía de producto sobre fondo claro, sin personas",
-     "mood": "profesional, limpio, moderno",
-     "elements": ["logo en esquina inferior derecha", "tipografía sans-serif"],
-     "analyzed_at": "2026-03-21"
-   }
-   ```
-4. Si `brand-style.json` ya existe y fue analizado hace menos de 30 días, usar el análisis guardado.
-
-**Si la carpeta no existe o está vacía** → continuar sin brand_style (la IA generará imagen basada en el sector).
-
----
-
-### Paso 6B — Generar imagen con IA
-
-Ejecuta el skill `skills/publishing/generate-image-ai.md` con estos inputs:
+#### 6a — Enviar mensaje de opción de imagen a Telegram
 
 ```
-brand_style   → contenido de brand-style.json (o null)
+POST https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage
+{
+  "chat_id": "{TELEGRAM_CHAT_ID}",
+  "parse_mode": "Markdown",
+  "text": "🖼 *Imagen para el post de hoy*\n📅 {FECHA} | 🏢 {COMPANY_NAME}\n\n📌 *Categoría:* {CATEGORIA}\n📝 *Tópico:* {TOPICO}\n{si fecha especial: 🗓 *Contexto:* {FECHA_ESPECIAL}}\n\n¿Cómo quieres la imagen?\n\n📸 Envía una *foto* a este chat → la uso como base y la edito con IA\n🤖 Escribe *generar* → creo una imagen desde cero con IA"
+}
+```
+
+Mostrar en consola:
+```
+📨 Pregunta enviada a Telegram: ¿foto propia o generar con IA?
+   Esperando respuesta del manager...
+   Timeout: 10 minutos.
+```
+
+#### 6b — Esperar respuesta del manager (polling)
+
+Leer offset desde `.claude/drafts/_telegram_offset.json` (si no existe, crearlo con `{"offset": 0}`).
+
+Repetir cada **15 segundos** hasta recibir respuesta o agotar 10 minutos:
+
+```
+GET https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates
+  ?offset={OFFSET}
+  &limit=10
+  &timeout=10
+```
+
+Para cada mensaje recibido de `TELEGRAM_CHAT_ID`, clasificar (case insensitive):
+
+**GENERAR** — el manager quiere imagen generada por IA:
+`generar`, `genera`, `créala`, `hazla`, `ia`, `automática`, `crear`,
+`genérala`, `dale`, `sí`
+
+**FOTO** — el manager envió una imagen:
+El mensaje contiene `message.photo` (array de tamaños de foto de Telegram).
+
+**Si el mensaje es ambiguo** (texto sin foto que no encaja en "generar"):
+Responder en Telegram: `🤔 Envía una foto o escribe *generar* para crear una con IA.`
+Seguir esperando.
+
+Actualizar offset a `update_id + 1` y guardar en `_telegram_offset.json`.
+
+#### 6c — Si el manager eligió GENERAR (text-to-image)
+
+Ejecutar `skills/publishing/generate-image-ai.md` con:
+
+```
+mode          → "text-to-image"
 topic         → {topico_elegido}
 category      → {categoria_elegida}
 company_name  → {company.name}
@@ -151,19 +176,78 @@ special_date  → {fecha_especial o null}
 platform      → "instagram"
 ```
 
-El skill detecta automáticamente el proveedor disponible (`FAL_KEY` o `OPENAI_API_KEY`) y devuelve:
-
+El skill genera una imagen nueva desde cero y devuelve:
 ```json
 {
   "success": true,
-  "provider": "fal",
+  "mode": "text-to-image",
   "image_url": "https://fal.media/files/xxx/generated.jpeg",
-  "prompt_used": "fotografía de producto industrial..."
+  "prompt_used": "..."
 }
 ```
 
-**Si el skill devuelve `success: false` o no hay API key** → continuar con `image_url: null`
-y mostrar el `prompt_externo` para uso manual en Artlist, Midjourney o Firefly.
+**Si falla o no hay API key** → continuar con `image_url: null` y mostrar el prompt externo.
+
+→ Continuar al **Paso 7**.
+
+#### 6d — Si el manager envió una FOTO (edit-image)
+
+1. Obtener el `file_id` de la foto en mayor resolución (último elemento del array `message.photo`).
+
+2. Obtener la URL del archivo:
+```
+GET https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getFile
+  ?file_id={FILE_ID}
+```
+Respuesta: `{"result": {"file_path": "photos/file_123.jpg"}}`
+
+3. Descargar la foto:
+```
+GET https://api.telegram.org/file/bot{TELEGRAM_BOT_TOKEN}/{FILE_PATH}
+```
+Guardar en `.claude/brand-images/telegram-upload/{FECHA}.jpg`
+
+4. Confirmar por Telegram:
+```
+✅ Foto recibida. Editando con IA para adaptarla al tópico del día...
+```
+
+5. Ejecutar `skills/publishing/generate-image-ai.md` con:
+
+```
+mode          → "edit-image"
+topic         → {topico_elegido}
+category      → {categoria_elegida}
+company_name  → {company.name}
+industry      → {company.industry}
+special_date  → {fecha_especial o null}
+platform      → "instagram"
+image_path    → ".claude/brand-images/telegram-upload/{FECHA}.jpg"
+```
+
+El skill edita la foto con IA (fal-ai/flux-pro/edit) preservando el producto y
+cambiando el contexto/ambientación según el tópico, y devuelve:
+```json
+{
+  "success": true,
+  "mode": "edit-image",
+  "image_url": "https://fal.media/files/xxx/edited.jpeg",
+  "prompt_used": "..."
+}
+```
+
+→ Continuar al **Paso 7**.
+
+#### 6e — Timeout (10 min sin respuesta)
+
+```
+⏰ Timeout: no se recibió respuesta sobre la imagen.
+   Generando imagen automáticamente con IA (text-to-image)...
+```
+
+Ejecutar como en el paso 6c (text-to-image por defecto).
+
+→ Continuar al **Paso 7**.
 
 ---
 
@@ -181,7 +265,7 @@ Categoría del día: {categoria_elegida}
 Tópico del día: {topico_elegido}
 Fecha especial: {fecha_especial o "ninguna"}
 Últimos tópicos publicados (no repetir): {lista de los últimos 7}
-Estilo visual de la marca: {brand_style si existe}
+Imagen: {mode del Paso 6: "text-to-image" o "edit-image"}
 ```
 
 Genera el siguiente JSON:
@@ -458,8 +542,7 @@ POST https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage
 | `.claude/posts/history.json` | Historial de los últimos 30 posts |
 | `.claude/posts/images/{FECHA}.json` | Metadatos de la imagen generada por IA |
 | `.claude/content-calendar.json` | Parrilla de categorías y tópicos |
-| `.claude/brand-images/` | Carpeta con imágenes de marca (opcional) |
-| `.claude/brand-images/brand-style.json` | Análisis visual del brand kit (auto-generado) |
+| `.claude/brand-images/telegram-upload/` | Fotos enviadas por el manager via Telegram |
 | `.claude/drafts/{draft_id}.json` | Borrador pendiente de aprobación por Telegram |
 | `.claude/drafts/_telegram_offset.json` | Último update_id procesado del bot de Telegram |
 
@@ -474,8 +557,8 @@ POST https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage
 
 - El tópico del día **nunca se le pregunta al usuario** — se determina automáticamente
 - Si el usuario llama `/publish-today "tema específico"`, ese argumento override la selección automática
-- La carpeta `.claude/brand-images/` la crea el usuario manualmente copiando 5-10 fotos de su marca
-- **Generación de imágenes**: automática si hay `FAL_KEY` o `OPENAI_API_KEY`; si no, se genera un
-  `prompt_externo` listo para usar en Artlist (toolkit.artlist.io), Midjourney o Firefly
+- **Imagen**: el manager elige via Telegram si generar con IA (text-to-image) o subir foto propia (edit-image)
+- Si sube foto, se edita con `fal-ai/flux-pro/edit` adaptando el contexto al tópico del día
+- Si no responde en 10 min, se genera automáticamente con text-to-image
 - Las URLs de fal.ai son persistentes y se pueden usar directamente en Instagram Graph API
 - Usar `claude-opus-4-6` con `thinking: adaptive` para la generación de contenido
