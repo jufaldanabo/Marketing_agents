@@ -95,68 +95,184 @@ La temática del post de hoy es: {TOPIC}.
 ## Modo B — Prompt para Edit Image
 
 > Usar cuando `mode == "edit-image"`.
-> Genera una **instrucción de edición** que describe qué cambiar en la foto existente,
-> no una escena completa. El producto ya está en la imagen — el prompt indica cómo
-> transformar el contexto, fondo o ambientación alrededor de él.
+> Toma una foto casual/real del producto y la transforma en una imagen profesional
+> lista para publicar en Instagram, redes sociales y página web.
 
-> **Principio clave:** El prompt de edición debe ser corto y directivo. No describe la
-> escena entera — describe solo **lo que debe cambiar**. El modelo preserva lo que no
-> se menciona.
+> **Principio clave:** El prompt es conversacional, como si el dueño de la empresa
+> le pidiera a un diseñador que mejore su foto. Incluye: quién soy, qué es el producto,
+> qué quiero que cambie, y cómo debe verse el resultado final. Este enfoque produce
+> resultados superiores a instrucciones técnicas cortas.
 
-**Plantilla base:**
+### Cadena de pensamiento para construir el prompt
+
+Antes de escribir el prompt, pensar en estos 5 pasos:
+
+1. **¿Quién soy?** — Contexto del negocio (empresa, sector)
+2. **¿Qué se ve en la foto?** — Usar la `technical_description` del producto aprobada
+   en `/init`. Si no existe, describir lo que se observa en la imagen.
+3. **¿Qué quiero que cambie?** — Limpiar el fondo, remover objetos, mejorar la presentación.
+   La foto original suele ser casual (escritorio desordenado, piso, fondo de bodega).
+   El resultado debe verse como fotografía de catálogo profesional.
+4. **¿Cómo debe verse el resultado?** — Superficie donde va el producto, fondo,
+   iluminación, elementos decorativos que acompañen según el tópico del día.
+5. **¿Para qué plataforma?** — Instagram, redes sociales, página web.
+   Siempre: sin texto superpuesto, sin logos, sin watermarks.
+
+### Plantilla base
 
 ```
-{INSTRUCCIÓN_PRINCIPAL_SEGÚN_TÓPICO}.
-{Si hay SPECIAL_DATE → agregar contexto de la fecha.}
-Mantener el producto como protagonista. Estilo profesional para redes sociales,
-sin texto ni logos superpuestos.
+Soy {dueño/responsable de marketing} de {COMPANY_NAME}, una empresa de {INDUSTRY}.
+Esta es una imagen de {TECHNICAL_DESCRIPTION_RESUMIDA}.
+
+Me gustaría que volvieras esta foto más profesional, lista para ser publicada
+en Instagram, redes sociales y página web.
+
+{INSTRUCCIONES_DE_EDICIÓN}
+
+La parte principal es {ELEMENTO_PROTAGONISTA_DEL_PRODUCTO}. Las cosas que están
+alrededor que no son parte del producto, remuévelas.
+
+{CONTEXTO_DEL_TÓPICO_DEL_DÍA}
+
+La imagen debe verse como fotografía de catálogo profesional: iluminación suave
+y natural, composición limpia, colores fieles al producto real.
+Sin texto, sin logos, sin watermarks superpuestos.
 ```
 
-**Instrucción principal según el tópico:**
+### Instrucciones de edición según el tópico
 
-| Tipo de tópico | Instrucción de edición |
+La sección `{INSTRUCCIONES_DE_EDICIÓN}` cambia según la categoría del post:
+
+| Tipo de tópico | Instrucciones de edición |
 |---|---|
-| Tip del sector | "Ambientar el producto en un espacio de trabajo profesional de {INDUSTRY}, con herramientas y elementos propios del oficio alrededor." |
-| Caso de éxito / cliente satisfecho | "Colocar el producto en un ambiente corporativo elegante que transmita éxito y confianza, con iluminación cálida." |
-| Detrás de escena / proceso | "Situar el producto en un ambiente de taller o planta de producción, con elementos de manufactura alrededor." |
-| Tendencia / mercado | "Darle al producto un entorno editorial moderno: fondo limpio, composición contemporánea, iluminación de estudio." |
-| Fecha especial | "Ambientar el producto con decoración y elementos visuales de {SPECIAL_DATE}. Contexto festivo y acorde a la celebración." |
-| Nuevo lanzamiento | "Presentar el producto como protagonista absoluto: fondo limpio degradado, iluminación destacada, ángulo premium." |
-| Producto / servicio | "Mostrar el producto en un contexto atractivo de uso real en {INDUSTRY}, con ambientación natural y profesional." |
+| Producto / servicio | "Quisiera que el producto esté sobre una superficie limpia y elegante, que el fondo sea suave y difuminado, con iluminación de estudio que resalte los detalles y la textura del producto." |
+| Tip del sector | "Quisiera que el producto esté sobre una mesa de trabajo profesional de {INDUSTRY}, con algunos elementos del oficio alrededor (pero ordenados y estéticos, no desordenados). Fondo limpio." |
+| Caso de éxito / cliente satisfecho | "Quisiera que el producto esté en un ambiente corporativo elegante, sobre una superficie de madera o mármol, con iluminación cálida que transmita confianza y calidad." |
+| Detrás de escena / proceso | "Quisiera que el producto esté en un ambiente de taller o producción, pero ordenado y profesional. Elementos de manufactura al fondo, ligeramente desenfocados." |
+| Tendencia / mercado | "Quisiera que el producto tenga un entorno editorial moderno: superficie minimalista, fondo con gradiente sutil, composición contemporánea tipo revista." |
+| Fecha especial | "Quisiera que el producto esté sobre una mesa con ambientación de {SPECIAL_DATE}: {DECORACIÓN_ACORDE}. Manteniendo el producto como protagonista absoluto." |
+| Nuevo lanzamiento | "Quisiera que el producto esté sobre una superficie premium (mármol, madera oscura o acrílico), con fondo degradado limpio e iluminación lateral que destaque cada detalle." |
 
-**Ejemplos multi-industria:**
+### Contexto del tópico
 
-*Textil — Día de la Mujer:*
-```
-Ambientar el producto con decoración festiva del Día de la Mujer: flores,
-tonos morados y rosados, ambiente cálido y celebratorio.
-Mantener el producto como protagonista. Estilo profesional para redes sociales,
-sin texto ni logos superpuestos.
-```
+La sección `{CONTEXTO_DEL_TÓPICO_DEL_DÍA}` agrega ambientación temática:
 
-*Calzado — Halloween:*
 ```
-Situar las botas en un ambiente oscuro y misterioso de Halloween: hojas secas,
-calabazas, iluminación dramática con tonos naranjas y negros.
-Mantener el producto como protagonista. Estilo profesional para redes sociales,
-sin texto ni logos superpuestos.
-```
-
-*Manufactura — tendencia:*
-```
-Darle al producto un entorno editorial moderno: fondo de líneas geométricas limpias,
-iluminación de estudio, composición contemporánea que transmita innovación.
-Mantener el producto como protagonista. Estilo profesional para redes sociales,
-sin texto ni logos superpuestos.
+{Si hay SPECIAL_DATE:
+  "El post es por {SPECIAL_DATE}, así que la ambientación y los elementos
+   decorativos deben evocar esa fecha sin opacar al producto."
+}
+{Si la categoría es "tip del sector":
+  "Es un post educativo sobre {TOPIC}, por lo que el ambiente debe
+   transmitir profesionalismo y conocimiento del sector."
+}
+{Si es genérico:
+  "El tema del post de hoy es: {TOPIC}."
+}
 ```
 
-*Alimentos — lanzamiento:*
+### Ejemplos multi-industria
+
+*Textil — producto (foto casual de sesgo en escritorio desordenado):*
 ```
-Presentar los frascos como protagonistas: fondo degradado dorado a blanco,
-iluminación lateral cálida, gotas de miel en la superficie, elementos naturales
-como flores silvestres alrededor.
-Mantener el producto como protagonista. Estilo profesional para redes sociales,
-sin texto ni logos superpuestos.
+Soy fabricante de sesgo textil y mi fábrica se llama Sesgo Express.
+Esta es una imagen del sesgo negro que fabrico, una torta de sesgo
+planchado envuelta en plástico transparente.
+
+Me gustaría que volvieras esta foto más profesional, lista para ser
+publicada en Instagram, redes sociales y página web.
+
+Quisiera que el sesgo esté sobre una mesa de madera limpia y elegante,
+que el fondo sea suave y difuminado con tonos neutros. Que se vean
+algunos elementos textiles decorativos alrededor (pequeños rollos de
+sesgo de otros colores, una cinta métrica, telas dobladas al fondo)
+pero todo ordenado y estético.
+
+La parte principal es el sesgo negro. Las cosas que están alrededor
+que no son parte del producto (papeles, bolígrafos, facturas,
+objetos de escritorio), remuévelas.
+
+La imagen debe verse como fotografía de catálogo profesional: iluminación
+suave y natural, composición limpia, colores fieles al producto real.
+Sin texto, sin logos, sin watermarks superpuestos.
+```
+
+*Calzado — fecha especial (foto de botas en piso de bodega):*
+```
+Soy fabricante de calzado en Botas García.
+Esta es una imagen de mis botas de cuero marrón con suela de caucho
+y costuras visibles estilo artesanal.
+
+Me gustaría que volvieras esta foto más profesional, lista para ser
+publicada en Instagram, redes sociales y página web.
+
+Quisiera que las botas estén sobre una superficie de madera rústica,
+con hojas secas y calabazas pequeñas como elementos decorativos
+al fondo (ligeramente desenfocados). Iluminación cálida con tonos
+naranjas y dorados. Ambiente otoñal elegante.
+
+La parte principal son las botas. Las cosas que están alrededor que
+no son parte del producto (cajas, piso de bodega, etiquetas), remuévelas.
+
+El post es por Halloween, así que la ambientación y los elementos
+decorativos deben evocar esa fecha sin opacar al producto.
+
+La imagen debe verse como fotografía de catálogo profesional: iluminación
+suave y natural, composición limpia, colores fieles al producto real.
+Sin texto, sin logos, sin watermarks superpuestos.
+```
+
+*Alimentos — nuevo lanzamiento (foto de frascos de miel en cocina):*
+```
+Soy responsable de marketing en Miel del Valle, productora de miel artesanal.
+Esta es una imagen de nuestros frascos de miel de flores silvestres,
+frascos de vidrio con miel dorada y tapa metálica plateada.
+
+Me gustaría que volvieras esta foto más profesional, lista para ser
+publicada en Instagram, redes sociales y página web.
+
+Quisiera que los frascos estén sobre una superficie de mármol blanco,
+con algunos elementos naturales alrededor (flores silvestres, un panal
+pequeño, gotas de miel en la superficie) todo ordenado y estético.
+Iluminación lateral cálida que haga brillar la miel a través del vidrio.
+Fondo suave con gradiente dorado a blanco.
+
+La parte principal son los frascos de miel. Las cosas que están alrededor
+que no son parte del producto (mesón de cocina, utensilios, fondo
+de pared), remuévelas.
+
+Es el lanzamiento de nuestra nueva línea, por lo que la presentación
+debe verse premium y destacar cada detalle del producto.
+
+La imagen debe verse como fotografía de catálogo profesional: iluminación
+suave y natural, composición limpia, colores fieles al producto real.
+Sin texto, sin logos, sin watermarks superpuestos.
+```
+
+*Tecnología — tip del sector (foto de gadget en escritorio):*
+```
+Soy responsable de marketing en TechFlow, tienda de accesorios tecnológicos.
+Esta es una imagen de nuestro cargador inalámbrico circular, base de
+aluminio con superficie de carga negra y LED indicador azul.
+
+Me gustaría que volvieras esta foto más profesional, lista para ser
+publicada en Instagram, redes sociales y página web.
+
+Quisiera que el cargador esté sobre un escritorio minimalista de madera
+clara, con un smartphone apoyado al lado (como referencia de uso).
+Fondo limpio y difuminado con tonos grises suaves. Iluminación de
+estudio que resalte el acabado de aluminio y el LED azul.
+
+La parte principal es el cargador inalámbrico. Las cosas que están
+alrededor que no son parte del producto (cables sueltos, otros
+objetos de escritorio, papeles), remuévelas.
+
+Es un post educativo sobre carga inalámbrica, por lo que el ambiente
+debe transmitir tecnología moderna y simplicidad.
+
+La imagen debe verse como fotografía de catálogo profesional: iluminación
+suave y natural, composición limpia, colores fieles al producto real.
+Sin texto, sin logos, sin watermarks superpuestos.
 ```
 
 ---
