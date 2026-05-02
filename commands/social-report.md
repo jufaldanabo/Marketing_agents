@@ -152,12 +152,12 @@ Además de Telegram, mostrar el reporte completo en la terminal de Claude Code.
 
 | Variable | Fuente | Descripción |
 |---|---|---|
-| `INSTAGRAM_ACCESS_TOKEN` | `.env` | Token de Instagram |
-| `INSTAGRAM_BUSINESS_ACCOUNT_ID` | `.env` | ID cuenta Instagram |
-| `FACEBOOK_ACCESS_TOKEN` | `.env` | Token de Facebook |
-| `FACEBOOK_PAGE_ID` | `.env` | ID página Facebook |
-| `TELEGRAM_BOT_TOKEN` | `.env` | Token del bot Telegram |
-| `TELEGRAM_CHAT_ID` | `.env` | Chat/grupo destino |
+| `INSTAGRAM_ACCESS_TOKEN` | Variable de entorno | Token de Instagram |
+| `INSTAGRAM_BUSINESS_ACCOUNT_ID` | Variable de entorno | ID cuenta Instagram |
+| `FACEBOOK_ACCESS_TOKEN` | Variable de entorno | Token de Facebook |
+| `FACEBOOK_PAGE_ID` | Variable de entorno | ID página Facebook |
+| `TELEGRAM_BOT_TOKEN` | Variable de entorno | Token del bot Telegram |
+| `TELEGRAM_CHAT_ID` | Variable de entorno | Chat/grupo destino |
 
 ## Comportamiento
 

@@ -229,12 +229,12 @@ Guardar en el proyecto:
 
 | Variable | Fuente | Descripción |
 |---|---|---|
-| `COMPANY_NAME` | `.env` o pregunta | Empresa que prospecta |
-| `PRODUCT` | `.env` o pregunta | Producto/servicio que vende |
-| `INDUSTRY_TARGET` | `.env` o pregunta | Sector de clientes objetivo |
-| `GEOGRAPHY` | `.env` o pregunta | País o región objetivo |
-| `SENDER_NAME` | `.env` o pregunta | Nombre del vendedor |
-| `SENDER_ROLE` | `.env` o pregunta | Cargo del vendedor |
+| `COMPANY_NAME` | Variable de entorno o pregunta | Empresa que prospecta |
+| `PRODUCT` | Variable de entorno o pregunta | Producto/servicio que vende |
+| `INDUSTRY_TARGET` | Variable de entorno o pregunta | Sector de clientes objetivo |
+| `GEOGRAPHY` | Variable de entorno o pregunta | País o región objetivo |
+| `SENDER_NAME` | Variable de entorno o pregunta | Nombre del vendedor |
+| `SENDER_ROLE` | Variable de entorno o pregunta | Cargo del vendedor |
 
 ## Herramientas que usa Claude
 

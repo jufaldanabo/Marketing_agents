@@ -22,7 +22,7 @@ antes del primer deploy o después de cambiar credenciales.
 
 ### Paso 1 — Verificar variables de entorno
 
-Leer el `.env` (o variables de entorno del sistema) y verificar que existen:
+Verificar que las siguientes variables de entorno están configuradas:
 
 **Esenciales (sin estas nada funciona):**
 - `ANTHROPIC_API_KEY`

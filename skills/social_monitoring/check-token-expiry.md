@@ -17,12 +17,12 @@ y envía alerta por Telegram si quedan menos de 10 días para el vencimiento.
 
 | Input | Fuente | Descripción |
 |---|---|---|
-| `INSTAGRAM_ACCESS_TOKEN` | `.env` | Token de acceso de Instagram |
-| `FACEBOOK_ACCESS_TOKEN` | `.env` | Token de acceso de Facebook |
-| `FACEBOOK_APP_ID` | `.env` | App ID de la aplicación en Meta Developers |
-| `FACEBOOK_APP_SECRET` | `.env` | App Secret de la aplicación |
-| `TELEGRAM_BOT_TOKEN` | `.env` | Para enviar alertas |
-| `TELEGRAM_CHAT_ID` | `.env` | Destinatario de las alertas |
+| `INSTAGRAM_ACCESS_TOKEN` | Variable de entorno | Token de acceso de Instagram |
+| `FACEBOOK_ACCESS_TOKEN` | Variable de entorno | Token de acceso de Facebook |
+| `FACEBOOK_APP_ID` | Variable de entorno | App ID de la aplicación en Meta Developers |
+| `FACEBOOK_APP_SECRET` | Variable de entorno | App Secret de la aplicación |
+| `TELEGRAM_BOT_TOKEN` | Variable de entorno | Para enviar alertas |
+| `TELEGRAM_CHAT_ID` | Variable de entorno | Destinatario de las alertas |
 
 ## Paso 1 — Verificar token de Instagram
 
@@ -161,6 +161,6 @@ RENOVAR TOKEN DE INSTAGRAM:
      &client_secret={APP_SECRET}
      &fb_exchange_token={TOKEN_CORTO}
 6. Copiar el token largo (válido 60 días)
-7. Actualizar INSTAGRAM_ACCESS_TOKEN en Railway y en .env local
+7. Actualizar INSTAGRAM_ACCESS_TOKEN en Railway (variables de entorno)
 8. Ejecutar /setup-check para confirmar
 ```

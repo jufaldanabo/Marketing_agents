@@ -158,12 +158,12 @@ POST https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage
 
 | Variable | Fuente | Descripción |
 |---|---|---|
-| `COMPANY_NAME` | `.env` o pregunta | Nombre de la empresa |
-| `INDUSTRY` | `.env` o pregunta | Sector industrial |
-| `COMMODITIES` | `.env` o pregunta | Lista de materias primas a monitorear |
-| `COMPETITORS` | `.env` o pregunta | Lista de competidores |
-| `TELEGRAM_BOT_TOKEN` | `.env` (opcional) | Para envío de resumen |
-| `TELEGRAM_CHAT_ID` | `.env` (opcional) | Destino del resumen |
+| `COMPANY_NAME` | Variable de entorno o pregunta | Nombre de la empresa |
+| `INDUSTRY` | Variable de entorno o pregunta | Sector industrial |
+| `COMMODITIES` | Variable de entorno o pregunta | Lista de materias primas a monitorear |
+| `COMPETITORS` | Variable de entorno o pregunta | Lista de competidores |
+| `TELEGRAM_BOT_TOKEN` | Variable de entorno (opcional) | Para envío de resumen |
+| `TELEGRAM_CHAT_ID` | Variable de entorno (opcional) | Destino del resumen |
 
 ## Herramientas que usa Claude
 

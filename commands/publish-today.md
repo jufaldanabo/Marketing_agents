@@ -540,14 +540,14 @@ POST https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage
 |---|---|---|
 | `COMPANY_NAME` | `.claude/company-context.json` | Nombre de la empresa |
 | `INDUSTRY` | `.claude/company-context.json` | Sector industrial |
-| `INSTAGRAM_ACCESS_TOKEN` | `.env` | Token de Instagram Graph API |
-| `INSTAGRAM_BUSINESS_ACCOUNT_ID` | `.env` | ID de cuenta Instagram |
-| `FACEBOOK_ACCESS_TOKEN` | `.env` | Token de Facebook |
-| `FACEBOOK_PAGE_ID` | `.env` | ID de página Facebook |
-| `TELEGRAM_BOT_TOKEN` | `.env` | Token del bot de Telegram (aprobación de contenido) |
-| `TELEGRAM_CHAT_ID` | `.env` | Chat ID donde enviar previews y recibir aprobación |
-| `FAL_KEY` | `.env` | **Generación de imágenes** — fal.ai (recomendado) |
-| `OPENAI_API_KEY` | `.env` | **Generación de imágenes** — DALL-E 3 (alternativa) |
+| `INSTAGRAM_ACCESS_TOKEN` | Variable de entorno | Token de Instagram Graph API |
+| `INSTAGRAM_BUSINESS_ACCOUNT_ID` | Variable de entorno | ID de cuenta Instagram |
+| `FACEBOOK_ACCESS_TOKEN` | Variable de entorno | Token de Facebook |
+| `FACEBOOK_PAGE_ID` | Variable de entorno | ID de página Facebook |
+| `TELEGRAM_BOT_TOKEN` | Variable de entorno | Token del bot de Telegram (aprobación de contenido) |
+| `TELEGRAM_CHAT_ID` | Variable de entorno | Chat ID donde enviar previews y recibir aprobación |
+| `FAL_KEY` | Variable de entorno | **Generación de imágenes** — fal.ai (recomendado) |
+| `OPENAI_API_KEY` | Variable de entorno | **Generación de imágenes** — DALL-E 3 (alternativa) |
 
 ## Archivos del sistema
 

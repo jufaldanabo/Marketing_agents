@@ -130,9 +130,9 @@ Guardar para uso posterior:
 ### Paso 1 — Detectar proveedor disponible
 
 ```bash
-# Verificar qué key está configurada
-grep -E "^FAL_KEY=.+" .env 2>/dev/null && echo "fal" || \
-grep -E "^OPENAI_API_KEY=.+" .env 2>/dev/null && echo "openai" || \
+# Verificar qué key está configurada como variable de entorno
+[ -n "$FAL_KEY" ] && echo "fal" || \
+[ -n "$OPENAI_API_KEY" ] && echo "openai" || \
 echo "none"
 ```
 
@@ -213,10 +213,6 @@ por `generate-image-prompt.md` cuando `tool == "dalle"`.
 > Usar cuando `mode == "text-to-image"` (no hay foto de referencia).
 
 ```bash
-FAL_KEY=$(grep "^FAL_KEY=" .env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
-```
-
-```bash
 curl -s -X POST "https://fal.run/fal-ai/nano-banana-2" \
   -H "Authorization: Key $FAL_KEY" \
   -H "Content-Type: application/json" \
@@ -243,11 +239,9 @@ Usar el `{PROMPT_CONSTRUIDO}` devuelto por `generate-image-prompt.md`
 en el Paso 2.2 (ya adaptado para DALL-E cuando `tool == "dalle"`).
 
 ```bash
-OPENAI_KEY=$(grep "^OPENAI_API_KEY=" .env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
-
 # DALL-E 3 — siempre "hd" para marketing
 curl -s -X POST "https://api.openai.com/v1/images/generations" \
-  -H "Authorization: Bearer $OPENAI_KEY" \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "dall-e-3",
@@ -288,8 +282,6 @@ Extraer: `data[0].url`
 > preservando el producto como protagonista y modificando el contexto/fondo/ambientación.
 
 ```bash
-FAL_KEY=$(grep "^FAL_KEY=" .env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
-
 curl -s -X POST "https://fal.run/fal-ai/flux-pro/edit" \
   -H "Authorization: Key $FAL_KEY" \
   -H "Content-Type: application/json" \
@@ -369,7 +361,7 @@ Crea `.claude/posts/images/{FECHA}.json`:
 ### Paso 4 — Si no hay API key disponible
 
 ```
-⚠️  No se encontró FAL_KEY ni OPENAI_API_KEY en .env
+⚠️  No se encontró FAL_KEY ni OPENAI_API_KEY en las variables de entorno
 
 La imagen del post NO puede ser la foto de referencia original.
 Debes generar una imagen nueva antes de publicar.
@@ -377,11 +369,11 @@ Debes generar una imagen nueva antes de publicar.
 Opciones para continuar:
 
   Opción A — fal.ai (recomendado, soporta img2img desde tus fotos):
-    Agrega al .env:  FAL_KEY=tu_key_aqui
+    Configura la variable de entorno: FAL_KEY=tu_key_aqui
     Obtener en: https://fal.ai → Dashboard → API Keys
 
   Opción B — DALL-E 3 (~$0.08/imagen, genera desde descripción de tu foto):
-    Agrega al .env:  OPENAI_API_KEY=tu_key_aqui
+    Configura la variable de entorno: OPENAI_API_KEY=tu_key_aqui
 
   Opción C — Generación manual (sin API):
     Usa este prompt en Midjourney, Firefly, Adobe Express o Stable Diffusion:
