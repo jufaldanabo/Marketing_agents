@@ -186,16 +186,16 @@ Ejemplos:
 
 ---
 
-**Pregunta 5.2 — Descripción visual** (repetir por cada producto)
+**Pregunta 5.2 — Descripción del producto** (repetir por cada producto)
 
 ```
-Para [{NOMBRE_PRODUCTO}], descríbeme brevemente cómo se ve físicamente:
-  • ¿Qué colores tiene?
-  • ¿De qué material o textura es?
-  • ¿Cómo lo verías en una fotografía? (forma, tamaño aproximado)
+Para [{NOMBRE_PRODUCTO}], cuéntame:
+  • ¿Qué es exactamente? (tipo de producto)
+  • ¿De qué material es?
+  • ¿Qué colores o acabados tiene?
 
-Ejemplo: "Rollos de tela beige claro, textura suave al tacto,
-unos 50cm de ancho, con etiqueta blanca en el centro del rollo"
+No necesitas ser técnico — responde como si me lo describieras por teléfono.
+Ejemplo: "Es un termo de acero negro, tiene tapa con boquilla para tomar directo"
 ```
 
 ---
@@ -203,17 +203,15 @@ unos 50cm de ancho, con etiqueta blanca en el centro del rollo"
 **Pregunta 5.3 — Fotos de referencia** (repetir por cada producto)
 
 ```
-¿Tienes fotos o imágenes de [{NOMBRE_PRODUCTO}] que puedas compartir?
+¿Tienes fotos de [{NOMBRE_PRODUCTO}]?
 
 Puedes:
   → Arrastrar las imágenes aquí directamente
   → Escribir la ruta del archivo (ej: /Users/juan/fotos/producto.jpg)
-  → Escribir "no tengo" si aún no tienes fotos disponibles
+  → Escribir "no tengo" si aún no tienes fotos
 
-Estas fotos se usan como BASE VISUAL para generar imágenes de IA.
-No se publican directamente — la IA las usa para preservar los colores,
-materiales y forma real del producto al crear nuevas imágenes en
-contextos distintos (mesas, oficinas, entornos industriales, etc).
+Las fotos ayudan a generar imágenes de IA que se parezcan a tu producto real.
+No se publican directamente.
 ```
 
 **Para cada imagen proporcionada:**
@@ -227,20 +225,100 @@ contextos distintos (mesas, oficinas, entornos industriales, etc).
    ```bash
    cp "{RUTA_IMAGEN_USUARIO}" ".claude/brand-images/products/{PRODUCT_SLUG}/ref-{N}.{ext}"
    ```
-   Donde `N` es el número secuencial (ref-1.jpg, ref-2.jpg, etc.)
 
-3. Analizar visualmente con la herramienta de visión → extraer y registrar:
-   - Colores dominantes (descripción o hex aproximado)
-   - Textura y material aparente
-   - Forma y dimensiones aproximadas
-   - Elementos visuales distintivos
-
-4. Guardar todo en `product-info.json` (ver abajo)
+3. Analizar visualmente con la herramienta de visión → extraer información detallada
+   del producto para el paso siguiente.
 
 **Si el usuario escribe "no tengo" o no tiene fotos:**
 - Guardar `has_reference_images: false`
-- Registrar solo la descripción textual de Pregunta 5.2
-- Continuar con el siguiente producto
+- Continuar con Pregunta 5.4 usando solo la descripción textual de 5.2
+
+---
+
+**Pregunta 5.4 — Generar y confirmar descripción técnica** (repetir por cada producto)
+
+Con la información de la Pregunta 5.2 (descripción del usuario) y 5.3 (análisis visual
+de la foto si la hay), generar una **descripción técnica completa y realista** del producto.
+
+**Instrucciones para Claude:**
+
+Usando `claude-opus-4-6`, generar una ficha técnica del producto que incluya:
+
+1. **Nombre formal del producto** (categoría + tipo + diferenciador)
+2. **Descripción técnica** en un párrafo (qué es, para qué sirve, cómo se ve)
+3. **Características observadas** como lista estructurada:
+   - Material y composición
+   - Acabado exterior (color, textura, tipo de pintura/recubrimiento)
+   - Capacidad o dimensiones estimadas
+   - Partes y componentes visibles (tapas, asas, mecanismos, cierres)
+   - Elementos funcionales (aislamiento, resistencia, flexibilidad)
+   - Marca si es visible
+   - Uso recomendado y contexto de uso
+   - Dimensiones estimadas
+
+**Si hay foto:** La descripción debe basarse principalmente en lo que se observa
+en la imagen, complementado con la descripción verbal del usuario.
+
+**Si no hay foto:** La descripción se basa en lo que dijo el usuario en 5.2,
+enriquecida con conocimiento técnico del tipo de producto.
+
+**Mostrar al usuario para confirmación:**
+
+```
+📋 FICHA TÉCNICA DE [{NOMBRE_PRODUCTO}]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🏷️ Nombre: {NOMBRE_FORMAL}
+
+📝 Descripción:
+{DESCRIPCIÓN_TÉCNICA_PÁRRAFO}
+
+📐 Características:
+  • Material: {MATERIAL}
+  • Acabado: {ACABADO}
+  • Dimensiones: {DIMENSIONES}
+  • Componentes: {PARTES_VISIBLES}
+  • Uso: {USO_RECOMENDADO}
+  {... más características según aplique}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Esta descripción se usará como contexto para generar imágenes
+de tu producto con IA. ¿Es correcta?
+
+  ✅ Sí, está bien
+  ✍️ Corregir (dime qué cambiar)
+```
+
+**Si el usuario confirma:** Guardar como `technical_description` en `product-info.json`.
+
+**Si el usuario pide correcciones:** Aplicar los cambios, regenerar la ficha y volver
+a mostrar para confirmación. Repetir hasta que apruebe.
+
+**Ejemplo real de descripción técnica generada:**
+
+```
+🏷️ Nombre: Botella Térmica Deportiva tipo Stanley
+
+📝 Descripción:
+Botella térmica deportiva de acero inoxidable con acabado negro mate
+(powder coated). Diseño cilíndrico estilizado con perfil delgado y
+ergonómico, orientado a portabilidad y uso activo. Cuenta con sistema
+de tapa de doble función: boquilla tipo sport (flip-top) para beber
+directamente sin desenroscar, integrada sobre una tapa rosca principal.
+
+📐 Características:
+  • Material: Acero inoxidable 18/8 (doble pared con aislamiento al vacío)
+  • Acabado: Pintura powder coat negro mate, resistente a rayones
+  • Capacidad: Entre 700 ml y 1 litro
+  • Tapa: Sport con boquilla abatible (flip-top) y cierre hermético
+  • Asa: Correa rígida tipo loop con pivote metálico
+  • Boca: Angosta tipo sport, diseñada para beber directo
+  • Aislamiento: Doble pared al vacío (frías 12-24h, calientes 6-12h)
+  • Marca: Stanley (logo grabado verticalmente)
+  • Uso: Hidratación deportiva, outdoor, oficina, uso diario
+  • Libre de BPA: Sí
+  • Dimensiones: ~28-30 cm alto × 7-8 cm diámetro
+```
 
 ---
 
@@ -254,12 +332,20 @@ con el archivo `product-info.json`:
   "name": "Tela de Algodón Premium",
   "slug": "tela-algodon",
   "description": "Rollos de tela de algodón 100% natural para confección",
-  "visual_description": "Rollo de tela beige claro, textura suave, ~50cm de ancho, acabado mate natural",
+  "technical_description": "Rollo de tela de algodón 100% natural para confección industrial. Tejido plano con acabado suave al tacto y caída fluida. Color beige claro uniforme con textura semi-mate. Presentación en rollos de ~50cm de ancho con etiqueta blanca identificativa en el centro. Material liviano y transpirable, apto para corte y costura en máquinas industriales.",
+  "characteristics": {
+    "material": "Algodón 100% natural, tejido plano",
+    "acabado": "Beige claro, textura suave, semi-mate",
+    "dimensiones": "Rollos de ~50cm de ancho, largo variable",
+    "presentacion": "Enrollado en tubo de cartón con etiqueta central",
+    "uso": "Confección industrial, corte y costura, diseño de moda"
+  },
   "colors": ["beige", "crema", "#F5F0E8"],
   "keywords": ["algodón", "tela", "rollo", "natural", "confección", "textil"],
   "has_reference_images": true,
   "reference_images": ["ref-1.jpg", "ref-2.jpg"],
-  "is_default": true
+  "is_default": true,
+  "description_approved_by_user": true
 }
 ```
 

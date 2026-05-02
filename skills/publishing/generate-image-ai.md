@@ -150,19 +150,21 @@ La construcción del prompt se delega al skill `generate-image-prompt.md`, que e
 fuente única de verdad para la estructura conversacional, las plantillas por tópico
 y la adaptación por herramienta.
 
-#### 2.1 — Si hay foto de referencia: extraer descripción visual
+#### 2.1 — Obtener descripción técnica del producto
 
-**Solo cuando `mode == "edit-image"`:** Analizar `REF_IMAGE_PATH` con la herramienta de visión
-para extraer una descripción del producto:
-- Qué tipo de producto/objeto se ve en la foto
-- Colores reales presentes
-- Cómo está presentado (forma, disposición)
-- Material o acabado si es evidente
+Leer la ficha técnica aprobada por el usuario desde `product-info.json`:
 
-Guardar como `product_description` (string). Ejemplo:
-`"tortas de sesgo planchado en colores vibrantes, presentadas como rollos planos apilados"`
+```bash
+cat .claude/brand-images/products/{PRODUCT_SLUG}/product-info.json 2>/dev/null
+```
 
-**Si `mode == "text-to-image"`:** `product_description = null`
+Extraer `technical_description` del JSON. Esta descripción fue generada y aprobada
+por el usuario durante `/init` — es la fuente de verdad para describir el producto.
+
+- **Si existe `technical_description`** → usar como `product_description`
+- **Si no existe** (producto configurado antes de esta feature) → analizar
+  `REF_IMAGE_PATH` con la herramienta de visión como fallback
+- **Si `mode == "text-to-image"` y no hay producto** → `product_description = null`
 
 #### 2.2 — Ejecutar `generate-image-prompt.md`
 
@@ -174,7 +176,7 @@ Llamar al skill con estos inputs:
 | `topic` | `{TOPIC}` del post |
 | `company_name` | `{COMPANY_NAME}` |
 | `industry` | `{INDUSTRY}` |
-| `product_description` | Descripción extraída de la foto (o null) |
+| `product_description` | `technical_description` del product-info.json (o null) |
 | `brand_style` | Contenido de `brand-style.json` (o null) |
 | `special_date` | `{SPECIAL_DATE}` (o null) |
 | `tool` | `fal-ai` si hay `FAL_KEY`, `dalle` si hay `OPENAI_API_KEY`, `generic` si ninguno |
