@@ -74,6 +74,9 @@ import json
 import httpx
 from datetime import datetime
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()  # Local: carga .env | Railway: no-op (vars ya en entorno)
 
 try:
     from claude_agent_sdk import query, ClaudeAgentOptions, ResultMessage, SystemMessage

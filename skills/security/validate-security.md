@@ -40,11 +40,11 @@ def publish_post(caption):
 ```
 
 ```python
-# ✅ CORRECTO — variables de entorno
+# ✅ CORRECTO — variables de entorno con fallback local
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv()  # Local: carga .env | Railway: no-op (vars ya en entorno)
 INSTAGRAM_TOKEN = os.environ["INSTAGRAM_ACCESS_TOKEN"]  # falla si no existe
 
 def publish_post(caption):

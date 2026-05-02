@@ -130,7 +130,10 @@ Guardar para uso posterior:
 ### Paso 1 — Detectar proveedor disponible
 
 ```bash
-# Verificar qué key está configurada como variable de entorno
+# Cargar .env si existe (local), en Railway las vars ya están en el entorno
+[ -f .env ] && export $(grep -v '^#' .env | xargs)
+
+# Verificar qué key está configurada
 [ -n "$FAL_KEY" ] && echo "fal" || \
 [ -n "$OPENAI_API_KEY" ] && echo "openai" || \
 echo "none"
