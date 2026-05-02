@@ -131,14 +131,14 @@ Mostrar en consola:
 ```
 📨 Pregunta enviada a Telegram: ¿foto propia o generar con IA?
    Esperando respuesta del manager...
-   Timeout: 10 minutos.
+   Timeout: 5 minutos.
 ```
 
 #### 6b — Esperar respuesta del manager (polling)
 
 Leer offset desde `.claude/drafts/_telegram_offset.json` (si no existe, crearlo con `{"offset": 0}`).
 
-Repetir cada **15 segundos** hasta recibir respuesta o agotar 10 minutos:
+Repetir cada **15 segundos** hasta recibir respuesta o agotar 5 minutos:
 
 ```
 GET https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates
@@ -253,7 +253,7 @@ cambiando el contexto/ambientación según el tópico, y devuelve:
 
 → Continuar al **Paso 7**.
 
-#### 6e — Timeout (10 min sin respuesta)
+#### 6e — Timeout (5 min sin respuesta)
 
 ```
 ⏰ Timeout: no se recibió respuesta sobre la imagen.
@@ -347,7 +347,7 @@ Mostrar en consola:
 ```
 📨 Preview enviado a Telegram. Esperando respuesta del manager...
    (Draft ID: {DRAFT_ID})
-   Timeout: 10 minutos. Si no hay respuesta, el borrador queda guardado
+   Timeout: 5 minutos. Si no hay respuesta, el borrador queda guardado
    y puedes publicarlo después con /check-approvals.
 ```
 
@@ -362,9 +362,9 @@ del manager o alcanzar el timeout.
 
 Leer `.claude/drafts/_telegram_offset.json`. Si no existe, crearlo con `{"offset": 0}`.
 
-#### Loop de polling (máx 10 minutos)
+#### Loop de polling (máx 5 minutos)
 
-Repetir cada **15 segundos** hasta recibir respuesta o agotar 10 minutos (40 intentos):
+Repetir cada **15 segundos** hasta recibir respuesta o agotar 5 minutos (20 intentos):
 
 ```
 GET https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates
@@ -423,11 +423,11 @@ Mostrar en consola:
 ```
 → **Terminar** (no continuar a Paso 9).
 
-#### Si se agota el timeout (10 min sin respuesta):
+#### Si se agota el timeout (5 min sin respuesta):
 
 Mostrar en consola:
 ```
-⏰ Timeout: no se recibió respuesta en 10 minutos.
+⏰ Timeout: no se recibió respuesta en 5 minutos.
    El borrador #{DRAFT_ID} queda guardado en .claude/drafts/{draft_id}.json
    Opciones:
    • Responde en Telegram y luego ejecuta /check-approvals
@@ -574,6 +574,6 @@ POST https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage
 - Si el usuario llama `/publish-today "tema específico"`, ese argumento override la selección automática
 - **Imagen**: el manager elige via Telegram si generar con IA (text-to-image) o subir foto propia (edit-image)
 - Si sube foto, se edita con `fal-ai/flux-pro/edit` adaptando el contexto al tópico del día
-- Si no responde en 10 min, se genera automáticamente con text-to-image
+- Si no responde en 5 min, se genera automáticamente con text-to-image
 - Las URLs de fal.ai son persistentes y se pueden usar directamente en Instagram Graph API
 - Usar `claude-opus-4-6` con `thinking: adaptive` para la generación de contenido
