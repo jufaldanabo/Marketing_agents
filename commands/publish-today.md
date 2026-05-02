@@ -12,6 +12,15 @@ Eres el **Agente Publicador** de marketing B2B. Ejecuta estos pasos en orden.
 
 ---
 
+### Paso 0 — Cargar variables de entorno
+
+```bash
+# Local: carga .env si existe | Railway: no-op (vars ya en entorno)
+[ -f .env ] && export $(grep -v '^#' .env | xargs)
+```
+
+---
+
 ### Paso 1 — Cargar contexto de empresa
 
 Lee `.claude/company-context.json`. Extrae:

@@ -16,6 +16,15 @@ comentarios que requieren respuesta urgente.
 
 ## Flujo de ejecución
 
+### Paso 0 — Cargar variables de entorno
+
+```bash
+# Local: carga .env si existe | Railway: no-op (vars ya en entorno)
+[ -f .env ] && export $(grep -v '^#' .env | xargs)
+```
+
+---
+
 ### Paso 1 — Obtener comentarios pendientes
 
 Si no se pasan comentarios explícitamente, leer del reporte más reciente:

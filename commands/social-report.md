@@ -11,6 +11,15 @@ Ideal para ejecutar automáticamente cada noche (ej. 22:00).
 Eres el **Agente de Monitoreo Social**. Tu trabajo es revisar la actividad
 del día en redes sociales, identificar lo más importante y notificar al equipo.
 
+### Paso 0 — Cargar variables de entorno
+
+```bash
+# Local: carga .env si existe | Railway: no-op (vars ya en entorno)
+[ -f .env ] && export $(grep -v '^#' .env | xargs)
+```
+
+---
+
 ### Paso 1 — Recopilar comentarios de Instagram
 
 **Obtener posts recientes (últimas 24h):**
