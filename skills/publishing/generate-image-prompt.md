@@ -19,6 +19,7 @@ ya sea de forma automática (via `generate-image-ai`) o manualmente con Midjourn
 
 | Input | Tipo | Descripción | Ejemplo |
 |---|---|---|---|
+| `mode` | enum | **Modo de generación** | `text-to-image` / `edit-image` |
 | `topic` | string | Tema del post | "tendencias de embalaje sostenible" |
 | `company_name` | string | Nombre de la empresa | "Botas García" |
 | `industry` | string | Sector industrial | "calzado" |
@@ -27,6 +28,13 @@ ya sea de forma automática (via `generate-image-ai`) o manualmente con Midjourn
 | `special_date` | string | Fecha especial (opcional) | "Día de la Mujer" |
 | `tool` | enum | Herramienta destino | `fal-ai` / `midjourney` / `dalle` / `firefly` / `stable-diffusion` / `generic` |
 | `format` | enum | Formato de la imagen | `square` (1:1) / `portrait` (4:5) / `landscape` (16:9) |
+
+### Cuándo usar cada modo
+
+| Modo | Cuándo | Qué hace |
+|---|---|---|
+| `text-to-image` | No hay foto de referencia, o se quiere una imagen completamente nueva | Genera un prompt que describe la escena completa desde cero |
+| `edit-image` | Hay foto de referencia y se quiere modificar/ambientar la foto existente | Genera una instrucción de edición sobre qué cambiar en la imagen |
 
 ## Especificaciones por plataforma
 
@@ -39,7 +47,10 @@ ya sea de forma automática (via `generate-image-ai`) o manualmente con Midjourn
 
 ---
 
-## Construir el prompt conversacional
+## Modo A — Prompt para Text-to-Image
+
+> Usar cuando `mode == "text-to-image"`.
+> Genera un prompt que describe la escena completa desde cero.
 
 > **Principio clave:** Los modelos modernos (nano-banana-2, FLUX, DALL-E 3) responden mejor
 > a lenguaje conversacional con contexto de negocio que a descripciones técnicas de fotografía.
@@ -81,7 +92,76 @@ La temática del post de hoy es: {TOPIC}.
 
 ---
 
-## Ejemplos multi-industria
+## Modo B — Prompt para Edit Image
+
+> Usar cuando `mode == "edit-image"`.
+> Genera una **instrucción de edición** que describe qué cambiar en la foto existente,
+> no una escena completa. El producto ya está en la imagen — el prompt indica cómo
+> transformar el contexto, fondo o ambientación alrededor de él.
+
+> **Principio clave:** El prompt de edición debe ser corto y directivo. No describe la
+> escena entera — describe solo **lo que debe cambiar**. El modelo preserva lo que no
+> se menciona.
+
+**Plantilla base:**
+
+```
+{INSTRUCCIÓN_PRINCIPAL_SEGÚN_TÓPICO}.
+{Si hay SPECIAL_DATE → agregar contexto de la fecha.}
+Mantener el producto como protagonista. Estilo profesional para redes sociales,
+sin texto ni logos superpuestos.
+```
+
+**Instrucción principal según el tópico:**
+
+| Tipo de tópico | Instrucción de edición |
+|---|---|
+| Tip del sector | "Ambientar el producto en un espacio de trabajo profesional de {INDUSTRY}, con herramientas y elementos propios del oficio alrededor." |
+| Caso de éxito / cliente satisfecho | "Colocar el producto en un ambiente corporativo elegante que transmita éxito y confianza, con iluminación cálida." |
+| Detrás de escena / proceso | "Situar el producto en un ambiente de taller o planta de producción, con elementos de manufactura alrededor." |
+| Tendencia / mercado | "Darle al producto un entorno editorial moderno: fondo limpio, composición contemporánea, iluminación de estudio." |
+| Fecha especial | "Ambientar el producto con decoración y elementos visuales de {SPECIAL_DATE}. Contexto festivo y acorde a la celebración." |
+| Nuevo lanzamiento | "Presentar el producto como protagonista absoluto: fondo limpio degradado, iluminación destacada, ángulo premium." |
+| Producto / servicio | "Mostrar el producto en un contexto atractivo de uso real en {INDUSTRY}, con ambientación natural y profesional." |
+
+**Ejemplos multi-industria:**
+
+*Textil — Día de la Mujer:*
+```
+Ambientar el producto con decoración festiva del Día de la Mujer: flores,
+tonos morados y rosados, ambiente cálido y celebratorio.
+Mantener el producto como protagonista. Estilo profesional para redes sociales,
+sin texto ni logos superpuestos.
+```
+
+*Calzado — Halloween:*
+```
+Situar las botas en un ambiente oscuro y misterioso de Halloween: hojas secas,
+calabazas, iluminación dramática con tonos naranjas y negros.
+Mantener el producto como protagonista. Estilo profesional para redes sociales,
+sin texto ni logos superpuestos.
+```
+
+*Manufactura — tendencia:*
+```
+Darle al producto un entorno editorial moderno: fondo de líneas geométricas limpias,
+iluminación de estudio, composición contemporánea que transmita innovación.
+Mantener el producto como protagonista. Estilo profesional para redes sociales,
+sin texto ni logos superpuestos.
+```
+
+*Alimentos — lanzamiento:*
+```
+Presentar los frascos como protagonistas: fondo degradado dorado a blanco,
+iluminación lateral cálida, gotas de miel en la superficie, elementos naturales
+como flores silvestres alrededor.
+Mantener el producto como protagonista. Estilo profesional para redes sociales,
+sin texto ni logos superpuestos.
+```
+
+---
+
+## Ejemplos Text-to-Image (Modo A)
 
 *Textil — Día de la Mujer:*
 ```
@@ -137,18 +217,28 @@ sin texto ni logos superpuestos.
 
 ## Sintaxis por herramienta
 
-Con el prompt conversacional construido, adaptarlo según la herramienta destino:
+Con el prompt construido (text-to-image o edit-image), adaptarlo según la herramienta destino:
 
-### fal-ai/nano-banana-2 (recomendado)
+### fal-ai (recomendado)
 
-Pasar el prompt directamente al skill `generate-image-ai` — no requiere adaptación:
-
+**Text-to-image** → `fal-ai/nano-banana-2`:
 ```json
 {
-  "prompt": "{PROMPT_CONVERSACIONAL}",
+  "prompt": "{PROMPT}",
   "image_size": "square_hd",
   "num_images": 1,
   "enable_safety_checker": true
+}
+```
+
+**Edit image** → `fal-ai/flux-pro/edit`:
+```json
+{
+  "image_url": "{URL_O_DATA_URI_DE_LA_IMAGEN}",
+  "prompt": "{PROMPT_EDIT}",
+  "image_size": "square_hd",
+  "num_images": 1,
+  "safety_tolerance": "5"
 }
 ```
 
@@ -156,40 +246,51 @@ Pasar el prompt directamente al skill `generate-image-ai` — no requiere adapta
 
 ### Midjourney
 
+**Text-to-image:**
 ```
-/imagine {PROMPT_CONVERSACIONAL} --ar 1:1 --v 6 --style raw
+/imagine {PROMPT} --ar 1:1 --v 6 --style raw
 ```
 
-- Pegar el prompt conversacional directamente en `/imagine`
+**Edit image:** Subir la imagen de referencia y usar `--cref` o edición con Vary (Region):
+```
+/imagine {PROMPT_EDIT} --ar 1:1 --v 6 --style raw
+```
+
 - Ajustar `--ar` según formato: `1:1` (square), `4:5` (portrait), `16:9` (landscape)
 - Agregar `--no text, logos, watermarks` si aparece texto no deseado
 
 ### DALL-E 3 (via ChatGPT o API)
 
+**Text-to-image:**
 ```
-{PROMPT_CONVERSACIONAL}
+{PROMPT}
 Sin texto superpuesto, sin watermarks, sin logos.
 ```
 
-- El prompt conversacional funciona directo — no requiere adaptación técnica
-- Agregar "Sin texto, sin watermarks, sin logos" al final
+**Edit image:** DALL-E 3 no soporta edición directa. Usar la descripción del producto
+extraída de la foto como parte del prompt text-to-image.
+
 - Usar `quality: "hd"` y `style: "natural"` en la API
 
 ### Adobe Firefly
 
 ```
-{PROMPT_CONVERSACIONAL}
+{PROMPT}
 ```
 
 - Pegar el prompt en el campo de texto de Firefly
+- Para edit: usar "Generative Fill" con la imagen de referencia
 - Ajustar "Photographic" en los controles de estilo de la interfaz
 - Negative prompt en el campo separado: `text, logo, watermark, cartoon, illustration`
 
 ### Stable Diffusion / ComfyUI
 
+**Text-to-image:**
 ```
-{PROMPT_CONVERSACIONAL}, (photorealistic:1.3), (high quality:1.4), (professional photography:1.2)
+{PROMPT}, (photorealistic:1.3), (high quality:1.4), (professional photography:1.2)
 ```
+
+**Edit image:** Usar img2img o inpainting con el prompt de edición.
 
 Negative prompt (campo separado):
 ```
@@ -200,10 +301,10 @@ extra fingers, bad anatomy, AI artifacts
 ### Generic (cualquier herramienta)
 
 ```
-{PROMPT_CONVERSACIONAL}
+{PROMPT}
 ```
 
-El prompt conversacional funciona en cualquier modelo moderno sin adaptación.
+Ambos tipos de prompt (text-to-image y edit-image) funcionan en modelos modernos.
 
 ---
 
@@ -211,9 +312,10 @@ El prompt conversacional funciona en cualquier modelo moderno sin adaptación.
 
 ```json
 {
+  "mode": "text-to-image | edit-image",
   "tool": "{TOOL}",
   "format": "{FORMAT}",
-  "prompt": "Soy {rol} de {COMPANY_NAME}, una empresa de {INDUSTRY}...",
+  "prompt": "Soy {rol} de {COMPANY_NAME}... | Ambientar el producto con...",
   "negative_prompt": "text, watermark, logo, cartoon, illustration, low quality",
   "alternative_prompts": [
     "variación 1 del mismo tema con diferente enfoque visual",

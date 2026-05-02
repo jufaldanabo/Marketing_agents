@@ -92,10 +92,10 @@ PRODUCT_SLUG="{SLUG_SELECCIONADO}"
 ls .claude/brand-images/products/$PRODUCT_SLUG/ 2>/dev/null | grep -E "\.(jpg|jpeg|png|webp)$"
 ```
 
-- **Con imágenes** → `mode = "img2img"` (OBLIGATORIO) → continuar con 0.4
-  > La foto de referencia es el input de la generación, no la imagen final.
+- **Con imágenes** → `mode = "edit-image"` (PREFERIDO) → continuar con 0.4
+  > La foto de referencia es el input para la edición, no la imagen final.
   > `REF_IMAGE_PATH` se usa únicamente para pasar a la API. Nunca como `image_url` de publicación.
-- **Sin imágenes** → `mode = "text"` → saltar al Paso 1
+- **Sin imágenes** → `mode = "text-to-image"` → saltar al Paso 1
 
 #### 0.4 — Preparar imagen de referencia (solo modo img2img)
 
@@ -118,11 +118,12 @@ Guardar para uso posterior:
 - `PRODUCT_SLUG` → para metadata y logs
 - `REF_IMAGE_PATH` → para verificación visual
 - `IMAGE_DATA_URI` → para llamada API en Paso 2A
-- `mode = "img2img"` → determina qué variante usar en Paso 2A
+- `mode = "edit-image"` → determina qué modelo y prompt usar
 
-> Si hay `FAL_KEY`: usar img2img directo con `IMAGE_DATA_URI`.
+> Si hay `FAL_KEY`: usar `fal-ai/flux-pro/edit` con `IMAGE_DATA_URI` + prompt de edición.
 > Si solo hay `OPENAI_API_KEY`: analizar visualmente la referencia con la herramienta
-> de visión para extraer descripción detallada → usarla en el prompt de DALL-E 3.
+> de visión para extraer descripción detallada → usarla como `product_description` en
+> prompt text-to-image de DALL-E 3 (no soporta edit directo).
 
 ---
 
@@ -135,10 +136,10 @@ grep -E "^OPENAI_API_KEY=.+" .env 2>/dev/null && echo "openai" || \
 echo "none"
 ```
 
-| Proveedor | Con imagen referencia | Sin imagen referencia |
+| Proveedor | Con imagen referencia (`edit-image`) | Sin imagen referencia (`text-to-image`) |
 |---|---|---|
-| `FAL_KEY` | img2img con `fal-ai/nano-banana-2` ⭐ | text-to-image con `fal-ai/nano-banana-2` |
-| `OPENAI_API_KEY` | Describir referencia via visión → prompt DALL-E 3 | Prompt de texto estándar DALL-E 3 |
+| `FAL_KEY` | edit con `fal-ai/flux-pro/edit` ⭐ | text-to-image con `fal-ai/nano-banana-2` |
+| `OPENAI_API_KEY` | Describir referencia via visión → prompt text-to-image DALL-E 3 | Prompt de texto estándar DALL-E 3 |
 | ninguno | Paso 4 (prompt externo solamente) | Paso 4 (prompt externo solamente) |
 
 ---
@@ -151,7 +152,7 @@ y la adaptación por herramienta.
 
 #### 2.1 — Si hay foto de referencia: extraer descripción visual
 
-**Solo cuando `mode == "img2img"`:** Analizar `REF_IMAGE_PATH` con la herramienta de visión
+**Solo cuando `mode == "edit-image"`:** Analizar `REF_IMAGE_PATH` con la herramienta de visión
 para extraer una descripción del producto:
 - Qué tipo de producto/objeto se ve en la foto
 - Colores reales presentes
@@ -161,7 +162,7 @@ para extraer una descripción del producto:
 Guardar como `product_description` (string). Ejemplo:
 `"tortas de sesgo planchado en colores vibrantes, presentadas como rollos planos apilados"`
 
-**Si `mode == "text"`:** `product_description = null`
+**Si `mode == "text-to-image"`:** `product_description = null`
 
 #### 2.2 — Ejecutar `generate-image-prompt.md`
 
@@ -169,6 +170,7 @@ Llamar al skill con estos inputs:
 
 | Input | Valor |
 |---|---|
+| `mode` | `"edit-image"` si hay foto de referencia, `"text-to-image"` si no |
 | `topic` | `{TOPIC}` del post |
 | `company_name` | `{COMPANY_NAME}` |
 | `industry` | `{INDUSTRY}` |
@@ -181,13 +183,16 @@ Llamar al skill con estos inputs:
 El skill devuelve:
 ```json
 {
-  "prompt": "Soy dueño de {COMPANY_NAME}...",
+  "mode": "text-to-image | edit-image",
+  "prompt": "Soy dueño de {COMPANY_NAME}... | Ambientar el producto con...",
   "negative_prompt": "text, watermark, logo...",
   "ready_for_generate_image_ai": true
 }
 ```
 
-Usar `prompt` como `{PROMPT_CONVERSACIONAL_CONSTRUIDO}` en los pasos siguientes (2A y 2B).
+Usar `prompt` como `{PROMPT_CONSTRUIDO}` en los pasos siguientes.
+- Si `mode == "text-to-image"` → usar en **Paso 2A** (nano-banana-2 text-to-image)
+- Si `mode == "edit-image"` → usar en **Paso 2C** (flux-pro/edit)
 
 #### 2.3 — Negative prompt
 
@@ -201,98 +206,38 @@ por `generate-image-prompt.md` cuando `tool == "dalle"`.
 
 ---
 
-### Paso 2A — Generar con fal.ai nano-banana-2
+### Paso 2A — Text-to-Image con fal.ai nano-banana-2
 
-**Modelo único:** `fal-ai/nano-banana-2` — se usa para todos los casos (con y sin foto de referencia).
+> Usar cuando `mode == "text-to-image"` (no hay foto de referencia).
 
 ```bash
 FAL_KEY=$(grep "^FAL_KEY=" .env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
 ```
 
-#### Con foto de referencia ⭐ PREFERIDO
-
-Pasar la foto como `image_url` junto al prompt conversacional:
-
 ```bash
 curl -s -X POST "https://fal.run/fal-ai/nano-banana-2" \
   -H "Authorization: Key $FAL_KEY" \
   -H "Content-Type: application/json" \
   -d "{
-    \"image_url\": \"$IMAGE_DATA_URI\",
-    \"prompt\": \"{PROMPT_CONVERSACIONAL_CONSTRUIDO}\",
-    \"strength\": 0.55,
+    \"prompt\": \"{PROMPT_CONSTRUIDO}\",
     \"image_size\": \"square_hd\",
     \"num_images\": 1,
     \"enable_safety_checker\": true
   }"
 ```
-
-> **`strength`** — cuánto se aleja la generación de la foto de referencia:
->
-> | Tipo de producto | `strength` |
-> |---|---|
-> | Físico con forma definida (rollos, maquinaria, embalajes) | **0.50–0.60** |
-> | Textura/patrón (telas, papeles, superficies) | **0.55–0.65** |
-> | Consumo (alimentos, cosméticos, botellas) | **0.60–0.70** |
-> | Servicios / conceptos abstractos | **0.70–0.80** |
->
-> **Default**: `0.55`. Si el resultado no se parece a la foto → bajar a 0.45.
-> Si es demasiado idéntico → subir a 0.65–0.70.
 
 > **Para Facebook**: cambiar `"image_size"` a `"landscape_4_3"`
-
-#### Sin foto de referencia
-
-Solo prompt conversacional, sin `image_url`:
-
-```bash
-curl -s -X POST "https://fal.run/fal-ai/nano-banana-2" \
-  -H "Authorization: Key $FAL_KEY" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"prompt\": \"{PROMPT_CONVERSACIONAL_CONSTRUIDO}\",
-    \"image_size\": \"square_hd\",
-    \"num_images\": 1,
-    \"enable_safety_checker\": true
-  }"
-```
-
-**Respuesta esperada (todos los modelos fal.ai):**
-```json
-{
-  "images": [
-    {
-      "url": "https://fal.media/files/xxx/generated.jpeg",
-      "width": 1024,
-      "height": 1024,
-      "content_type": "image/jpeg"
-    }
-  ],
-  "seed": 12345,
-  "has_nsfw_concepts": [false]
-}
-```
-
-Extraer: `images[0].url` → URL pública persistente, lista para Instagram Graph API.
-
-**Si `has_nsfw_concepts[0]` es `true`** → regenerar (máximo 2 intentos).
-
-**Verificación de calidad:** Revisar visualmente la imagen generada con la herramienta de visión.
-Si hay defectos (manos deformes, caras, artefactos) → regenerar con variación del prompt o ajustar `strength`. Máximo 3 intentos.
-
-**Verificación de integridad — antes de continuar al Paso 3:**
-- `image_url` debe ser una URL pública de IA (`fal.media/...` o `oaidalleapiprodscus...`), nunca una ruta local.
-- Si `image_url` apunta a un archivo local o a `REF_IMAGE_PATH` → error: la generación no se completó. Reintentar o pasar a Paso 4.
 
 ---
 
 ### Paso 2B — Generar con DALL-E 3 (alternativa cuando no hay FAL_KEY)
 
-> ⚠️ DALL-E 3 **no soporta img2img**. Cuando hay fotos de referencia, la descripción
-> visual ya fue extraída en el Paso 2.1 y pasada a `generate-image-prompt.md` como
-> `product_description`, por lo que el prompt ya la incorpora.
+> ⚠️ DALL-E 3 **no soporta edit-image directo**. Cuando hay fotos de referencia,
+> la descripción visual ya fue extraída en el Paso 2.1 y pasada a
+> `generate-image-prompt.md` como `product_description`. El skill genera un prompt
+> text-to-image enriquecido con esa descripción (no un prompt de edición).
 
-Usar el `{PROMPT_CONVERSACIONAL_CONSTRUIDO}` devuelto por `generate-image-prompt.md`
+Usar el `{PROMPT_CONSTRUIDO}` devuelto por `generate-image-prompt.md`
 en el Paso 2.2 (ya adaptado para DALL-E cuando `tool == "dalle"`).
 
 ```bash
@@ -304,7 +249,7 @@ curl -s -X POST "https://api.openai.com/v1/images/generations" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "dall-e-3",
-    "prompt": "{PROMPT_CONVERSACIONAL_CONSTRUIDO}",
+    "prompt": "{PROMPT_CONSTRUIDO}",
     "size": "1024x1024",
     "quality": "hd",
     "style": "natural",
@@ -334,6 +279,62 @@ Extraer: `data[0].url`
 
 ---
 
+### Paso 2C — Edit Image con fal.ai flux-pro/edit ⭐
+
+> Usar cuando `mode == "edit-image"` y hay `FAL_KEY`.
+> Toma la foto de referencia del producto y la transforma según el prompt de edición,
+> preservando el producto como protagonista y modificando el contexto/fondo/ambientación.
+
+```bash
+FAL_KEY=$(grep "^FAL_KEY=" .env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
+
+curl -s -X POST "https://fal.run/fal-ai/flux-pro/edit" \
+  -H "Authorization: Key $FAL_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"image_url\": \"$IMAGE_DATA_URI\",
+    \"prompt\": \"{PROMPT_CONSTRUIDO}\",
+    \"image_size\": \"square_hd\",
+    \"num_images\": 1,
+    \"safety_tolerance\": \"5\"
+  }"
+```
+
+> **Para Facebook**: cambiar `"image_size"` a `"landscape_4_3"`
+
+**Respuesta esperada (misma estructura que nano-banana-2):**
+```json
+{
+  "images": [
+    {
+      "url": "https://fal.media/files/xxx/edited.jpeg",
+      "width": 1024,
+      "height": 1024,
+      "content_type": "image/jpeg"
+    }
+  ],
+  "seed": 12345,
+  "has_nsfw_concepts": [false]
+}
+```
+
+Extraer: `images[0].url` → URL pública persistente, lista para Instagram Graph API.
+
+---
+
+### Verificaciones comunes (aplica a Paso 2A, 2B y 2C)
+
+**Si `has_nsfw_concepts[0]` es `true`** → regenerar (máximo 2 intentos).
+
+**Verificación de calidad:** Revisar visualmente la imagen generada con la herramienta de visión.
+Si hay defectos (manos deformes, caras, artefactos) → regenerar con variación del prompt. Máximo 3 intentos.
+
+**Verificación de integridad — antes de continuar al Paso 3:**
+- `image_url` debe ser una URL pública de IA (`fal.media/...` o `oaidalleapiprodscus...`), nunca una ruta local.
+- Si `image_url` apunta a un archivo local o a `REF_IMAGE_PATH` → error: la generación no se completó. Reintentar o pasar a Paso 4.
+
+---
+
 ### Paso 3 — Guardar resultado
 
 ```bash
@@ -344,13 +345,12 @@ Crea `.claude/posts/images/{FECHA}.json`:
 ```json
 {
   "date": "{FECHA_ISO}",
-  "provider": "fal",
-  "model": "flux/dev/image-to-image",
-  "mode": "img2img",
-  "product_slug": "{SLUG_DEL_PRODUCTO}",
-  "reference_image": ".claude/brand-images/products/{SLUG_DEL_PRODUCTO}/ref-1.jpg",
-  "strength": 0.55,
-  "prompt_used": "{descripción del producto extraída de la referencia}, sobre {contexto}...",
+  "provider": "fal | openai",
+  "model": "fal-ai/nano-banana-2 | fal-ai/flux-pro/edit | dall-e-3",
+  "mode": "text-to-image | edit-image",
+  "product_slug": "{SLUG_DEL_PRODUCTO} | null",
+  "reference_image": ".claude/brand-images/products/{SLUG}/ref-1.jpg | null",
+  "prompt_used": "{PROMPT_CONSTRUIDO}",
   "image_url": "https://fal.media/files/xxx/generated.jpeg",
   "topic": "{TOPIC_DEL_POST}",
   "category": "{CATEGORIA_DEL_POST}",
@@ -359,7 +359,7 @@ Crea `.claude/posts/images/{FECHA}.json`:
 }
 ```
 
-> `mode`: `"img2img"` (con foto de referencia) | `"text"` (sin referencia)
+> `mode`: `"edit-image"` (con foto de referencia) | `"text-to-image"` (sin referencia)
 > `expires_at`: null para fal.ai (URLs persistentes), timestamp ISO para DALL-E (+60min)
 
 ---
@@ -397,7 +397,8 @@ Opciones para continuar:
 {
   "success": true,
   "provider": "fal | openai | none",
-  "mode": "img2img | text",
+  "mode": "text-to-image | edit-image",
+  "model": "fal-ai/nano-banana-2 | fal-ai/flux-pro/edit | dall-e-3",
   "product_slug": "{slug-del-producto} | null",
   "reference_image_used": ".claude/brand-images/products/{slug}/ref-1.jpg | null",
   "image_url": "https://...",
@@ -413,23 +414,22 @@ Opciones para continuar:
 
 | Proveedor | Modelo | Modo | Precio/imagen | Velocidad | Recomendado para |
 |---|---|---|---|---|---|
-| fal.ai | FLUX Dev img2img (28 pasos) | img2img | ~$0.025 | ~15 seg | ⭐ Con fotos reales del producto |
-| fal.ai | FLUX Dev (28 pasos) | texto | ~$0.025 | ~15 seg | Con personas, sin foto de referencia |
-| fal.ai | FLUX Schnell (8 pasos) | texto | ~$0.003 | ~3 seg | Solo producto/objeto, sin personas |
-| OpenAI | DALL-E 3 HD | texto | ~$0.080 | ~15 seg | Alternativa cuando no hay FAL_KEY |
-| OpenAI | DALL-E 3 Standard | texto | ~$0.040 | ~10 seg | No recomendado — usar HD |
+| fal.ai | FLUX Pro edit | edit-image | ~$0.050 | ~10 seg | ⭐ Editar foto real del producto |
+| fal.ai | nano-banana-2 | text-to-image | ~$0.025 | ~15 seg | Sin foto de referencia |
+| fal.ai | FLUX Schnell (8 pasos) | text-to-image | ~$0.003 | ~3 seg | Solo producto/objeto, sin personas |
+| OpenAI | DALL-E 3 HD | text-to-image | ~$0.080 | ~15 seg | Alternativa cuando no hay FAL_KEY |
+| OpenAI | DALL-E 3 Standard | text-to-image | ~$0.040 | ~10 seg | No recomendado — usar HD |
 
 ---
 
 ## Notas
 
-- **img2img es el modo preferido**: produce resultados más consistentes con la identidad visual real del producto
-- **El prompt img2img SIEMPRE debe describir el producto primero** (tipo + colores + forma), luego el contexto/ambiente
-- **`strength: 0.55`** es el punto de partida seguro para productos físicos B2B — preserva forma y colores, crea escena nueva
+- **edit-image es el modo preferido** cuando hay fotos de referencia: preserva el producto real y solo modifica el contexto/ambientación
+- **text-to-image** se usa cuando no hay fotos de referencia o se necesita una imagen conceptual
 - Configurar fotos de referencia ejecutando `/init` desde el proyecto de empresa
 - Las fotos de referencia se leen de `.claude/brand-images/products/{slug}/` (max recomendado: 5 fotos por producto)
 - Las URLs de fal.ai son persistentes (no expiran) — ideales para Instagram Graph API
-- Si el post tiene fecha especial, incluirla en el contexto ambiental del prompt img2img
+- Si el post tiene fecha especial, incluirla en el prompt de edición para ambientar la imagen
 - El prompt nunca debe pedir texto dentro de la imagen — Instagram lo procesa mejor sin texto
 - Compatible con la Instagram Graph API: `image_url` se pasa directamente al crear el media container
 
@@ -439,14 +439,11 @@ Opciones para continuar:
 |---|---|---|
 | Manos con 6+ dedos | Poco contexto anatómico + pocos pasos | Negative prompt + 28 pasos (flux/dev) |
 | Caras con 3 ojos | Composición ambigua | Especificar "retrato de perfil" o evitar caras |
-| Dos bocas / labios extra | Prompt sin anclaje realista | Usar "fotografía real" + anclas fotorrealismo |
 | Piel plástica / artificial | Modelo incorrecto | Usar `style: "natural"` en DALL-E; flux/dev en fal.ai |
-| Artefactos y ruido | Pocos pasos de inferencia | Mínimo 28 pasos con personas; 8 para producto |
 | Texto ilegible en imagen | Modelos no generan texto bien | Nunca pedir texto en el prompt |
-| Personas duplicadas | Prompt vago | Especificar cantidad exacta ("una persona", "dos personas") |
-| Producto generado no se parece a la referencia | `strength` muy alto O prompt sin ancla de producto | Bajar a 0.45-0.50 Y agregar descripción del producto al inicio del prompt |
-| Producto idéntico a la foto, sin recontextualización | `strength` muy bajo | Subir a 0.65-0.70 en img2img |
+| Producto no se parece a la foto | Prompt de edición demasiado agresivo | Ser más específico en la instrucción, editar solo el contexto |
 | Producto distorsionado | Imagen de referencia de baja resolución | Usar fotos de mínimo 512×512 px como referencia |
+| Fondo no cambia lo suficiente | Instrucción de edición muy vaga | Ser específico: "cambiar fondo a X" en vez de "mejorar" |
 
-**Regla de oro:** usar siempre **img2img con foto de referencia** cuando sea posible.
+**Regla de oro:** usar siempre **edit-image con foto de referencia** cuando sea posible.
 El resultado es más profesional, más fiel a la marca y más rápido de aprobar internamente.
