@@ -120,7 +120,7 @@ Guardar para uso posterior:
 - `IMAGE_DATA_URI` → para llamada API en Paso 2A
 - `mode = "edit-image"` → determina qué modelo y prompt usar
 
-> Si hay `FAL_KEY`: usar `fal-ai/flux-pro/edit` con `IMAGE_DATA_URI` + prompt de edición.
+> Si hay `FAL_KEY`: usar `fal-ai/nano-banana-2/edit` con `image_url` + prompt de edición.
 > Si solo hay `OPENAI_API_KEY`: analizar visualmente la referencia con la herramienta
 > de visión para extraer descripción detallada → usarla como `product_description` en
 > prompt text-to-image de DALL-E 3 (no soporta edit directo).
@@ -141,7 +141,7 @@ echo "none"
 
 | Proveedor | Con imagen referencia (`edit-image`) | Sin imagen referencia (`text-to-image`) |
 |---|---|---|
-| `FAL_KEY` | edit con `fal-ai/flux-pro/edit` ⭐ | text-to-image con `fal-ai/nano-banana-2` |
+| `FAL_KEY` | edit con `fal-ai/nano-banana-2/edit` ⭐ | text-to-image con `fal-ai/nano-banana-2` |
 | `OPENAI_API_KEY` | Describir referencia via visión → prompt text-to-image DALL-E 3 | Prompt de texto estándar DALL-E 3 |
 | ninguno | Paso 4 (prompt externo solamente) | Paso 4 (prompt externo solamente) |
 
@@ -197,7 +197,7 @@ El skill devuelve:
 
 Usar `prompt` como `{PROMPT_CONSTRUIDO}` en los pasos siguientes.
 - Si `mode == "text-to-image"` → usar en **Paso 2A** (nano-banana-2 text-to-image)
-- Si `mode == "edit-image"` → usar en **Paso 2C** (flux-pro/edit)
+- Si `mode == "edit-image"` → usar en **Paso 2C** (nano-banana-2/edit)
 
 #### 2.3 — Negative prompt
 
@@ -278,14 +278,14 @@ Extraer: `data[0].url`
 
 ---
 
-### Paso 2C — Edit Image con fal.ai flux-pro/edit ⭐
+### Paso 2C — Edit Image con fal.ai nano-banana-2/edit ⭐
 
 > Usar cuando `mode == "edit-image"` y hay `FAL_KEY`.
 > Toma la foto de referencia del producto y la transforma según el prompt de edición,
 > preservando el producto como protagonista y modificando el contexto/fondo/ambientación.
 
 ```bash
-curl -s -X POST "https://fal.run/fal-ai/flux-pro/edit" \
+curl -s -X POST "https://fal.run/fal-ai/nano-banana-2/edit" \
   -H "Authorization: Key $FAL_KEY" \
   -H "Content-Type: application/json" \
   -d "{
@@ -293,7 +293,7 @@ curl -s -X POST "https://fal.run/fal-ai/flux-pro/edit" \
     \"prompt\": \"{PROMPT_CONSTRUIDO}\",
     \"image_size\": \"square_hd\",
     \"num_images\": 1,
-    \"safety_tolerance\": \"5\"
+    \"enable_safety_checker\": true
   }"
 ```
 
@@ -343,7 +343,7 @@ Crea `.claude/posts/images/{FECHA}.json`:
 {
   "date": "{FECHA_ISO}",
   "provider": "fal | openai",
-  "model": "fal-ai/nano-banana-2 | fal-ai/flux-pro/edit | dall-e-3",
+  "model": "fal-ai/nano-banana-2 | fal-ai/nano-banana-2/edit | dall-e-3",
   "mode": "text-to-image | edit-image",
   "product_slug": "{SLUG_DEL_PRODUCTO} | null",
   "reference_image": ".claude/brand-images/products/{SLUG}/ref-1.jpg | null",
@@ -395,7 +395,7 @@ Opciones para continuar:
   "success": true,
   "provider": "fal | openai | none",
   "mode": "text-to-image | edit-image",
-  "model": "fal-ai/nano-banana-2 | fal-ai/flux-pro/edit | dall-e-3",
+  "model": "fal-ai/nano-banana-2 | fal-ai/nano-banana-2/edit | dall-e-3",
   "product_slug": "{slug-del-producto} | null",
   "reference_image_used": ".claude/brand-images/products/{slug}/ref-1.jpg | null",
   "image_url": "https://...",

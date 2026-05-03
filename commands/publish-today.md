@@ -267,7 +267,7 @@ platform      → "instagram"
 image_path    → ".claude/brand-images/telegram-upload/{FECHA}.jpg"
 ```
 
-El skill edita la foto con IA (fal-ai/flux-pro/edit) preservando el producto y
+El skill edita la foto con IA (fal-ai/nano-banana-2/edit) preservando el producto y
 cambiando el contexto/ambientación según el tópico, y devuelve:
 ```json
 {
@@ -600,7 +600,7 @@ POST https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage
 - El tópico del día **nunca se le pregunta al usuario** — se determina automáticamente
 - Si el usuario llama `/publish-today "tema específico"`, ese argumento override la selección automática
 - **Imagen**: el manager elige via Telegram si generar con IA (text-to-image) o subir foto propia (edit-image)
-- Si sube foto, se edita con `fal-ai/flux-pro/edit` adaptando el contexto al tópico del día
+- Si sube foto, se edita con `fal-ai/nano-banana-2/edit` adaptando el contexto al tópico del día
 - Si no responde en 5 min, se genera automáticamente con text-to-image
 - Las URLs de fal.ai son persistentes y se pueden usar directamente en Instagram Graph API
 - Usar `claude-opus-4-6` con `thinking: adaptive` para la generación de contenido

@@ -384,14 +384,14 @@ Con el prompt construido (text-to-image o edit-image), adaptarlo según la herra
 }
 ```
 
-**Edit image** → `fal-ai/flux-pro/edit`:
+**Edit image** → `fal-ai/nano-banana-2/edit`:
 ```json
 {
   "image_url": "{URL_O_DATA_URI_DE_LA_IMAGEN}",
   "prompt": "{PROMPT_EDIT}",
   "image_size": "square_hd",
   "num_images": 1,
-  "safety_tolerance": "5"
+  "enable_safety_checker": true
 }
 ```
 
