@@ -52,43 +52,73 @@ ya sea de forma automática (via `generate-image-ai`) o manualmente con Midjourn
 > Usar cuando `mode == "text-to-image"`.
 > Genera un prompt que describe la escena completa desde cero.
 
-> **Principio clave:** Los modelos modernos (nano-banana-2, FLUX, DALL-E 3) responden mejor
-> a lenguaje conversacional con contexto de negocio que a descripciones técnicas de fotografía.
-> El prompt debe sonar como si el dueño de la empresa le pidiera la imagen a un diseñador.
+> **Principio clave:** El prompt es conversacional, con la misma estructura del Modo B
+> (edit-image). Debe sonar como si el dueño de la empresa le pidiera la imagen a un
+> diseñador: quién soy, dónde estoy, qué producto, qué tema, cómo ambientar,
+> qué debe ser el protagonista, y estilo fotográfico concreto.
+> Las mismas reglas críticas del Modo B aplican aquí: no describir acciones,
+> solo describir el entorno y la ambientación.
 
-**Plantilla base:**
+### Cadena de pensamiento para construir el prompt
+
+Antes de escribir el prompt, pensar en estos 5 pasos:
+
+1. **¿Quién soy?** — Nombre de la empresa, sector, ubicación. Ser específico.
+2. **¿Qué producto?** — Usar la `technical_description` aprobada en `/init`.
+   Describir el producto como se ve en la realidad (forma, color, material, tamaño).
+3. **¿Cuál es el tema del día?** — El tópico del post y cómo se refleja en la
+   ambientación de la imagen (elementos decorativos, superficie, fondo, atmósfera).
+4. **¿Qué debe ser el protagonista?** — El producto siempre es el centro de atención.
+   Los elementos decorativos y la ambientación acompañan, no compiten.
+5. **¿Estilo fotográfico?** — Tipo de iluminación, enfoque, atmósfera. Concreto, no genérico.
+
+### Plantilla base
 
 ```
-Soy {dueño/responsable de marketing} de {COMPANY_NAME}, una empresa de {INDUSTRY}.
-Necesito crear una imagen para publicar en redes sociales.
-
-{Si hay PRODUCT_DESCRIPTION → agregar: Mi producto es {PRODUCT_DESCRIPTION}.}
-La temática del post de hoy es: {TOPIC}.
-{Si hay SPECIAL_DATE → agregar: La ocasión especial es: {SPECIAL_DATE}.}
-{Si hay brand_style → agregar: El estilo visual de mi marca es: {BRAND_STYLE}.}
+Soy {dueño/responsable de marketing} de {COMPANY_NAME}, una empresa de {INDUSTRY}
+{Si hay LOCATION → agregar: en {LOCATION}}.
 
 {Si hay PRODUCT_DESCRIPTION:
-  Crea una imagen atractiva y creativa para redes sociales que muestre mi producto
-  en un contexto relacionado con la temática. La imagen debe verse real y profesional,
-  sin texto ni logos superpuestos.
+  Mi producto es {PRODUCT_DESCRIPTION}.
 }
-{Si NO hay PRODUCT_DESCRIPTION:
-  Crea una imagen atractiva y creativa para redes sociales que represente esta temática
-  en el contexto de {INDUSTRY}. La imagen debe verse real y profesional,
-  sin texto ni logos superpuestos.
-}
+
+Me gustaría que generes una imagen profesional y realista para publicar en
+los canales y redes sociales oficiales de la marca (Instagram, Facebook,
+página web). La imagen debe verse como si hubiera sido tomada y ambientada
+por un equipo experto en fotografía de producto.
+
+El tema del post de hoy es: {TOPIC}.
+{Si hay SPECIAL_DATE → agregar: La ocasión especial es {SPECIAL_DATE}.}
+
+{INSTRUCCIONES_DE_AMBIENTACIÓN}
+
+El protagonista de la imagen debe ser {ELEMENTO_PROTAGONISTA_DEL_PRODUCTO}.
+Todo lo demás en la imagen debe acompañar al producto sin opacarlo.
+
+{CONTEXTO_DEL_TÓPICO_DEL_DÍA}
+
+{ESTILO_FOTOGRÁFICO}.
+Sin texto, sin logos, sin watermarks superpuestos.
 ```
 
-**Adaptar la instrucción final según el tópico:**
+**Construir `{INSTRUCCIONES_DE_AMBIENTACIÓN}`:** Describir la escena completa donde
+estará el producto. Incluir:
+- Superficie donde va el producto (mesa de madera, mármol, superficie limpia)
+- Elementos decorativos alrededor (2-4 elementos concretos del sector o del tema)
+- Fondo (difuminado, gradiente, taller limpio, etc.)
+- Atmósfera general (cálida, moderna, elegante, festiva)
 
-| Tipo de tópico | Agregar al final |
+### Instrucciones de ambientación según el tópico
+
+| Tipo de tópico | Instrucciones de ambientación |
 |---|---|
-| Tip del sector | "Muéstralo en un ambiente de trabajo o producción, con elementos propios del sector." |
-| Caso de éxito / cliente satisfecho | "Contexto profesional, ambiente de éxito y confianza." |
-| Detrás de escena / proceso | "Ambiente de producción o taller, contexto de trabajo real." |
-| Tendencia / mercado | "Estilo editorial moderno, composición limpia y contemporánea." |
-| Fecha especial | "La imagen debe evocar {SPECIAL_DATE}, con ambientación acorde." |
-| Nuevo lanzamiento | "Presentación destacada del tema, protagonismo total, fondo limpio." |
+| Producto / servicio | "Quisiera que el producto esté sobre una superficie limpia y elegante, con fondo suave y difuminado, iluminación de estudio que resalte los detalles y la textura del producto. Algunos elementos del sector alrededor, ordenados y estéticos." |
+| Tip del sector | "Quisiera que el producto esté sobre una mesa de trabajo profesional de {INDUSTRY}, con algunas herramientas del oficio al lado (ordenadas, no desordenadas). Fondo limpio que transmita profesionalismo." |
+| Caso de éxito / cliente satisfecho | "Quisiera que el producto esté en un ambiente corporativo elegante, sobre una superficie de madera o mármol, con iluminación cálida que transmita confianza y calidad." |
+| Detrás de escena / proceso | "Quisiera que el producto esté en un ambiente de taller o producción, pero ordenado y profesional. Elementos de manufactura al fondo, ligeramente desenfocados." |
+| Tendencia / mercado | "Quisiera que el producto esté sobre una superficie minimalista, fondo con gradiente sutil. Composición editorial contemporánea." |
+| Fecha especial | "Quisiera que el producto esté sobre una mesa con ambientación de {SPECIAL_DATE}: {DECORACIÓN_ACORDE}. El producto sigue siendo el protagonista absoluto." |
+| Nuevo lanzamiento | "Quisiera que el producto esté sobre una superficie premium (mármol, madera oscura o acrílico), con fondo degradado limpio e iluminación lateral que destaque cada detalle." |
 
 ---
 
@@ -143,8 +173,10 @@ Soy {dueño/responsable de marketing} de {COMPANY_NAME}, una empresa de {INDUSTR
 {Si hay LOCATION → agregar: en {LOCATION}}.
 Esta es una imagen de {TECHNICAL_DESCRIPTION_RESUMIDA}.
 
-Me gustaría que volvieras esta foto más profesional, lista para ser publicada
-en Instagram, redes sociales y página web.
+Me gustaría que volvieras esta foto más profesional y realista, lista para
+ser publicada en los canales y redes sociales oficiales de la marca
+(Instagram, Facebook, página web). La imagen debe verse como si hubiera
+sido tomada y ambientada por un equipo experto en fotografía de producto.
 
 Mantén el sujeto principal de la foto original pero mejórala con
 {ELEMENTOS_DEL_ENTORNO}.
@@ -214,8 +246,10 @@ en Medellín Colombia.
 Esta es una imagen del sesgo negro que fabrico, una torta de sesgo
 planchado envuelta en plástico transparente.
 
-Me gustaría que volvieras esta foto más profesional, lista para ser
-publicada en Instagram, redes sociales y página web.
+Me gustaría que volvieras esta foto más profesional y realista, lista para
+ser publicada en los canales y redes sociales oficiales de la marca
+(Instagram, Facebook, página web). La imagen debe verse como si hubiera
+sido tomada y ambientada por un equipo experto en fotografía de producto.
 
 Mantén el sujeto principal de la foto original pero mejórala con
 rollos de sesgo de colores, herramientas de corte profesionales
@@ -241,8 +275,10 @@ Soy fabricante de calzado en Botas García.
 Esta es una imagen de mis botas de cuero marrón con suela de caucho
 y costuras visibles estilo artesanal.
 
-Me gustaría que volvieras esta foto más profesional, lista para ser
-publicada en Instagram, redes sociales y página web.
+Me gustaría que volvieras esta foto más profesional y realista, lista para
+ser publicada en los canales y redes sociales oficiales de la marca
+(Instagram, Facebook, página web). La imagen debe verse como si hubiera
+sido tomada y ambientada por un equipo experto en fotografía de producto.
 
 Mantén el sujeto principal de la foto original pero mejórala con
 superficie de madera rústica, hojas secas y calabazas pequeñas
@@ -266,8 +302,10 @@ Soy responsable de marketing en Miel del Valle, productora de miel artesanal.
 Esta es una imagen de nuestros frascos de miel de flores silvestres,
 frascos de vidrio con miel dorada y tapa metálica plateada.
 
-Me gustaría que volvieras esta foto más profesional, lista para ser
-publicada en Instagram, redes sociales y página web.
+Me gustaría que volvieras esta foto más profesional y realista, lista para
+ser publicada en los canales y redes sociales oficiales de la marca
+(Instagram, Facebook, página web). La imagen debe verse como si hubiera
+sido tomada y ambientada por un equipo experto en fotografía de producto.
 
 Mantén el sujeto principal de la foto original pero mejórala con
 elementos naturales: flores silvestres, un pequeño trozo de panal,
@@ -291,8 +329,10 @@ Soy responsable de marketing en TechFlow, tienda de accesorios tecnológicos.
 Esta es una imagen de nuestro cargador inalámbrico circular, base de
 aluminio con superficie de carga negra y LED indicador azul.
 
-Me gustaría que volvieras esta foto más profesional, lista para ser
-publicada en Instagram, redes sociales y página web.
+Me gustaría que volvieras esta foto más profesional y realista, lista para
+ser publicada en los canales y redes sociales oficiales de la marca
+(Instagram, Facebook, página web). La imagen debe verse como si hubiera
+sido tomada y ambientada por un equipo experto en fotografía de producto.
 
 Mantén el sujeto principal de la foto original pero mejórala con
 un escritorio minimalista de madera clara, un smartphone al lado
@@ -316,54 +356,124 @@ Sin texto, sin logos, sin watermarks superpuestos.
 
 ## Ejemplos Text-to-Image (Modo A)
 
-*Textil — Día de la Mujer:*
+*Textil — Día de la Mujer (con producto):*
 ```
-Soy dueño de Sesgo Express, una fábrica de sesgo textil.
-Necesito crear una imagen para publicar en redes sociales.
+Soy dueño de Sesgo Express, una fábrica de sesgo textil en Medellín, Colombia.
 
-La temática del post de hoy es: sesgo planchado para el Día de la Mujer.
-La ocasión especial es: Día de la Mujer.
+Mi producto es sesgo planchado: cinta al bies de poliéster enrollada en
+tortas de 50 metros, disponible en colores vibrantes (negro, blanco, rojo,
+azul, verde). Cada torta viene envuelta en plástico transparente.
 
-Crea una imagen festiva y atractiva para redes sociales que represente esta temática
-en el contexto del sector textil. La imagen debe verse real y profesional,
-sin texto ni logos superpuestos.
-```
+Me gustaría que generes una imagen profesional y realista para publicar en
+los canales y redes sociales oficiales de la marca (Instagram, Facebook,
+página web). La imagen debe verse como si hubiera sido tomada y ambientada
+por un equipo experto en fotografía de producto.
 
-*Calzado — Halloween:*
-```
-Soy fabricante de calzado en Botas García.
-Necesito crear una imagen para publicar en redes sociales.
+El tema del post de hoy es: sesgo planchado para el Día de la Mujer.
+La ocasión especial es el Día de la Mujer.
 
-La temática del post de hoy es: botas de cuero en Halloween.
-La ocasión especial es: Halloween.
+Quisiera que las tortas de sesgo estén sobre una mesa de madera cálida
+y limpia, con flores de colores pastel suaves al fondo ligeramente
+desenfocadas (rosas, blancas, lavanda), y una tela de algodón blanca
+o crema como base decorativa. Atmósfera tierna y acogedora.
 
-Crea una imagen oscura y creativa para redes sociales que evoque Halloween
-en el contexto del calzado. La imagen debe verse real y profesional,
-sin texto ni logos superpuestos.
-```
+El protagonista de la imagen deben ser las tortas de sesgo de colores.
+Todo lo demás en la imagen debe acompañar al producto sin opacarlo.
 
-*Manufactura — tendencia:*
-```
-Soy responsable de marketing en MetalParts, empresa de manufactura de piezas de metal.
-Necesito crear una imagen para publicar en redes sociales.
+La ambientación debe evocar el Día de la Mujer sin opacar al producto.
+Tonos cálidos, rosados suaves y blancos.
 
-La temática del post de hoy es: tendencias de automatización industrial 2026.
-
-Crea una imagen editorial moderna que represente la automatización industrial.
-Estilo editorial, composición limpia y contemporánea. La imagen debe verse real
-y profesional, sin texto ni logos superpuestos.
+Fotografía comercial de producto, iluminación natural cálida y suave,
+enfoque nítido en las tortas de sesgo.
+Sin texto, sin logos, sin watermarks superpuestos.
 ```
 
-*Alimentos — lanzamiento:*
+*Calzado — Halloween (con producto):*
 ```
-Soy responsable de marketing en Miel del Valle, productora de miel artesanal.
-Necesito crear una imagen para publicar en redes sociales.
+Soy fabricante de calzado en Botas García, en Bucaramanga, Colombia.
 
-La temática del post de hoy es: lanzamiento de nuestra miel de flores silvestres.
+Mi producto son botas de cuero marrón con suela de caucho y costuras
+visibles estilo artesanal.
 
-Crea una imagen hermosa para redes sociales con luz cálida y elementos naturales,
-que destaque el lanzamiento del producto. La imagen debe verse real y profesional,
-sin texto ni logos superpuestos.
+Me gustaría que generes una imagen profesional y realista para publicar en
+los canales y redes sociales oficiales de la marca (Instagram, Facebook,
+página web). La imagen debe verse como si hubiera sido tomada y ambientada
+por un equipo experto en fotografía de producto.
+
+El tema del post de hoy es: botas de cuero en Halloween.
+La ocasión especial es Halloween.
+
+Quisiera que las botas estén sobre una superficie de madera rústica,
+con hojas secas y calabazas pequeñas como elementos decorativos al
+fondo (ligeramente desenfocados). Iluminación cálida con tonos
+naranjas y dorados. Ambiente otoñal elegante.
+
+El protagonista de la imagen deben ser las botas. Todo lo demás en
+la imagen debe acompañar al producto sin opacarlo.
+
+La ambientación debe evocar Halloween sin opacar al producto.
+
+Fotografía de producto, iluminación cálida dorada, poca profundidad
+de campo.
+Sin texto, sin logos, sin watermarks superpuestos.
+```
+
+*Manufactura — tendencia (sin producto específico):*
+```
+Soy responsable de marketing en MetalParts, empresa de manufactura
+de piezas de metal en Monterrey, México.
+
+Me gustaría que generes una imagen profesional y realista para publicar en
+los canales y redes sociales oficiales de la marca (Instagram, Facebook,
+página web). La imagen debe verse como si hubiera sido tomada y ambientada
+por un equipo experto en fotografía de producto.
+
+El tema del post de hoy es: tendencias de automatización industrial 2026.
+
+Quisiera una imagen que muestre un ambiente de manufactura moderno:
+brazo robótico industrial en acción, piezas de metal con acabado
+brillante sobre una mesa de trabajo, chispas de soldadura al fondo
+(ligeramente desenfocadas). Fondo de planta industrial limpia y
+organizada con tonos metálicos y azules.
+
+El protagonista de la imagen debe ser la automatización y las piezas
+de metal. El ambiente debe transmitir tecnología moderna y precisión.
+
+Estilo editorial, iluminación industrial dramática, composición limpia
+y contemporánea.
+Sin texto, sin logos, sin watermarks superpuestos.
+```
+
+*Alimentos — lanzamiento (con producto):*
+```
+Soy responsable de marketing en Miel del Valle, productora de miel
+artesanal en Cali, Colombia.
+
+Mi producto son frascos de miel de flores silvestres: frascos de vidrio
+con miel dorada y tapa metálica plateada, etiqueta artesanal.
+
+Me gustaría que generes una imagen profesional y realista para publicar en
+los canales y redes sociales oficiales de la marca (Instagram, Facebook,
+página web). La imagen debe verse como si hubiera sido tomada y ambientada
+por un equipo experto en fotografía de producto.
+
+El tema del post de hoy es: lanzamiento de nuestra miel de flores silvestres.
+
+Quisiera que los frascos de miel estén sobre una superficie de mármol
+blanco, con algunos elementos naturales alrededor (flores silvestres,
+un pequeño trozo de panal, gotas de miel sobre la superficie) todo
+ordenado y estético. Iluminación lateral cálida que haga brillar la
+miel a través del vidrio. Fondo suave con gradiente dorado a blanco.
+
+El protagonista de la imagen deben ser los frascos de miel. Todo lo
+demás en la imagen debe acompañar al producto sin opacarlo.
+
+Es el lanzamiento de nuestra nueva línea, la presentación debe verse
+premium y destacar cada detalle del producto.
+
+Fotografía de producto, iluminación lateral cálida, enfoque nítido
+en detalles del vidrio.
+Sin texto, sin logos, sin watermarks superpuestos.
 ```
 
 ---
