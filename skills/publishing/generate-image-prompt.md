@@ -103,55 +103,89 @@ La temática del post de hoy es: {TOPIC}.
 > qué quiero que cambie, y cómo debe verse el resultado final. Este enfoque produce
 > resultados superiores a instrucciones técnicas cortas.
 
+### Reglas críticas para edit-image
+
+Estas reglas determinan si el resultado es realista o artificial:
+
+| Regla | Correcto | Incorrecto |
+|---|---|---|
+| **Anclar el sujeto** | "Keep the main subject from the original photo" | "Keep the core visual elements" (vago, el modelo reinterpreta) |
+| **Solo cambiar el entorno** | "enhance it with [elementos alrededor]" | "Show the fabric being cut" (describe acción → transforma el producto) |
+| **No describir acciones** | "professional cutting tools nearby" | "Show cutting at a 45-degree angle" (el modelo cambia el producto) |
+| **Nombrar la empresa** | "for Sesgo Express, a textile company in Medellín" | "for textile bias tape marketing" (genérico, el modelo improvisa) |
+| **Estilo fotográfico concreto** | "Commercial photography style, warm industrial lighting, sharp focus" | "Professional lighting suitable for B2B marketing" (vago) |
+| **Enriquecer, no reemplazar** | "enhance it with colorful rolls, tools, clean workshop" | "transform it into a professional studio photo" (el modelo recrea todo) |
+
+> **Resumen:** Nunca le digas al modelo qué HACER con el producto. Solo dile qué PONER ALREDEDOR.
+> El producto se queda exactamente como está en la foto original.
+
 ### Cadena de pensamiento para construir el prompt
 
 Antes de escribir el prompt, pensar en estos 5 pasos:
 
-1. **¿Quién soy?** — Contexto del negocio (empresa, sector)
+1. **¿Quién soy?** — Nombre de la empresa, sector, ubicación. Ser específico.
 2. **¿Qué se ve en la foto?** — Usar la `technical_description` del producto aprobada
    en `/init`. Si no existe, describir lo que se observa en la imagen.
-3. **¿Qué quiero que cambie?** — Limpiar el fondo, remover objetos, mejorar la presentación.
+3. **¿Qué quiero que cambie del ENTORNO?** — Limpiar el fondo, remover objetos, mejorar la superficie.
    La foto original suele ser casual (escritorio desordenado, piso, fondo de bodega).
-   El resultado debe verse como fotografía de catálogo profesional.
-4. **¿Cómo debe verse el resultado?** — Superficie donde va el producto, fondo,
-   iluminación, elementos decorativos que acompañen según el tópico del día.
+   **NUNCA describir una acción para el producto** (no "show cutting", no "show being used").
+   Solo describir qué elementos agregar ALREDEDOR: herramientas, decoración, superficie, fondo.
+4. **¿Cómo debe verse el resultado?** — Estilo fotográfico concreto: tipo de iluminación
+   (cálida industrial, suave natural, lateral dramática), enfoque (sharp focus, shallow depth),
+   atmósfera (clean workshop, elegant studio, minimalist).
 5. **¿Para qué plataforma?** — Instagram, redes sociales, página web.
    Siempre: sin texto superpuesto, sin logos, sin watermarks.
 
 ### Plantilla base
 
 ```
-Soy {dueño/responsable de marketing} de {COMPANY_NAME}, una empresa de {INDUSTRY}.
-Esta es una imagen de {TECHNICAL_DESCRIPTION_RESUMIDA}.
+Professional B2B social media photo for {COMPANY_NAME}, a {INDUSTRY} company
+{Si hay LOCATION → agregar: in {LOCATION}}.
 
-Me gustaría que volvieras esta foto más profesional, lista para ser publicada
-en Instagram, redes sociales y página web.
+Keep the main subject from the original photo but enhance it with
+{ELEMENTOS_DEL_ENTORNO}.
 
 {INSTRUCCIONES_DE_EDICIÓN}
 
-La parte principal es {ELEMENTO_PROTAGONISTA_DEL_PRODUCTO}. Las cosas que están
-alrededor que no son parte del producto, remuévelas.
+The main subject is {ELEMENTO_PROTAGONISTA_DEL_PRODUCTO}. Remove everything
+around it that is not part of the product.
 
 {CONTEXTO_DEL_TÓPICO_DEL_DÍA}
 
-La imagen debe verse como fotografía de catálogo profesional: iluminación suave
-y natural, composición limpia, colores fieles al producto real.
-Sin texto, sin logos, sin watermarks superpuestos.
+{ESTILO_FOTOGRÁFICO}.
 ```
+
+**Notas sobre el idioma:** El prompt se escribe en **inglés** porque los modelos de imagen
+(nano-banana-2, FLUX, DALL-E) fueron entrenados predominantemente en inglés y producen
+mejores resultados. El resto del skill (instrucciones a Claude) sigue en español.
+
+**Construir `{ELEMENTOS_DEL_ENTORNO}`:** Listar 2-4 elementos concretos que van
+ALREDEDOR del producto (no sobre él, no reemplazándolo):
+- Herramientas del oficio: "professional cutting tools, measuring tape"
+- Materiales relacionados: "colorful fabric rolls, thread spools"
+- Superficie: "clean wooden table, marble surface"
+- Ambiente: "clean workshop atmosphere, elegant studio backdrop"
+
+**Construir `{ESTILO_FOTOGRÁFICO}`:** Una línea concreta, no genérica:
+- "Commercial photography style, warm industrial lighting, sharp focus"
+- "Product photography, soft natural lighting, shallow depth of field"
+- "Editorial style, dramatic side lighting, clean composition"
+- Evitar: "Professional lighting suitable for marketing" (demasiado vago)
 
 ### Instrucciones de edición según el tópico
 
-La sección `{INSTRUCCIONES_DE_EDICIÓN}` cambia según la categoría del post:
+La sección `{INSTRUCCIONES_DE_EDICIÓN}` cambia según la categoría del post.
+Recuerda: solo describir el ENTORNO, nunca una acción para el producto.
 
 | Tipo de tópico | Instrucciones de edición |
 |---|---|
-| Producto / servicio | "Quisiera que el producto esté sobre una superficie limpia y elegante, que el fondo sea suave y difuminado, con iluminación de estudio que resalte los detalles y la textura del producto." |
-| Tip del sector | "Quisiera que el producto esté sobre una mesa de trabajo profesional de {INDUSTRY}, con algunos elementos del oficio alrededor (pero ordenados y estéticos, no desordenados). Fondo limpio." |
-| Caso de éxito / cliente satisfecho | "Quisiera que el producto esté en un ambiente corporativo elegante, sobre una superficie de madera o mármol, con iluminación cálida que transmita confianza y calidad." |
-| Detrás de escena / proceso | "Quisiera que el producto esté en un ambiente de taller o producción, pero ordenado y profesional. Elementos de manufactura al fondo, ligeramente desenfocados." |
-| Tendencia / mercado | "Quisiera que el producto tenga un entorno editorial moderno: superficie minimalista, fondo con gradiente sutil, composición contemporánea tipo revista." |
-| Fecha especial | "Quisiera que el producto esté sobre una mesa con ambientación de {SPECIAL_DATE}: {DECORACIÓN_ACORDE}. Manteniendo el producto como protagonista absoluto." |
-| Nuevo lanzamiento | "Quisiera que el producto esté sobre una superficie premium (mármol, madera oscura o acrílico), con fondo degradado limpio e iluminación lateral que destaque cada detalle." |
+| Producto / servicio | "Place it on a clean, elegant surface with a soft blurred background and studio lighting that highlights the product's texture and details." |
+| Tip del sector | "Place it on a professional {INDUSTRY} work table with a few neat trade tools nearby (organized, not cluttered). Clean background." |
+| Caso de éxito / cliente satisfecho | "Place it in an elegant corporate setting, on a wood or marble surface, with warm lighting that conveys trust and quality." |
+| Detrás de escena / proceso | "Place it in a tidy workshop or production environment. Manufacturing elements slightly out of focus in the background." |
+| Tendencia / mercado | "Set it on a minimalist surface with a subtle gradient background. Contemporary editorial composition." |
+| Fecha especial | "Place it on a table with {SPECIAL_DATE} decorations: {DECORACIÓN_ACORDE}. The product remains the absolute protagonist." |
+| Nuevo lanzamiento | "Place it on a premium surface (marble, dark wood, or acrylic) with a clean gradient background and side lighting that highlights every detail." |
 
 ### Contexto del tópico
 
@@ -159,15 +193,14 @@ La sección `{CONTEXTO_DEL_TÓPICO_DEL_DÍA}` agrega ambientación temática:
 
 ```
 {Si hay SPECIAL_DATE:
-  "El post es por {SPECIAL_DATE}, así que la ambientación y los elementos
-   decorativos deben evocar esa fecha sin opacar al producto."
+  "The setting should evoke {SPECIAL_DATE} without overshadowing the product."
 }
 {Si la categoría es "tip del sector":
-  "Es un post educativo sobre {TOPIC}, por lo que el ambiente debe
-   transmitir profesionalismo y conocimiento del sector."
+  "Context: educational post about {TOPIC} — the atmosphere should convey
+   professionalism and industry expertise."
 }
 {Si es genérico:
-  "El tema del post de hoy es: {TOPIC}."
+  "Today's post topic: {TOPIC}."
 }
 ```
 
@@ -175,104 +208,82 @@ La sección `{CONTEXTO_DEL_TÓPICO_DEL_DÍA}` agrega ambientación temática:
 
 *Textil — producto (foto casual de sesgo en escritorio desordenado):*
 ```
-Soy fabricante de sesgo textil y mi fábrica se llama Sesgo Express.
-Esta es una imagen del sesgo negro que fabrico, una torta de sesgo
-planchado envuelta en plástico transparente.
+Professional B2B social media photo for Sesgo Express, a textile cutting
+service company in Medellin Colombia.
 
-Me gustaría que volvieras esta foto más profesional, lista para ser
-publicada en Instagram, redes sociales y página web.
+Keep the main subject from the original photo but enhance it with
+colorful sesgo bias tape rolls, professional fabric cutting tools,
+and a clean textile workshop atmosphere.
 
-Quisiera que el sesgo esté sobre una mesa de madera limpia y elegante,
-que el fondo sea suave y difuminado con tonos neutros. Que se vean
-algunos elementos textiles decorativos alrededor (pequeños rollos de
-sesgo de otros colores, una cinta métrica, telas dobladas al fondo)
-pero todo ordenado y estético.
+Place it on a clean wooden table with a soft blurred background in
+neutral tones. A few decorative textile elements nearby (small rolls
+of different-colored bias tape, a measuring tape, folded fabrics
+in the background) — all neat and aesthetic.
 
-La parte principal es el sesgo negro. Las cosas que están alrededor
-que no son parte del producto (papeles, bolígrafos, facturas,
-objetos de escritorio), remuévelas.
+The main subject is the black sesgo rolls. Remove everything around it
+that is not part of the product (papers, pens, invoices, desk items).
 
-La imagen debe verse como fotografía de catálogo profesional: iluminación
-suave y natural, composición limpia, colores fieles al producto real.
-Sin texto, sin logos, sin watermarks superpuestos.
+Commercial photography style, warm industrial lighting, sharp focus.
 ```
 
 *Calzado — fecha especial (foto de botas en piso de bodega):*
 ```
-Soy fabricante de calzado en Botas García.
-Esta es una imagen de mis botas de cuero marrón con suela de caucho
-y costuras visibles estilo artesanal.
+Professional B2B social media photo for Botas García, a leather
+footwear manufacturer.
 
-Me gustaría que volvieras esta foto más profesional, lista para ser
-publicada en Instagram, redes sociales y página web.
+Keep the main subject from the original photo but enhance it with
+rustic wooden surface, autumn leaves, and small decorative pumpkins
+slightly out of focus in the background.
 
-Quisiera que las botas estén sobre una superficie de madera rústica,
-con hojas secas y calabazas pequeñas como elementos decorativos
-al fondo (ligeramente desenfocados). Iluminación cálida con tonos
-naranjas y dorados. Ambiente otoñal elegante.
+Place it on a rustic wood surface with warm orange and golden tones.
+Elegant autumnal atmosphere.
 
-La parte principal son las botas. Las cosas que están alrededor que
-no son parte del producto (cajas, piso de bodega, etiquetas), remuévelas.
+The main subject is the brown leather boots. Remove everything around
+them that is not part of the product (boxes, warehouse floor, labels).
 
-El post es por Halloween, así que la ambientación y los elementos
-decorativos deben evocar esa fecha sin opacar al producto.
+The setting should evoke Halloween without overshadowing the product.
 
-La imagen debe verse como fotografía de catálogo profesional: iluminación
-suave y natural, composición limpia, colores fieles al producto real.
-Sin texto, sin logos, sin watermarks superpuestos.
+Product photography, warm golden lighting, shallow depth of field.
 ```
 
 *Alimentos — nuevo lanzamiento (foto de frascos de miel en cocina):*
 ```
-Soy responsable de marketing en Miel del Valle, productora de miel artesanal.
-Esta es una imagen de nuestros frascos de miel de flores silvestres,
-frascos de vidrio con miel dorada y tapa metálica plateada.
+Professional B2B social media photo for Miel del Valle, an artisanal
+honey producer.
 
-Me gustaría que volvieras esta foto más profesional, lista para ser
-publicada en Instagram, redes sociales y página web.
+Keep the main subject from the original photo but enhance it with
+natural elements: wild flowers, a small honeycomb piece, honey drops
+on the surface — all neat and aesthetic.
 
-Quisiera que los frascos estén sobre una superficie de mármol blanco,
-con algunos elementos naturales alrededor (flores silvestres, un panal
-pequeño, gotas de miel en la superficie) todo ordenado y estético.
-Iluminación lateral cálida que haga brillar la miel a través del vidrio.
-Fondo suave con gradiente dorado a blanco.
+Place it on a white marble surface with warm side lighting that makes
+the honey glow through the glass. Soft background with golden-to-white
+gradient.
 
-La parte principal son los frascos de miel. Las cosas que están alrededor
-que no son parte del producto (mesón de cocina, utensilios, fondo
-de pared), remuévelas.
+The main subject is the honey jars. Remove everything around them that
+is not part of the product (kitchen counter, utensils, wall background).
 
-Es el lanzamiento de nuestra nueva línea, por lo que la presentación
-debe verse premium y destacar cada detalle del producto.
-
-La imagen debe verse como fotografía de catálogo profesional: iluminación
-suave y natural, composición limpia, colores fieles al producto real.
-Sin texto, sin logos, sin watermarks superpuestos.
+Product photography, warm side lighting, sharp focus on glass details.
 ```
 
 *Tecnología — tip del sector (foto de gadget en escritorio):*
 ```
-Soy responsable de marketing en TechFlow, tienda de accesorios tecnológicos.
-Esta es una imagen de nuestro cargador inalámbrico circular, base de
-aluminio con superficie de carga negra y LED indicador azul.
+Professional B2B social media photo for TechFlow, a tech accessories
+store.
 
-Me gustaría que volvieras esta foto más profesional, lista para ser
-publicada en Instagram, redes sociales y página web.
+Keep the main subject from the original photo but enhance it with a
+minimalist light wood desk, a smartphone nearby as usage reference,
+and a clean blurred background in soft gray tones.
 
-Quisiera que el cargador esté sobre un escritorio minimalista de madera
-clara, con un smartphone apoyado al lado (como referencia de uso).
-Fondo limpio y difuminado con tonos grises suaves. Iluminación de
-estudio que resalte el acabado de aluminio y el LED azul.
+Place it on a minimalist desk with studio lighting that highlights
+the aluminum finish and blue LED indicator.
 
-La parte principal es el cargador inalámbrico. Las cosas que están
-alrededor que no son parte del producto (cables sueltos, otros
-objetos de escritorio, papeles), remuévelas.
+The main subject is the wireless charger. Remove everything around it
+that is not part of the product (loose cables, other desk objects, papers).
 
-Es un post educativo sobre carga inalámbrica, por lo que el ambiente
-debe transmitir tecnología moderna y simplicidad.
+Context: educational post about wireless charging — the atmosphere should
+convey modern technology and simplicity.
 
-La imagen debe verse como fotografía de catálogo profesional: iluminación
-suave y natural, composición limpia, colores fieles al producto real.
-Sin texto, sin logos, sin watermarks superpuestos.
+Product photography, cool studio lighting, sharp focus.
 ```
 
 ---
