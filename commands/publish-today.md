@@ -132,7 +132,7 @@ POST https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage
 {
   "chat_id": "{TELEGRAM_CHAT_ID}",
   "parse_mode": "Markdown",
-  "text": "🖼 *Imagen para el post de hoy*\n📅 {FECHA} | 🏢 {COMPANY_NAME}\n\n📌 *Categoría:* {CATEGORIA}\n📝 *Tópico:* {TOPICO}\n{si fecha especial: 🗓 *Contexto:* {FECHA_ESPECIAL}}\n\n¿Cómo quieres la imagen?\n\n📸 *Envía una foto* y la convierto en imagen profesional con IA\n🤖 *O dime que la genere* y la creo desde cero\n\nResponde como quieras, por ejemplo:\n_\"te mando una foto\"_ · _\"generala\"_ · _\"dale, no tengo foto\"_"
+  "text": "🖼 *Imagen para el post de hoy*\n📅 {FECHA} | 🏢 {COMPANY_NAME}\n\n📌 *Categoría:* {CATEGORIA}\n📝 *Tópico:* {TOPICO}\n{si fecha especial: 🗓 *Contexto:* {FECHA_ESPECIAL}}\n\n¿Cómo quieres la imagen?\n\n📸 *Envía una foto* y la convierto en imagen profesional con IA\n🤖 *O dime que la genere* y la creo desde cero\n✏️ *O cambia el tema* si prefieres otro tópico\n\nResponde como quieras, por ejemplo:\n_\"te mando una foto\"_ · _\"generala\"_ · _\"quiero que sea de otro tema\"_"
 }
 ```
 
@@ -179,9 +179,27 @@ la intención del mensaje completo.
 El mensaje contiene `message.photo` (array de tamaños de foto de Telegram).
 → Proceder al paso 6d.
 
+**CAMBIAR TEMA** — el manager quiere modificar el tópico del post:
+- `quiero cambiar el tema`, `cambia el tema`, `mejor hablemos de`, `que sea de`,
+  `prefiero otro tema`, `cambiá el tópico`, `no me gusta el tema`,
+  `quiero que sea sobre`, `mejor de`
+- Puede venir combinado con intención de foto: `"quiero que sea de X y te mando foto"`
+- Al detectar cambio de tema:
+  1. Extraer el **nuevo tópico** del mensaje del manager (lo que dice después de
+     "que sea de", "sobre", "de", etc.)
+  2. Actualizar `{topico_elegido}` con el nuevo tema
+  3. Confirmar por Telegram:
+     `✅ Tema cambiado a: *{NUEVO_TOPICO}*`
+  4. Si el mensaje TAMBIÉN indica foto (`"te mando foto"`, `"te subo una foto"`):
+     → Responder: `✅ Tema cambiado a: *{NUEVO_TOPICO}*\n👍 Esperando tu foto...`
+     → Seguir en el loop esperando la foto (como ESPERAR FOTO)
+  5. Si el mensaje NO indica foto:
+     → Responder: `✅ Tema cambiado a: *{NUEVO_TOPICO}*\n\n¿Genero la imagen con IA o me envías una foto?`
+     → Seguir en el loop esperando la siguiente respuesta
+
 **Si el mensaje es realmente ambiguo** (no encaja en ninguna de las anteriores):
 Responder en Telegram:
-`🤔 No entendí. ¿Quieres que genere la imagen con IA o me vas a enviar una foto?`
+`🤔 No entendí. ¿Quieres que genere la imagen con IA, me vas a enviar una foto, o quieres cambiar el tema?`
 Seguir esperando.
 
 Actualizar offset a `update_id + 1` y guardar en `_telegram_offset.json`.
