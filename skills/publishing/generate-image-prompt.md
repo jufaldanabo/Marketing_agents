@@ -59,27 +59,63 @@ ya sea de forma automática (via `generate-image-ai`) o manualmente con Midjourn
 > Las mismas reglas críticas del Modo B aplican aquí: no describir acciones,
 > solo describir el entorno y la ambientación.
 
+### Reglas críticas para text-to-image
+
+Estas reglas determinan si el prompt produce una imagen realista y fiel al producto:
+
+| Regla | Correcto | Incorrecto |
+|---|---|---|
+| **Prompt en español, primera persona** | "Soy dueño de Sesgo Express, una fábrica de sesgo textil en Medellín..." | "Professional product photography, colorful rolls of bias binding tape..." (inglés genérico → el modelo inventa) |
+| **Describir productos con detalle físico** | "un carrete cilíndrico de plástico negro con sesgo de color enrollado alrededor, y al lado varios discos planos apilados de sesgo predoblado en colores vivos" | "colorful rolls of bias binding tape in various widths and colors" (genérico → el modelo produce cintas de regalo o grosgrain) |
+| **Composición explícita** | "muestre los dos productos juntos sobre fondo blanco: el carrete a la izquierda y los discos apilados a la derecha" | "neatly arranged on a wooden surface or industrial table" (vago → el modelo decide la composición) |
+| **Usar el estilo visual de la marca** | "fotografía de producto profesional sobre fondo blanco limpio, colores vivos y saturados, estilo catálogo industrial textil" | "warm lighting, sharp focus, B2B industrial aesthetic" (genérico → parece foto de stock) |
+| **Nombrar la empresa y ubicación** | "Soy dueño de Sesgo Express, en Medellín Colombia" | "Colombian textile factory setting" (el nombre se pierde, el modelo pone una fábrica de fondo) |
+| **No describir acciones** | "herramientas de corte profesionales al lado del producto" | "muestra la tela siendo cortada" (acción → transforma el producto) |
+
+> **Resumen:** El prompt debe sonar como si el dueño de la empresa le pidiera la imagen
+> a un fotógrafo profesional. En español, en primera persona, con nombres propios,
+> descripción física exacta de cada producto, y composición explícita de la imagen.
+> NUNCA generar el prompt en inglés. NUNCA usar frases genéricas de stock photography.
+
 ### Cadena de pensamiento para construir el prompt
 
-Antes de escribir el prompt, pensar en estos 5 pasos:
+Antes de escribir el prompt, pensar en estos 7 pasos:
 
 1. **¿Quién soy?** — Nombre de la empresa, sector, ubicación. Ser específico.
-2. **¿Qué producto?** — Usar la `technical_description` aprobada en `/init`.
-   Describir el producto como se ve en la realidad (forma, color, material, tamaño).
-3. **¿Cuál es el tema del día?** — El tópico del post y cómo se refleja en la
-   ambientación de la imagen (elementos decorativos, superficie, fondo, atmósfera).
-4. **¿Qué debe ser el protagonista?** — El producto siempre es el centro de atención.
+   "Soy dueño de {COMPANY_NAME}, una {INDUSTRY} en {LOCATION}."
+2. **¿Qué producto(s)?** — Usar la `product_description` del producto.
+   Describir CADA producto como se ve físicamente: forma, color, material, tamaño,
+   presentación. Ejemplo: "carrete cilíndrico de plástico negro con sesgo de color
+   enrollado alrededor" — NO "rollos de colores".
+3. **¿Cuál es el tema del día?** — El tópico del post y cómo se refleja en la imagen.
+4. **¿Cuál es el estilo visual de la marca?** — Usar `brand_style` si existe.
+   Si no existe, usar por defecto: fotografía de producto profesional, fondo limpio.
+5. **¿Qué composición tiene la imagen?** — Describir físicamente qué va dónde:
+   qué producto va a la izquierda, qué va a la derecha, qué va al fondo,
+   sobre qué superficie, con qué fondo. Ser explícito sobre la disposición espacial.
+6. **¿Qué debe ser el protagonista?** — El producto siempre es el centro de atención.
    Los elementos decorativos y la ambientación acompañan, no compiten.
-5. **¿Estilo fotográfico?** — Tipo de iluminación, enfoque, atmósfera. Concreto, no genérico.
+7. **¿Estilo fotográfico?** — Tipo de iluminación, enfoque, atmósfera. Concreto, no genérico.
 
 ### Plantilla base
+
+> **IMPORTANTE:** El prompt SIEMPRE se escribe en español, en primera persona,
+> tono conversacional. NUNCA en inglés. NUNCA como instrucción técnica de stock photo.
 
 ```
 Soy {dueño/responsable de marketing} de {COMPANY_NAME}, una empresa de {INDUSTRY}
 {Si hay LOCATION → agregar: en {LOCATION}}.
+Necesito crear una imagen para publicar en redes sociales.
 
 {Si hay PRODUCT_DESCRIPTION:
-  Mi producto es {PRODUCT_DESCRIPTION}.
+  Mi empresa fabrica/vende {PRODUCT_DESCRIPTION_DETALLADA}.
+  → Describir CADA producto con su forma física exacta, color, material,
+    presentación y tamaño relativo. Ej: "sesgo empitado: carrete cilíndrico
+    de plástico negro con sesgo de color enrollado alrededor" — NO "rollos de colores".
+}
+
+{Si hay BRAND_STYLE:
+  El estilo visual de mi marca es: {BRAND_STYLE}.
 }
 
 Me gustaría que generes una imagen profesional y realista para publicar en
@@ -89,6 +125,8 @@ por un equipo experto en fotografía de producto.
 
 El tema del post de hoy es: {TOPIC}.
 {Si hay SPECIAL_DATE → agregar: La ocasión especial es {SPECIAL_DATE}.}
+
+Crea una imagen atractiva para redes sociales que muestre {COMPOSICIÓN_EXPLÍCITA}.
 
 {INSTRUCCIONES_DE_AMBIENTACIÓN}
 
@@ -101,11 +139,33 @@ Todo lo demás en la imagen debe acompañar al producto sin opacarlo.
 Sin texto, sin logos, sin watermarks superpuestos.
 ```
 
+**Construir `{COMPOSICIÓN_EXPLÍCITA}`:** Describir con precisión física qué contiene
+la imagen y dónde va cada elemento. Esta es la parte más importante del prompt:
+- Nombrar cada producto por su forma real (no términos genéricos del sector)
+- Indicar posición: "a la izquierda", "al lado", "al fondo", "apilados a la derecha"
+- Describir formas y colores específicos: "un carrete cilíndrico de plástico negro
+  con sesgo azul enrollado" — NO "rollos de colores"
+- Describir la superficie y fondo: "sobre fondo blanco limpio" o "sobre mesa de madera"
+- Evitar: "productos variados", "elementos del sector", "neatly arranged"
+
+Ejemplo bueno:
+```
+los dos productos juntos sobre fondo blanco: un carrete cilíndrico de plástico
+negro con sesgo de color enrollado alrededor, y al lado varios discos planos
+apilados de sesgo predoblado en diferentes colores vivos (rojo, verde, azul,
+amarillo, naranja). Ambos productos bien iluminados, composición limpia y simétrica.
+```
+
+Ejemplo malo:
+```
+colorful rolls of bias binding tape neatly arranged on a wooden surface
+```
+
 **Construir `{INSTRUCCIONES_DE_AMBIENTACIÓN}`:** Describir la escena completa donde
 estará el producto. Incluir:
-- Superficie donde va el producto (mesa de madera, mármol, superficie limpia)
+- Superficie donde va el producto (mesa de madera, mármol, fondo blanco limpio)
 - Elementos decorativos alrededor (2-4 elementos concretos del sector o del tema)
-- Fondo (difuminado, gradiente, taller limpio, etc.)
+- Fondo (difuminado, gradiente, taller limpio, blanco, etc.)
 - Atmósfera general (cálida, moderna, elegante, festiva)
 
 ### Instrucciones de ambientación según el tópico
@@ -359,10 +419,16 @@ Sin texto, sin logos, sin watermarks superpuestos.
 *Textil — Día de la Mujer (con producto):*
 ```
 Soy dueño de Sesgo Express, una fábrica de sesgo textil en Medellín, Colombia.
+Necesito crear una imagen para publicar en redes sociales.
 
-Mi producto es sesgo planchado: cinta al bies de poliéster enrollada en
-tortas de 50 metros, disponible en colores vibrantes (negro, blanco, rojo,
-azul, verde). Cada torta viene envuelta en plástico transparente.
+Mi empresa fabrica sesgo textil: tiras de tela que se usan para ribetear
+bordes de prendas de ropa. El sesgo planchado viene en discos planos de
+tela doblada, enrollados en tortas de 50 metros, en muchos colores vivos
+como rojo, azul, verde, amarillo, naranja, negro y blanco. Cada torta
+viene envuelta en plástico transparente.
+
+El estilo visual de mi marca es: fotografía de producto profesional,
+colores vivos y saturados, sin personas, estilo catálogo industrial textil.
 
 Me gustaría que generes una imagen profesional y realista para publicar en
 los canales y redes sociales oficiales de la marca (Instagram, Facebook,
@@ -372,16 +438,18 @@ por un equipo experto en fotografía de producto.
 El tema del post de hoy es: sesgo planchado para el Día de la Mujer.
 La ocasión especial es el Día de la Mujer.
 
-Quisiera que las tortas de sesgo estén sobre una mesa de madera cálida
-y limpia, con flores de colores pastel suaves al fondo ligeramente
-desenfocadas (rosas, blancas, lavanda), y una tela de algodón blanca
-o crema como base decorativa. Atmósfera tierna y acogedora.
+Crea una imagen atractiva para redes sociales que muestre varias tortas
+de sesgo planchado apiladas y dispuestas sobre una mesa de madera cálida
+y limpia, en diferentes colores vivos (rojo, rosa, blanco, lavanda).
+Al fondo, flores de colores pastel suaves ligeramente desenfocadas
+(rosas, blancas, lavanda), y una tela de algodón blanca o crema como
+base decorativa. Composición limpia y acogedora.
 
 El protagonista de la imagen deben ser las tortas de sesgo de colores.
 Todo lo demás en la imagen debe acompañar al producto sin opacarlo.
 
 La ambientación debe evocar el Día de la Mujer sin opacar al producto.
-Tonos cálidos, rosados suaves y blancos.
+Tonos cálidos, rosados suaves y blancos. Atmósfera tierna.
 
 Fotografía comercial de producto, iluminación natural cálida y suave,
 enfoque nítido en las tortas de sesgo.
@@ -391,9 +459,14 @@ Sin texto, sin logos, sin watermarks superpuestos.
 *Calzado — Halloween (con producto):*
 ```
 Soy fabricante de calzado en Botas García, en Bucaramanga, Colombia.
+Necesito crear una imagen para publicar en redes sociales.
 
-Mi producto son botas de cuero marrón con suela de caucho y costuras
-visibles estilo artesanal.
+Mi empresa fabrica botas artesanales. Las botas son de cuero marrón
+con suela de caucho gruesa, costuras visibles decorativas y hebillas
+laterales de metal. Son botas altas hasta media pantorrilla.
+
+El estilo visual de mi marca es: fotografía de producto rústica y
+elegante, tonos tierra y cálidos, sin personas.
 
 Me gustaría que generes una imagen profesional y realista para publicar en
 los canales y redes sociales oficiales de la marca (Instagram, Facebook,
@@ -403,10 +476,12 @@ por un equipo experto en fotografía de producto.
 El tema del post de hoy es: botas de cuero en Halloween.
 La ocasión especial es Halloween.
 
-Quisiera que las botas estén sobre una superficie de madera rústica,
-con hojas secas y calabazas pequeñas como elementos decorativos al
-fondo (ligeramente desenfocados). Iluminación cálida con tonos
-naranjas y dorados. Ambiente otoñal elegante.
+Crea una imagen atractiva para redes sociales que muestre un par de
+botas de cuero marrón sobre una superficie de madera rústica oscura.
+A la izquierda y al fondo, hojas secas naranjas y rojas esparcidas
+naturalmente. A la derecha, dos calabazas pequeñas decorativas
+ligeramente desenfocadas. Tonos cálidos naranjas y dorados en toda
+la composición. Ambiente otoñal elegante.
 
 El protagonista de la imagen deben ser las botas. Todo lo demás en
 la imagen debe acompañar al producto sin opacarlo.
@@ -422,6 +497,11 @@ Sin texto, sin logos, sin watermarks superpuestos.
 ```
 Soy responsable de marketing en MetalParts, empresa de manufactura
 de piezas de metal en Monterrey, México.
+Necesito crear una imagen para publicar en redes sociales.
+
+Mi empresa fabrica piezas de metal industriales: engranajes, ejes
+torneados, placas perforadas y conectores de acero inoxidable con
+acabado brillante pulido.
 
 Me gustaría que generes una imagen profesional y realista para publicar en
 los canales y redes sociales oficiales de la marca (Instagram, Facebook,
@@ -430,14 +510,15 @@ por un equipo experto en fotografía de producto.
 
 El tema del post de hoy es: tendencias de automatización industrial 2026.
 
-Quisiera una imagen que muestre un ambiente de manufactura moderno:
-brazo robótico industrial en acción, piezas de metal con acabado
-brillante sobre una mesa de trabajo, chispas de soldadura al fondo
-(ligeramente desenfocadas). Fondo de planta industrial limpia y
-organizada con tonos metálicos y azules.
+Crea una imagen atractiva para redes sociales que muestre en primer
+plano varias piezas de metal con acabado brillante (engranajes y ejes
+torneados) sobre una mesa de trabajo metálica limpia. Al fondo a la
+derecha, un brazo robótico industrial ligeramente desenfocado. Fondo
+de planta industrial limpia y organizada con tonos metálicos y azules.
 
-El protagonista de la imagen debe ser la automatización y las piezas
-de metal. El ambiente debe transmitir tecnología moderna y precisión.
+El protagonista de la imagen deben ser las piezas de metal en primer
+plano. El brazo robótico al fondo acompaña sin competir. El ambiente
+debe transmitir tecnología moderna y precisión.
 
 Estilo editorial, iluminación industrial dramática, composición limpia
 y contemporánea.
@@ -448,9 +529,14 @@ Sin texto, sin logos, sin watermarks superpuestos.
 ```
 Soy responsable de marketing en Miel del Valle, productora de miel
 artesanal en Cali, Colombia.
+Necesito crear una imagen para publicar en redes sociales.
 
-Mi producto son frascos de miel de flores silvestres: frascos de vidrio
-con miel dorada y tapa metálica plateada, etiqueta artesanal.
+Mi empresa produce miel artesanal. El producto es un frasco de vidrio
+transparente de 500g con miel dorada espesa adentro, tapa metálica
+plateada redonda y etiqueta de papel kraft con letras negras.
+
+El estilo visual de mi marca es: fotografía natural y artesanal,
+tonos dorados y cálidos, fondo claro, estilo orgánico premium.
 
 Me gustaría que generes una imagen profesional y realista para publicar en
 los canales y redes sociales oficiales de la marca (Instagram, Facebook,
@@ -459,11 +545,13 @@ por un equipo experto en fotografía de producto.
 
 El tema del post de hoy es: lanzamiento de nuestra miel de flores silvestres.
 
-Quisiera que los frascos de miel estén sobre una superficie de mármol
-blanco, con algunos elementos naturales alrededor (flores silvestres,
-un pequeño trozo de panal, gotas de miel sobre la superficie) todo
-ordenado y estético. Iluminación lateral cálida que haga brillar la
-miel a través del vidrio. Fondo suave con gradiente dorado a blanco.
+Crea una imagen atractiva para redes sociales que muestre tres frascos
+de miel de vidrio transparente al centro sobre una superficie de mármol
+blanco. A la izquierda, un pequeño trozo de panal de abejas natural.
+A la derecha, un ramillete de flores silvestres pequeñas. Algunas
+gotas de miel dorada sobre la superficie del mármol. Iluminación
+lateral cálida que haga brillar la miel a través del vidrio.
+Fondo suave con gradiente dorado a blanco.
 
 El protagonista de la imagen deben ser los frascos de miel. Todo lo
 demás en la imagen debe acompañar al producto sin opacarlo.
