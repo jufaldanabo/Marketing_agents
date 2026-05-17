@@ -206,7 +206,13 @@ Actualizar offset a `update_id + 1` y guardar en `_telegram_offset.json`.
 
 #### 6c — Si el manager eligió GENERAR (text-to-image)
 
-Ejecutar `skills/publishing/generate-image-ai.md` con:
+> **🔒 INSTRUCCIÓN OBLIGATORIA — Read explícito:**
+> Usar la herramienta `Read` para leer el archivo `skills/publishing/generate-image-ai.md`
+> ANTES de ejecutar cualquier paso de generación de imagen. NO improvisar el prompt
+> de memoria — leer el archivo y seguir sus instrucciones al pie de la letra.
+> Si no se lee el archivo, el prompt saldrá en inglés y genérico.
+
+Leer con Read y ejecutar `skills/publishing/generate-image-ai.md` con:
 
 ```
 mode          → "text-to-image"
@@ -254,7 +260,8 @@ Guardar en `.claude/brand-images/telegram-upload/{FECHA}.jpg`
 ✅ Foto recibida. Editando con IA para adaptarla al tópico del día...
 ```
 
-5. Ejecutar `skills/publishing/generate-image-ai.md` con:
+5. **🔒 Leer con Read** el archivo `skills/publishing/generate-image-ai.md` y seguir sus instrucciones.
+   Ejecutar con:
 
 ```
 mode          → "edit-image"

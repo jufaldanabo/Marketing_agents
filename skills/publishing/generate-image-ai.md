@@ -169,9 +169,22 @@ por el usuario durante `/init` — es la fuente de verdad para describir el prod
   `REF_IMAGE_PATH` con la herramienta de visión como fallback
 - **Si `mode == "text-to-image"` y no hay producto** → `product_description = null`
 
-#### 2.2 — Ejecutar `generate-image-prompt.md`
+#### 2.2 — Leer y ejecutar `generate-image-prompt.md`
 
-Llamar al skill con estos inputs:
+> **🔒 REGLA DE IDIOMA — OBLIGATORIA:**
+> El prompt generado DEBE estar en **español**, en **primera persona**, con **tono conversacional**.
+> NUNCA en inglés. NUNCA como instrucción técnica de stock photography.
+> Si el prompt resultante contiene frases como "Professional product photography",
+> "colorful rolls", "neatly arranged", "warm lighting" → ESTÁ MAL. Regenerar en español.
+>
+> **🔒 INSTRUCCIÓN DE LECTURA — OBLIGATORIA:**
+> Usar la herramienta `Read` para leer el archivo `skills/publishing/generate-image-prompt.md`
+> COMPLETO antes de construir el prompt. NO improvisar de memoria. Las plantillas,
+> reglas y ejemplos están en ese archivo — leerlo y seguirlo al pie de la letra.
+> La construcción del prompt NO es opcional ni delegable a "lo que Claude sepa" —
+> debe seguir la plantilla exacta del archivo.
+
+Leer con `Read` el skill `skills/publishing/generate-image-prompt.md` y ejecutar con estos inputs:
 
 | Input | Valor |
 |---|---|
