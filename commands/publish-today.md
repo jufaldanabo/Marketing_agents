@@ -331,7 +331,7 @@ Genera el siguiente JSON:
   },
   "imagen": {
     "url_generada": "URL devuelta por el skill generate-image-ai (o null si falló)",
-    "provider": "fal | openai | none",
+    "provider": "fal",
     "prompt_usado": "Prompt exacto enviado a la IA",
     "prompt_externo": "Prompt para uso manual en Artlist / Midjourney / Firefly si no se generó automáticamente",
     "descripcion_alt": "Texto alternativo para accesibilidad"
@@ -580,8 +580,7 @@ POST https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage
 | `FACEBOOK_PAGE_ID` | Variable de entorno | ID de página Facebook |
 | `TELEGRAM_BOT_TOKEN` | Variable de entorno | Token del bot de Telegram (aprobación de contenido) |
 | `TELEGRAM_CHAT_ID` | Variable de entorno | Chat ID donde enviar previews y recibir aprobación |
-| `FAL_KEY` | Variable de entorno | **Generación de imágenes** — fal.ai (recomendado) |
-| `OPENAI_API_KEY` | Variable de entorno | **Generación de imágenes** — DALL-E 3 (alternativa) |
+| `FAL_KEY` | Variable de entorno | **Generación de imágenes** — fal.ai nano-banana-2 |
 
 ## Archivos del sistema
 

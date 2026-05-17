@@ -17,7 +17,6 @@ Devuelve una **URL pública** lista para usar directamente en Instagram Graph AP
 | Variable | Descripción |
 |---|---|
 | `FAL_KEY` | API key de fal.ai — requerida para img2img y text-to-image |
-| `OPENAI_API_KEY` | Alternativa sin FAL_KEY — DALL-E 3 solo texto (no soporta img2img) |
 
 Obtener `FAL_KEY`: https://fal.ai → Dashboard → API Keys
 
@@ -46,6 +45,12 @@ product_slug     → Slug del producto a usar (o null para auto-detectar desde t
 > nunca la foto original. Si hay fotos de referencia disponibles → obligatoriamente img2img.
 > Si no hay fotos → generar de texto. En ningún caso publicar una foto sin procesar.
 
+> **🔒 REGLA DE IDIOMA — OBLIGATORIA:**
+> El prompt generado DEBE estar en **español**, en **primera persona**, con **tono conversacional**.
+> NUNCA en inglés. NUNCA como instrucción técnica de stock photography.
+> Si el prompt resultante contiene frases como "Professional product photography",
+> "colorful rolls", "neatly arranged", "warm lighting" → ESTÁ MAL. Borrar y regenerar en español.
+
 ---
 
 ### Paso 0 — Seleccionar producto y obtener imagen de referencia
@@ -70,20 +75,6 @@ Elegir el producto que mejor coincida con `topic` y `category` del post:
 2. Comparar palabras clave de `topic` y `category` contra los `keywords` de cada producto
 3. Si hay un solo producto en el catálogo → usarlo siempre
 4. Si hay múltiples sin coincidencia clara → usar el `default_product` del catálogo
-
-**Ejemplos:**
-```
-topic: "cómo elegir el producto correcto para tu proyecto"
-keywords del producto: ["tornillo", "fijación", "acero", "hardware"]
-→ coincidencia alta → product_slug: "tornillo-acero" ✓
-
-topic: "beneficios del producto premium"
-keywords del producto: ["premium", "calidad"]
-→ coincidencia media → product_slug: "linea-premium" ✓
-
-topic: "tendencias del mercado 2026"
-ninguna coincidencia específica → usar default_product ✓
-```
 
 #### 0.3 — Verificar si hay imágenes de referencia
 
@@ -117,43 +108,31 @@ IMAGE_DATA_URI="data:$MIME_TYPE;base64,$BASE64_IMG"
 Guardar para uso posterior:
 - `PRODUCT_SLUG` → para metadata y logs
 - `REF_IMAGE_PATH` → para verificación visual
-- `IMAGE_DATA_URI` → para llamada API en Paso 2A
+- `IMAGE_DATA_URI` → para llamada API en Paso 3B
 - `mode = "edit-image"` → determina qué modelo y prompt usar
 
-> Si hay `FAL_KEY`: usar `fal-ai/nano-banana-2/edit` con `image_url` + prompt de edición.
-> Si solo hay `OPENAI_API_KEY`: analizar visualmente la referencia con la herramienta
-> de visión para extraer descripción detallada → usarla como `product_description` en
-> prompt text-to-image de DALL-E 3 (no soporta edit directo).
+> Usar `fal-ai/nano-banana-2/edit` con `image_url` + prompt de edición.
 
 ---
 
-### Paso 1 — Detectar proveedor disponible
+### Paso 1 — Verificar FAL_KEY
 
 ```bash
 # Cargar .env si existe (local), en Railway las vars ya están en el entorno
 [ -f .env ] && export $(grep -v '^#' .env | xargs)
 
-# Verificar qué key está configurada
-[ -n "$FAL_KEY" ] && echo "fal" || \
-[ -n "$OPENAI_API_KEY" ] && echo "openai" || \
-echo "none"
+# Verificar que FAL_KEY está configurada
+[ -n "$FAL_KEY" ] && echo "fal" || echo "none"
 ```
 
-| Proveedor | Con imagen referencia (`edit-image`) | Sin imagen referencia (`text-to-image`) |
+| Estado | Con imagen referencia (`edit-image`) | Sin imagen referencia (`text-to-image`) |
 |---|---|---|
-| `FAL_KEY` | edit con `fal-ai/nano-banana-2/edit` ⭐ | text-to-image con `fal-ai/nano-banana-2` |
-| `OPENAI_API_KEY` | Describir referencia via visión → prompt text-to-image DALL-E 3 | Prompt de texto estándar DALL-E 3 |
-| ninguno | Paso 4 (prompt externo solamente) | Paso 4 (prompt externo solamente) |
+| `FAL_KEY` presente | edit con `fal-ai/nano-banana-2/edit` ⭐ | text-to-image con `fal-ai/nano-banana-2` |
+| `FAL_KEY` ausente | Paso 5 (error — configurar key) | Paso 5 (error — configurar key) |
 
 ---
 
-### Paso 2 — Construir el prompt (delegado a `generate-image-prompt.md`)
-
-La construcción del prompt se delega al skill `generate-image-prompt.md`, que es la
-fuente única de verdad para la estructura conversacional, las plantillas por tópico
-y la adaptación por herramienta.
-
-#### 2.1 — Obtener descripción técnica del producto
+### Paso 2 — Obtener descripción técnica del producto
 
 Leer la ficha técnica aprobada por el usuario desde `product-info.json`:
 
@@ -169,62 +148,299 @@ por el usuario durante `/init` — es la fuente de verdad para describir el prod
   `REF_IMAGE_PATH` con la herramienta de visión como fallback
 - **Si `mode == "text-to-image"` y no hay producto** → `product_description = null`
 
-#### 2.2 — Leer y ejecutar `generate-image-prompt.md`
+---
 
-> **🔒 REGLA DE IDIOMA — OBLIGATORIA:**
-> El prompt generado DEBE estar en **español**, en **primera persona**, con **tono conversacional**.
-> NUNCA en inglés. NUNCA como instrucción técnica de stock photography.
-> Si el prompt resultante contiene frases como "Professional product photography",
-> "colorful rolls", "neatly arranged", "warm lighting" → ESTÁ MAL. Regenerar en español.
->
-> **🔒 INSTRUCCIÓN DE LECTURA — OBLIGATORIA:**
-> Usar la herramienta `Read` para leer el archivo `skills/publishing/generate-image-prompt.md`
-> COMPLETO antes de construir el prompt. NO improvisar de memoria. Las plantillas,
-> reglas y ejemplos están en ese archivo — leerlo y seguirlo al pie de la letra.
-> La construcción del prompt NO es opcional ni delegable a "lo que Claude sepa" —
-> debe seguir la plantilla exacta del archivo.
+### Paso 2A — Construir prompt para TEXT-TO-IMAGE (sin foto de referencia)
 
-Leer con `Read` el skill `skills/publishing/generate-image-prompt.md` y ejecutar con estos inputs:
+> Usar cuando `mode == "text-to-image"`.
+> Genera un prompt que describe la escena completa desde cero.
 
-| Input | Valor |
-|---|---|
-| `mode` | `"edit-image"` si hay foto de referencia, `"text-to-image"` si no |
-| `topic` | `{TOPIC}` del post |
-| `company_name` | `{COMPANY_NAME}` |
-| `industry` | `{INDUSTRY}` |
-| `product_description` | `technical_description` del product-info.json (o null) |
-| `brand_style` | Contenido de `brand-style.json` (o null) |
-| `special_date` | `{SPECIAL_DATE}` (o null) |
-| `tool` | `fal-ai` si hay `FAL_KEY`, `dalle` si hay `OPENAI_API_KEY`, `generic` si ninguno |
-| `format` | `square` para Instagram, `landscape` para Facebook |
+> **🔒 REGLA CRÍTICA:** El prompt SIEMPRE se escribe en español, en primera persona,
+> tono conversacional. NUNCA en inglés. NUNCA como instrucción técnica de stock photo.
+> Debe sonar como si el dueño de la empresa le pidiera la imagen a un fotógrafo profesional.
 
-El skill devuelve:
-```json
-{
-  "mode": "text-to-image | edit-image",
-  "prompt": "Soy dueño de {COMPANY_NAME}... | Ambientar el producto con...",
-  "negative_prompt": "text, watermark, logo...",
-  "ready_for_generate_image_ai": true
+#### Reglas críticas para text-to-image
+
+| Regla | Correcto | Incorrecto |
+|---|---|---|
+| **Prompt en español, primera persona** | "Soy dueño de Sesgo Express, una fábrica de sesgo textil en Medellín..." | "Professional product photography, colorful rolls of bias binding tape..." (inglés genérico → el modelo inventa) |
+| **Describir productos con detalle físico** | "un carrete cilíndrico de plástico negro con sesgo de color enrollado alrededor, y al lado varios discos planos apilados de sesgo predoblado en colores vivos" | "colorful rolls of bias binding tape in various widths and colors" (genérico → el modelo produce cintas de regalo o grosgrain) |
+| **Composición explícita** | "muestre los dos productos juntos sobre fondo blanco: el carrete a la izquierda y los discos apilados a la derecha" | "neatly arranged on a wooden surface or industrial table" (vago → el modelo decide la composición) |
+| **Usar el estilo visual de la marca** | "fotografía de producto profesional sobre fondo blanco limpio, colores vivos y saturados, estilo catálogo industrial textil" | "warm lighting, sharp focus, B2B industrial aesthetic" (genérico → parece foto de stock) |
+| **Nombrar la empresa y ubicación** | "Soy dueño de Sesgo Express, en Medellín Colombia" | "Colombian textile factory setting" (el nombre se pierde, el modelo pone una fábrica de fondo) |
+| **No describir acciones** | "herramientas de corte profesionales al lado del producto" | "muestra la tela siendo cortada" (acción → transforma el producto) |
+
+#### Cadena de pensamiento para construir el prompt text-to-image
+
+Antes de escribir el prompt, pensar en estos 7 pasos:
+
+1. **¿Quién soy?** — Nombre de la empresa, sector, ubicación. Ser específico.
+   "Soy dueño de {COMPANY_NAME}, una {INDUSTRY} en {LOCATION}."
+2. **¿Qué producto(s)?** — Usar la `product_description` del producto.
+   Describir CADA producto como se ve físicamente: forma, color, material, tamaño,
+   presentación. Ejemplo: "carrete cilíndrico de plástico negro con sesgo de color
+   enrollado alrededor" — NO "rollos de colores".
+3. **¿Cuál es el tema del día?** — El tópico del post y cómo se refleja en la imagen.
+4. **¿Cuál es el estilo visual de la marca?** — Usar `brand_style` si existe.
+   Si no existe, usar por defecto: fotografía de producto profesional, fondo limpio.
+5. **¿Qué composición tiene la imagen?** — Describir físicamente qué va dónde:
+   qué producto va a la izquierda, qué va a la derecha, qué va al fondo,
+   sobre qué superficie, con qué fondo. Ser explícito sobre la disposición espacial.
+6. **¿Qué debe ser el protagonista?** — El producto siempre es el centro de atención.
+   Los elementos decorativos y la ambientación acompañan, no compiten.
+7. **¿Estilo fotográfico?** — Tipo de iluminación, enfoque, atmósfera. Concreto, no genérico.
+
+#### Plantilla obligatoria para text-to-image
+
+> **IMPORTANTE:** Seguir esta plantilla al pie de la letra. NO resumir. NO simplificar.
+> NO convertir a estilo técnico. Cada sección debe estar presente en el prompt final.
+
+```
+Soy {dueño/responsable de marketing} de {COMPANY_NAME}, una empresa de {INDUSTRY}
+{Si hay LOCATION → agregar: en {LOCATION}}.
+Necesito crear una imagen para publicar en redes sociales.
+
+{Si hay PRODUCT_DESCRIPTION:
+  Mi empresa fabrica/vende {PRODUCT_DESCRIPTION_DETALLADA}.
+  → Describir CADA producto con su forma física exacta, color, material,
+    presentación y tamaño relativo. Ej: "sesgo empitado: carrete cilíndrico
+    de plástico negro con sesgo de color enrollado alrededor" — NO "rollos de colores".
 }
+
+{Si hay BRAND_STYLE:
+  El estilo visual de mi marca es: {BRAND_STYLE}.
+}
+
+Me gustaría que generes una imagen profesional y realista para publicar en
+los canales y redes sociales oficiales de la marca (Instagram, Facebook,
+página web). La imagen debe verse como si hubiera sido tomada y ambientada
+por un equipo experto en fotografía de producto.
+
+El tema del post de hoy es: {TOPIC}.
+{Si hay SPECIAL_DATE → agregar: La ocasión especial es {SPECIAL_DATE}.}
+
+Crea una imagen atractiva para redes sociales que muestre {COMPOSICIÓN_EXPLÍCITA}.
+
+{INSTRUCCIONES_DE_AMBIENTACIÓN}
+
+El protagonista de la imagen debe ser {ELEMENTO_PROTAGONISTA_DEL_PRODUCTO}.
+Todo lo demás en la imagen debe acompañar al producto sin opacarlo.
+
+{CONTEXTO_DEL_TÓPICO_DEL_DÍA}
+
+{ESTILO_FOTOGRÁFICO}.
+Sin texto, sin logos, sin watermarks superpuestos.
 ```
 
-Usar `prompt` como `{PROMPT_CONSTRUIDO}` en los pasos siguientes.
-- Si `mode == "text-to-image"` → usar en **Paso 2A** (nano-banana-2 text-to-image)
-- Si `mode == "edit-image"` → usar en **Paso 2C** (nano-banana-2/edit)
+**Construir `{COMPOSICIÓN_EXPLÍCITA}`:** Describir con precisión física qué contiene
+la imagen y dónde va cada elemento. Esta es la parte más importante del prompt:
+- Nombrar cada producto por su forma real (no términos genéricos del sector)
+- Indicar posición: "a la izquierda", "al lado", "al fondo", "apilados a la derecha"
+- Describir formas y colores específicos: "un carrete cilíndrico de plástico negro
+  con sesgo azul enrollado" — NO "rollos de colores"
+- Describir la superficie y fondo: "sobre fondo blanco limpio" o "sobre mesa de madera"
+- Evitar: "productos variados", "elementos del sector", "neatly arranged"
 
-#### 2.3 — Negative prompt
+#### Instrucciones de ambientación según el tópico (text-to-image)
 
-Usar el `negative_prompt` devuelto por `generate-image-prompt.md`.
+| Tipo de tópico | Instrucciones de ambientación |
+|---|---|
+| Producto / servicio | "Quisiera que el producto esté sobre una superficie limpia y elegante, con fondo suave y difuminado, iluminación de estudio que resalte los detalles y la textura del producto. Algunos elementos del sector alrededor, ordenados y estéticos." |
+| Tip del sector | "Quisiera que el producto esté sobre una mesa de trabajo profesional de {INDUSTRY}, con algunas herramientas del oficio al lado (ordenadas, no desordenadas). Fondo limpio que transmita profesionalismo." |
+| Caso de éxito / cliente satisfecho | "Quisiera que el producto esté en un ambiente corporativo elegante, sobre una superficie de madera o mármol, con iluminación cálida que transmita confianza y calidad." |
+| Detrás de escena / proceso | "Quisiera que el producto esté en un ambiente de taller o producción, pero ordenado y profesional. Elementos de manufactura al fondo, ligeramente desenfocados." |
+| Tendencia / mercado | "Quisiera que el producto esté sobre una superficie minimalista, fondo con gradiente sutil. Composición editorial contemporánea." |
+| Fecha especial | "Quisiera que el producto esté sobre una mesa con ambientación de {SPECIAL_DATE}: {DECORACIÓN_ACORDE}. El producto sigue siendo el protagonista absoluto." |
+| Nuevo lanzamiento | "Quisiera que el producto esté sobre una superficie premium (mármol, madera oscura o acrílico), con fondo degradado limpio e iluminación lateral que destaque cada detalle." |
+
+#### Ejemplo completo de prompt text-to-image
+
+```
+Soy dueño de Sesgo Express, una fábrica de sesgo textil en Medellín, Colombia.
+Necesito crear una imagen para publicar en redes sociales.
+
+Mi empresa fabrica sesgo textil: tiras de tela que se usan para ribetear
+bordes de prendas de ropa. El sesgo planchado viene en discos planos de
+tela doblada, enrollados en tortas de 50 metros, en muchos colores vivos
+como rojo, azul, verde, amarillo, naranja, negro y blanco. Cada torta
+viene envuelta en plástico transparente.
+
+El estilo visual de mi marca es: fotografía de producto profesional,
+colores vivos y saturados, sin personas, estilo catálogo industrial textil.
+
+Me gustaría que generes una imagen profesional y realista para publicar en
+los canales y redes sociales oficiales de la marca (Instagram, Facebook,
+página web). La imagen debe verse como si hubiera sido tomada y ambientada
+por un equipo experto en fotografía de producto.
+
+El tema del post de hoy es: sesgo planchado para el Día de la Mujer.
+La ocasión especial es el Día de la Mujer.
+
+Crea una imagen atractiva para redes sociales que muestre varias tortas
+de sesgo planchado apiladas y dispuestas sobre una mesa de madera cálida
+y limpia, en diferentes colores vivos (rojo, rosa, blanco, lavanda).
+Al fondo, flores de colores pastel suaves ligeramente desenfocadas
+(rosas, blancas, lavanda), y una tela de algodón blanca o crema como
+base decorativa. Composición limpia y acogedora.
+
+El protagonista de la imagen deben ser las tortas de sesgo de colores.
+Todo lo demás en la imagen debe acompañar al producto sin opacarlo.
+
+La ambientación debe evocar el Día de la Mujer sin opacar al producto.
+Tonos cálidos, rosados suaves y blancos. Atmósfera tierna.
+
+Fotografía comercial de producto, iluminación natural cálida y suave,
+enfoque nítido en las tortas de sesgo.
+Sin texto, sin logos, sin watermarks superpuestos.
+```
+
+Usar el prompt construido como `{PROMPT_CONSTRUIDO}` → ir al **Paso 3A**.
+
+---
+
+### Paso 2B — Construir prompt para EDIT-IMAGE (con foto de referencia)
+
+> Usar cuando `mode == "edit-image"`.
+> Toma una foto casual/real del producto y la transforma en una imagen profesional
+> lista para publicar en Instagram, redes sociales y página web.
+
+> **🔒 REGLA CRÍTICA:** El prompt SIEMPRE se escribe en español, en primera persona,
+> tono conversacional. NUNCA en inglés. NUNCA como instrucción técnica.
+> Debe sonar como si el dueño de la empresa le pidiera a un diseñador que mejore su foto.
+
+#### Reglas críticas para edit-image
+
+| Regla | Correcto | Incorrecto |
+|---|---|---|
+| **Anclar el sujeto** | "Mantén el sujeto principal de la foto original" | "Mantén los elementos visuales principales" (vago, el modelo reinterpreta) |
+| **Solo cambiar el entorno** | "mejórala con [elementos alrededor]" | "Muestra la tela siendo cortada" (describe acción → transforma el producto) |
+| **No describir acciones** | "herramientas de corte profesionales al lado" | "Muestra el corte a 45 grados" (el modelo cambia el producto) |
+| **Nombrar la empresa** | "para Sesgo Express, empresa textil de Medellín" | "para marketing de sesgo textil" (genérico, el modelo improvisa) |
+| **Estilo fotográfico concreto** | "Fotografía comercial, iluminación cálida industrial, enfoque nítido" | "Iluminación profesional para marketing" (vago) |
+| **Enriquecer, no reemplazar** | "mejórala con rollos de colores, herramientas, taller limpio" | "transfórmala en foto de estudio profesional" (el modelo recrea todo) |
+
+> **Resumen:** Nunca le digas al modelo qué HACER con el producto. Solo dile qué PONER ALREDEDOR.
+> El producto se queda exactamente como está en la foto original.
+
+#### Cadena de pensamiento para construir el prompt edit-image
+
+Antes de escribir el prompt, pensar en estos 5 pasos:
+
+1. **¿Quién soy?** — Nombre de la empresa, sector, ubicación. Ser específico.
+2. **¿Qué se ve en la foto?** — Usar la `technical_description` del producto aprobada
+   en `/init`. Si no existe, describir lo que se observa en la imagen.
+3. **¿Qué quiero que cambie del ENTORNO?** — Limpiar el fondo, remover objetos, mejorar la superficie.
+   La foto original suele ser casual (escritorio desordenado, piso, fondo de bodega).
+   **NUNCA describir una acción para el producto** (no "muestra cortando", no "muestra siendo usado").
+   Solo describir qué elementos agregar ALREDEDOR: herramientas, decoración, superficie, fondo.
+4. **¿Cómo debe verse el resultado?** — Estilo fotográfico concreto: tipo de iluminación
+   (cálida industrial, suave natural, lateral dramática), enfoque (nítido, profundidad de campo),
+   atmósfera (taller limpio, estudio elegante, minimalista).
+5. **¿Para qué plataforma?** — Instagram, redes sociales, página web.
+   Siempre: sin texto superpuesto, sin logos, sin watermarks.
+
+#### Plantilla obligatoria para edit-image
+
+> **IMPORTANTE:** Seguir esta plantilla al pie de la letra. NO resumir. NO simplificar.
+
+```
+Soy {dueño/responsable de marketing} de {COMPANY_NAME}, una empresa de {INDUSTRY}
+{Si hay LOCATION → agregar: en {LOCATION}}.
+Esta es una imagen de {TECHNICAL_DESCRIPTION_RESUMIDA}.
+
+Me gustaría que volvieras esta foto más profesional y realista, lista para
+ser publicada en los canales y redes sociales oficiales de la marca
+(Instagram, Facebook, página web). La imagen debe verse como si hubiera
+sido tomada y ambientada por un equipo experto en fotografía de producto.
+
+Mantén el sujeto principal de la foto original pero mejórala con
+{ELEMENTOS_DEL_ENTORNO}.
+
+{INSTRUCCIONES_DE_EDICIÓN}
+
+La parte principal es {ELEMENTO_PROTAGONISTA_DEL_PRODUCTO}. Las cosas que están
+alrededor que no son parte del producto, remuévelas.
+
+{CONTEXTO_DEL_TÓPICO_DEL_DÍA}
+
+{ESTILO_FOTOGRÁFICO}.
+Sin texto, sin logos, sin watermarks superpuestos.
+```
+
+**Construir `{ELEMENTOS_DEL_ENTORNO}`:** Listar 2-4 elementos concretos que van
+ALREDEDOR del producto (no sobre él, no reemplazándolo):
+- Herramientas del oficio: "herramientas de corte profesionales, cinta métrica"
+- Materiales relacionados: "rollos de tela de colores, carretes de hilo"
+- Superficie: "mesa de madera limpia, superficie de mármol"
+- Ambiente: "ambiente de taller limpio, fondo de estudio elegante"
+
+**Construir `{ESTILO_FOTOGRÁFICO}`:** Una línea concreta, no genérica:
+- "Fotografía comercial, iluminación cálida industrial, enfoque nítido"
+- "Fotografía de producto, iluminación natural suave, poca profundidad de campo"
+- "Estilo editorial, iluminación lateral dramática, composición limpia"
+- Evitar: "Iluminación profesional apta para marketing" (demasiado vago)
+
+#### Instrucciones de edición según el tópico (edit-image)
+
+| Tipo de tópico | Instrucciones de edición |
+|---|---|
+| Producto / servicio | "Quisiera que el producto esté sobre una superficie limpia y elegante, que el fondo sea suave y difuminado, con iluminación de estudio que resalte los detalles y la textura del producto." |
+| Tip del sector | "Quisiera que el producto esté sobre una mesa de trabajo profesional de {INDUSTRY}, con algunas herramientas del oficio al lado (ordenadas, no desordenadas). Fondo limpio." |
+| Caso de éxito / cliente satisfecho | "Quisiera que el producto esté en un ambiente corporativo elegante, sobre una superficie de madera o mármol, con iluminación cálida que transmita confianza y calidad." |
+| Detrás de escena / proceso | "Quisiera que el producto esté en un ambiente de taller o producción, pero ordenado y profesional. Elementos de manufactura al fondo, ligeramente desenfocados." |
+| Tendencia / mercado | "Quisiera que el producto esté sobre una superficie minimalista, fondo con gradiente sutil. Composición editorial contemporánea." |
+| Fecha especial | "Quisiera que el producto esté sobre una mesa con ambientación de {SPECIAL_DATE}: {DECORACIÓN_ACORDE}. El producto sigue siendo el protagonista absoluto." |
+| Nuevo lanzamiento | "Quisiera que el producto esté sobre una superficie premium (mármol, madera oscura o acrílico), con fondo degradado limpio e iluminación lateral que destaque cada detalle." |
+
+#### Ejemplo completo de prompt edit-image
+
+```
+Soy fabricante de sesgo textil y mi fábrica se llama Sesgo Express,
+en Medellín Colombia.
+Esta es una imagen del sesgo negro que fabrico, una torta de sesgo
+planchado envuelta en plástico transparente.
+
+Me gustaría que volvieras esta foto más profesional y realista, lista para
+ser publicada en los canales y redes sociales oficiales de la marca
+(Instagram, Facebook, página web). La imagen debe verse como si hubiera
+sido tomada y ambientada por un equipo experto en fotografía de producto.
+
+Mantén el sujeto principal de la foto original pero mejórala con
+rollos de sesgo de colores, herramientas de corte profesionales
+y un ambiente de taller textil limpio.
+
+Quisiera que el sesgo esté sobre una mesa de madera limpia y elegante,
+que el fondo sea suave y difuminado con tonos neutros. Que se vean
+algunos elementos textiles decorativos alrededor (pequeños rollos de
+sesgo de otros colores, una cinta métrica, telas dobladas al fondo)
+pero todo ordenado y estético.
+
+La parte principal es el sesgo negro. Las cosas que están alrededor
+que no son parte del producto (papeles, bolígrafos, facturas,
+objetos de escritorio), remuévelas.
+
+Fotografía comercial, iluminación cálida industrial, enfoque nítido.
+Sin texto, sin logos, sin watermarks superpuestos.
+```
+
+Usar el prompt construido como `{PROMPT_CONSTRUIDO}` → ir al **Paso 3B**.
+
+---
+
+### Paso 2C — Negative prompt
 
 Para `nano-banana-2`: generalmente no necesita negative prompt con prompts conversacionales.
 Incluir solo si la primera generación tiene defectos visibles.
 
-Para DALL-E 3 (no acepta negative_prompt separado): ya viene integrado en el prompt
-por `generate-image-prompt.md` cuando `tool == "dalle"`.
+Negative prompt estándar (cuando se necesite):
+```
+text, watermark, logo, cartoon, illustration, low quality, blurry, deformed hands,
+extra fingers, bad anatomy, AI artifacts
+```
 
 ---
 
-### Paso 2A — Text-to-Image con fal.ai nano-banana-2
+### Paso 3A — Text-to-Image con fal.ai nano-banana-2
 
 > Usar cuando `mode == "text-to-image"` (no hay foto de referencia).
 
@@ -244,54 +460,7 @@ curl -s -X POST "https://fal.run/fal-ai/nano-banana-2" \
 
 ---
 
-### Paso 2B — Generar con DALL-E 3 (alternativa cuando no hay FAL_KEY)
-
-> ⚠️ DALL-E 3 **no soporta edit-image directo**. Cuando hay fotos de referencia,
-> la descripción visual ya fue extraída en el Paso 2.1 y pasada a
-> `generate-image-prompt.md` como `product_description`. El skill genera un prompt
-> text-to-image enriquecido con esa descripción (no un prompt de edición).
-
-Usar el `{PROMPT_CONSTRUIDO}` devuelto por `generate-image-prompt.md`
-en el Paso 2.2 (ya adaptado para DALL-E cuando `tool == "dalle"`).
-
-```bash
-# DALL-E 3 — siempre "hd" para marketing
-curl -s -X POST "https://api.openai.com/v1/images/generations" \
-  -H "Authorization: Bearer $OPENAI_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "dall-e-3",
-    "prompt": "{PROMPT_CONSTRUIDO}",
-    "size": "1024x1024",
-    "quality": "hd",
-    "style": "natural",
-    "n": 1
-  }'
-```
-
-> Usar `"quality": "hd"` (no "standard") — doble detalle, menos defectos anatómicos.
-> Precio: $0.080 vs $0.040 por imagen.
-
-**Respuesta esperada:**
-```json
-{
-  "data": [
-    {
-      "url": "https://oaidalleapiprodscus.blob.core.windows.net/private/...",
-      "revised_prompt": "..."
-    }
-  ]
-}
-```
-
-Extraer: `data[0].url`
-
-> ⚠️ Las URLs de DALL-E expiran en ~60 minutos. Publicar en Instagram inmediatamente.
-> Guardar `revised_prompt` por si hay que regenerar.
-
----
-
-### Paso 2C — Edit Image con fal.ai nano-banana-2/edit ⭐
+### Paso 3B — Edit Image con fal.ai nano-banana-2/edit ⭐
 
 > Usar cuando `mode == "edit-image"` y hay `FAL_KEY`.
 > Toma la foto de referencia del producto y la transforma según el prompt de edición,
@@ -332,20 +501,20 @@ Extraer: `images[0].url` → URL pública persistente, lista para Instagram Grap
 
 ---
 
-### Verificaciones comunes (aplica a Paso 2A, 2B y 2C)
+### Verificaciones comunes (aplica a Paso 3A y 3B)
 
 **Si `has_nsfw_concepts[0]` es `true`** → regenerar (máximo 2 intentos).
 
 **Verificación de calidad:** Revisar visualmente la imagen generada con la herramienta de visión.
 Si hay defectos (manos deformes, caras, artefactos) → regenerar con variación del prompt. Máximo 3 intentos.
 
-**Verificación de integridad — antes de continuar al Paso 3:**
-- `image_url` debe ser una URL pública de IA (`fal.media/...` o `oaidalleapiprodscus...`), nunca una ruta local.
-- Si `image_url` apunta a un archivo local o a `REF_IMAGE_PATH` → error: la generación no se completó. Reintentar o pasar a Paso 4.
+**Verificación de integridad — antes de continuar al Paso 4:**
+- `image_url` debe ser una URL pública de fal.ai (`fal.media/...`), nunca una ruta local.
+- Si `image_url` apunta a un archivo local o a `REF_IMAGE_PATH` → error: la generación no se completó. Reintentar.
 
 ---
 
-### Paso 3 — Guardar resultado
+### Paso 4 — Guardar resultado
 
 ```bash
 mkdir -p .claude/posts/images
@@ -355,8 +524,8 @@ Crea `.claude/posts/images/{FECHA}.json`:
 ```json
 {
   "date": "{FECHA_ISO}",
-  "provider": "fal | openai",
-  "model": "fal-ai/nano-banana-2 | fal-ai/nano-banana-2/edit | dall-e-3",
+  "provider": "fal",
+  "model": "fal-ai/nano-banana-2 | fal-ai/nano-banana-2/edit",
   "mode": "text-to-image | edit-image",
   "product_slug": "{SLUG_DEL_PRODUCTO} | null",
   "reference_image": ".claude/brand-images/products/{SLUG}/ref-1.jpg | null",
@@ -364,37 +533,27 @@ Crea `.claude/posts/images/{FECHA}.json`:
   "image_url": "https://fal.media/files/xxx/generated.jpeg",
   "topic": "{TOPIC_DEL_POST}",
   "category": "{CATEGORIA_DEL_POST}",
-  "platform": "instagram",
-  "expires_at": null
+  "platform": "instagram"
 }
 ```
 
 > `mode`: `"edit-image"` (con foto de referencia) | `"text-to-image"` (sin referencia)
-> `expires_at`: null para fal.ai (URLs persistentes), timestamp ISO para DALL-E (+60min)
+> Las URLs de fal.ai son persistentes (no expiran)
 
 ---
 
-### Paso 4 — Si no hay API key disponible
+### Paso 5 — Si no hay FAL_KEY
 
 ```
-⚠️  No se encontró FAL_KEY ni OPENAI_API_KEY en las variables de entorno
+⚠️  No se encontró FAL_KEY en las variables de entorno
 
 La imagen del post NO puede ser la foto de referencia original.
 Debes generar una imagen nueva antes de publicar.
 
-Opciones para continuar:
+Para continuar:
 
-  Opción A — fal.ai (recomendado, soporta img2img desde tus fotos):
-    Configura la variable de entorno: FAL_KEY=tu_key_aqui
-    Obtener en: https://fal.ai → Dashboard → API Keys
-
-  Opción B — DALL-E 3 (~$0.08/imagen, genera desde descripción de tu foto):
-    Configura la variable de entorno: OPENAI_API_KEY=tu_key_aqui
-
-  Opción C — Generación manual (sin API):
-    Usa este prompt en Midjourney, Firefly, Adobe Express o Stable Diffusion:
-    {PROMPT_CONSTRUIDO}
-    Una vez generada, copia la URL pública de la imagen aquí para continuar.
+  Configura la variable de entorno: FAL_KEY=tu_key_aqui
+  Obtener en: https://fal.ai → Dashboard → API Keys
 
 ⛔ NO publicar la foto de referencia original como imagen del post.
 ```
@@ -406,12 +565,12 @@ Opciones para continuar:
 ```json
 {
   "success": true,
-  "provider": "fal | openai | none",
+  "provider": "fal",
   "mode": "text-to-image | edit-image",
-  "model": "fal-ai/nano-banana-2 | fal-ai/nano-banana-2/edit | dall-e-3",
+  "model": "fal-ai/nano-banana-2 | fal-ai/nano-banana-2/edit",
   "product_slug": "{slug-del-producto} | null",
   "reference_image_used": ".claude/brand-images/products/{slug}/ref-1.jpg | null",
-  "image_url": "https://...",
+  "image_url": "https://fal.media/files/xxx/...",
   "prompt_used": "...",
   "dimensions": "1024x1024",
   "ready_for_instagram": true
@@ -422,13 +581,10 @@ Opciones para continuar:
 
 ## Precios de referencia
 
-| Proveedor | Modelo | Modo | Precio/imagen | Velocidad | Recomendado para |
-|---|---|---|---|---|---|
-| fal.ai | FLUX Pro edit | edit-image | ~$0.050 | ~10 seg | ⭐ Editar foto real del producto |
-| fal.ai | nano-banana-2 | text-to-image | ~$0.025 | ~15 seg | Sin foto de referencia |
-| fal.ai | FLUX Schnell (8 pasos) | text-to-image | ~$0.003 | ~3 seg | Solo producto/objeto, sin personas |
-| OpenAI | DALL-E 3 HD | text-to-image | ~$0.080 | ~15 seg | Alternativa cuando no hay FAL_KEY |
-| OpenAI | DALL-E 3 Standard | text-to-image | ~$0.040 | ~10 seg | No recomendado — usar HD |
+| Modelo | Modo | Precio/imagen | Velocidad | Recomendado para |
+|---|---|---|---|---|
+| fal-ai/nano-banana-2/edit | edit-image | ~$0.050 | ~10 seg | ⭐ Editar foto real del producto |
+| fal-ai/nano-banana-2 | text-to-image | ~$0.025 | ~15 seg | Sin foto de referencia |
 
 ---
 
@@ -449,7 +605,7 @@ Opciones para continuar:
 |---|---|---|
 | Manos con 6+ dedos | Poco contexto anatómico + pocos pasos | Negative prompt + 28 pasos (flux/dev) |
 | Caras con 3 ojos | Composición ambigua | Especificar "retrato de perfil" o evitar caras |
-| Piel plástica / artificial | Modelo incorrecto | Usar `style: "natural"` en DALL-E; flux/dev en fal.ai |
+| Piel plástica / artificial | Modelo incorrecto | Usar prompts conversacionales con contexto real de la empresa |
 | Texto ilegible en imagen | Modelos no generan texto bien | Nunca pedir texto en el prompt |
 | Producto no se parece a la foto | Prompt de edición demasiado agresivo | Ser más específico en la instrucción, editar solo el contexto |
 | Producto distorsionado | Imagen de referencia de baja resolución | Usar fotos de mínimo 512×512 px como referencia |

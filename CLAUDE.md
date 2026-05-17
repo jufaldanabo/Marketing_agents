@@ -40,7 +40,7 @@ Marketing_agents/                       ← Este repositorio (el toolkit)
     │   ├── generate-b2b-content.md   → Genera texto B2B adaptado por plataforma
     │   ├── publish-instagram.md      → Publica en Instagram Graph API
     │   ├── publish-facebook.md       → Publica en Facebook Graph API
-    │   ├── generate-image-prompt.md  → Genera prompts para Midjourney/DALL-E/Firefly
+    │   ├── generate-image-ai.md      → Genera imagen con IA (prompt + API call, todo en uno)
     │   ├── generate-tiktok-content.md → Genera guión de video + caption de foto para TikTok
     │   ├── publish-tiktok.md         → Publica en TikTok Content Posting API
     │   └── content-approval.md       → Envía borrador a Telegram para aprobación del manager
