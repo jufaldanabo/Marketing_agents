@@ -140,6 +140,35 @@ Esto permite monitorear precios automáticamente.
 Si no aplica para tu negocio, escribe "ninguno".
 ```
 
+**Pregunta 3.3 — Temas para análisis de tendencias (opcional):**
+```
+¿Hay temas sobre los que te gustaría monitorear tendencias semanales
+en YouTube y TikTok? El comando /trend-ranking los usará como base.
+
+(Ejemplo: "confección industrial, telas técnicas, moda sostenible")
+
+Si no sabes aún, escribe "no sé" — puedes configurarlo después en .env como TREND_TOPICS.
+```
+
+Si responde con temas → guardar como `trend_topics` (lista) en `company-context.json` bajo `"market"`.
+Si responde "no sé" o "ninguno" → registrar como `trend_topics: []`.
+
+**Pregunta 3.4 — Canales YouTube o TikTok de competidores (opcional):**
+```
+¿Conoces los canales de YouTube o cuentas de TikTok de tus competidores?
+Esto permite que /trend-ranking monitoree también su contenido.
+
+(Ejemplo: "@CanalCompetidor en YouTube, @usuario_rival en TikTok")
+
+Si no los conoces, escribe "no sé" — puedes agregarlo después.
+```
+
+Registrar por separado:
+- `trend_competitors_yt`: lista de handles de YouTube (con @)
+- `trend_competitors_tt`: lista de handles de TikTok (con @)
+
+Si responde "no sé" → registrar ambos como `[]`.
+
 ---
 
 ### Fase 4 — El equipo comercial
@@ -444,6 +473,9 @@ Catálogo: .claude/brand-images/products/product-catalog.json
 📊 MERCADO
 - Competidores: {COMPETITORS}
 - Commodities a monitorear: {COMMODITIES}
+- Temas para /trend-ranking: {TREND_TOPICS o "no configurado"}
+- Competidores YouTube: {TREND_COMPETITORS_YT o "ninguno"}
+- Competidores TikTok: {TREND_COMPETITORS_TT o "ninguno"}
 
 👤 EQUIPO COMERCIAL
 - Vendedor: {SENDER_NAME}, {SENDER_ROLE}
@@ -483,7 +515,10 @@ Si el usuario pide corregir algo, volver a la pregunta específica y actualizar.
   },
   "market": {
     "competitors": ["{COMPETITOR_1}", "{COMPETITOR_2}"],
-    "commodities": ["{COMMODITY_1}", "{COMMODITY_2}"]
+    "commodities": ["{COMMODITY_1}", "{COMMODITY_2}"],
+    "trend_topics": ["{TREND_TOPIC_1}", "{TREND_TOPIC_2}"],
+    "trend_competitors_yt": ["{@CANAL_YT_1}"],
+    "trend_competitors_tt": ["{@USUARIO_TT_1}"]
   },
   "sales": {
     "sender_name": "{SENDER_NAME}",
@@ -538,6 +573,14 @@ FACEBOOK_APP_SECRET=         # Para verificar expiración del token
 TIKTOK_ACCESS_TOKEN=         # Token OAuth 2.0 con scope video.publish (dura 24h)
 TIKTOK_OPEN_ID=              # open_id del usuario (se obtiene en el auth flow)
 # Guía: https://developers.tiktok.com/ → Crear app → Content Posting API
+
+# --- TREND ANALYSIS (YouTube + TikTok) ---
+YOUTUBE_API_KEY=             # Google Cloud Console → YouTube Data API v3 (gratuita)
+TREND_TOPICS={TREND_TOPICS_DEL_USUARIO}
+TREND_COMPETITORS_YT={TREND_COMPETITORS_YT_DEL_USUARIO}  # opcional
+TREND_COMPETITORS_TT={TREND_COMPETITORS_TT_DEL_USUARIO}  # opcional
+TREND_LOOKBACK_DAYS=7
+TREND_TOP_N=10
 ```
 
 #### Archivo 3: Actualizar `CLAUDE.md` del proyecto

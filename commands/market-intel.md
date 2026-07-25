@@ -193,3 +193,16 @@ POST https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage
 - Para datos financieros en tiempo real, integrar con APIs de pago (Bloomberg, Reuters)
 - Los análisis de competidores se basan únicamente en información pública
 - Respetar términos de uso de cada sitio web consultado
+
+## Complemento recomendado
+
+Para **tendencias de contenido viral** en YouTube y TikTok sobre los mismos temas del sector:
+
+```bash
+/trend-ranking   # Corre los miércoles 08:00 — rankings de videos con más vistas,
+                 # comentarios y reacciones + ideas para replicar en la empresa
+```
+
+`/market-intel` cubre precios de insumos e inteligencia competitiva (para dirección).
+`/trend-ranking` cubre qué formatos de contenido están funcionando mejor esta semana (para el equipo de marketing).
+Juntos forman la inteligencia de mercado completa del toolkit.
