@@ -27,13 +27,15 @@ Marketing_agents/                       ← Este repositorio (el toolkit)
 │   ├── setup-check.md                → /setup-check          — Valida credenciales y conexiones
 │   ├── init.md                       → /init                 — Asistente de configuración inicial guiado
 │   ├── setup-railway.md              → /setup-railway        — Configura despliegue automático en Railway
-│   └── security-audit.md             → /security-audit       — Audita seguridad antes de desplegar
+│   ├── security-audit.md             → /security-audit       — Audita seguridad antes de desplegar
+│   └── trend-ranking.md              → /trend-ranking        — Rankings de contenido viral YouTube + TikTok
 │
 ├── agents/                             ← System prompts completos de cada agente
 │   ├── publisher-agent.md             → Agente Publicador (Instagram + Facebook)
 │   ├── monitoring-agent.md            → Agente de Monitoreo Social (Telegram)
 │   ├── intelligence-agent.md         → Agente de Inteligencia de Mercado
-│   └── prospecting-agent.md          → Agente de Prospección B2B
+│   ├── prospecting-agent.md          → Agente de Prospección B2B
+│   └── trend-analyst-agent.md        → Agente Analista de Tendencias (YouTube + TikTok)
 │
 └── skills/                             ← Bloques reutilizables (building blocks)
     ├── publishing/
@@ -59,8 +61,14 @@ Marketing_agents/                       ← Este repositorio (el toolkit)
     │   └── handle-positive-response.md → Gestiona respuesta positiva: mensaje + notificación
     ├── deployment/
     │   └── schedule-railway.md       → Despliega agentes como cron jobs en Railway
-    └── security/
-        └── validate-security.md      → Valida reglas de seguridad y buenas prácticas
+    ├── security/
+    │   └── validate-security.md      → Valida reglas de seguridad y buenas prácticas
+    └── trend_analysis/
+        ├── fetch-youtube-trends.md   → Consulta YouTube Data API v3 (vistas, likes, comentarios)
+        ├── fetch-tiktok-trends.md    → Busca tendencias TikTok via WebSearch + oEmbed
+        ├── analyze-trend-content.md  → Analiza por qué funcionó cada video viral
+        ├── generate-trend-ideas.md   → Genera ideas de contenido adaptadas a la empresa
+        └── build-trend-report.md     → Arma rankings y reporte final con ideas priorizadas
 ```
 
 ---
@@ -118,6 +126,12 @@ Cada command/skill usa estas variables (se definen en el `.env` del proyecto emp
 | `GEOGRAPHY` | Prospección | País o región objetivo de ventas |
 | `SENDER_NAME` | Prospección | Nombre del vendedor que contactará |
 | `SENDER_ROLE` | Prospección | Cargo del vendedor |
+| `YOUTUBE_API_KEY` | Trend Analyst | API key de YouTube Data API v3 (Google Cloud, gratuita) |
+| `TREND_TOPICS` | Trend Analyst | Temas a analizar, ej. "confección industrial, telas técnicas" |
+| `TREND_COMPETITORS_YT` | Trend Analyst | Canales YouTube de competidores, ej. "@canal1,@canal2" (opcional) |
+| `TREND_COMPETITORS_TT` | Trend Analyst | Usuarios TikTok de competidores, ej. "@user1,@user2" (opcional) |
+| `TREND_LOOKBACK_DAYS` | Trend Analyst | Días hacia atrás para buscar tendencias (default: 7) |
+| `TREND_TOP_N` | Trend Analyst | Videos por ranking (default: 10) |
 
 ---
 
@@ -146,6 +160,12 @@ Cada command/skill usa estas variables (se definen en el `.env` del proyecto emp
 - **Cuándo corre**: Bajo demanda o semanal
 - **Archivo**: `agents/prospecting-agent.md`
 - **Commands**: `/prospect-leads`, `/followup-leads`
+
+### 5. Agente Analista de Tendencias
+- **Tarea**: Detecta contenido viral en YouTube y TikTok, analiza patrones de éxito y genera ideas adaptadas a la empresa
+- **Cuándo corre**: Semanal (miércoles 08:00)
+- **Archivo**: `agents/trend-analyst-agent.md`
+- **Command**: `/trend-ranking`
 
 ---
 

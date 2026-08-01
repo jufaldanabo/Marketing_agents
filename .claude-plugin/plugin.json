@@ -20,7 +20,8 @@
     { "name": "followup-leads",   "path": "commands/followup-leads.md" },
     { "name": "check-approvals",  "path": "commands/check-approvals.md" },
     { "name": "setup-railway",    "path": "commands/setup-railway.md" },
-    { "name": "security-audit",   "path": "commands/security-audit.md" }
+    { "name": "security-audit",   "path": "commands/security-audit.md" },
+    { "name": "trend-ranking",    "path": "commands/trend-ranking.md" }
   ],
   "requires": {
     "env": [

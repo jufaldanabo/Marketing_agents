@@ -39,6 +39,14 @@
       "model": "claude-opus-4-6",
       "thinking": "adaptive",
       "tools": ["WebSearch", "WebFetch", "Read", "Write", "Bash"]
+    },
+    {
+      "name": "trend-analyst",
+      "description": "Detects viral content trends on YouTube and TikTok. Analyzes why videos performed well and generates actionable content ideas adapted to the company.",
+      "file": "agents/trend-analyst-agent.md",
+      "model": "claude-sonnet-4-6",
+      "thinking": "adaptive",
+      "tools": ["WebSearch", "WebFetch", "Read", "Write", "Bash"]
     }
   ],
   "skills": [
@@ -61,6 +69,11 @@
       "name": "prospecting",
       "description": "Lead search, qualification, outreach and follow-up sequences",
       "path": "skills/prospecting/"
+    },
+    {
+      "name": "trend-analysis",
+      "description": "YouTube API data collection, TikTok trend discovery via WebSearch, viral content analysis and content idea generation",
+      "path": "skills/trend_analysis/"
     }
   ],
   "requires": {

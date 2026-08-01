@@ -21,7 +21,7 @@ warn() { echo -e "  ${YELLOW}·${RESET} $1"; }
 
 COMMANDS=(
   plugin
-  init setup-check publish-today social-report market-intel
+  init setup-check publish-today social-report market-intel trend-ranking
   prospect-leads respond-comments followup-leads
   check-approvals setup-railway security-audit
 )
@@ -80,6 +80,14 @@ FACEBOOK_APP_SECRET=
 # TikTok (optional)
 TIKTOK_ACCESS_TOKEN=
 TIKTOK_OPEN_ID=
+
+# Trend Analysis — YouTube + TikTok (used by /trend-ranking)
+YOUTUBE_API_KEY=           # Google Cloud Console → Enable YouTube Data API v3 (gratuita)
+TREND_TOPICS=              # "tema1, tema2, tema3" — temas a analizar semanalmente
+TREND_COMPETITORS_YT=      # "@canal1,@canal2" — canales YouTube de competidores (opcional)
+TREND_COMPETITORS_TT=      # "@usuario1,@usuario2" — usuarios TikTok de competidores (opcional)
+TREND_LOOKBACK_DAYS=7      # días hacia atrás para buscar tendencias (default: 7)
+TREND_TOP_N=10             # videos por ranking (default: 10)
 
 # AI Image Generation — pick one (used by /publish-today to auto-generate images)
 FAL_KEY=                  # fal.ai — recommended (~$0.003/image) — get at: https://fal.ai

@@ -365,6 +365,7 @@ flowchart TD
 | **Bajo demanda** | — | `/respond-comments` | `social-monitor` | Genera y publica respuestas a comentarios |
 | **Bajo demanda** | — | `/check-approvals` | `content-publisher` | Publica borradores aprobados por Telegram |
 | **Semanal** | Lunes 09:00 | `/market-intel` | `market-analyst` | Reporte de precios y actividad de competidores |
+| **Semanal** | Miércoles 08:00 | `/trend-ranking` | `trend-analyst` | Rankings de contenido viral YouTube + TikTok con ideas para replicar |
 | **Semanal** | Martes | `/prospect-leads` | `sales-prospector` | Busca y califica nuevos leads |
 | **Multi-toque** | +5d, +10d, +15d | `/followup-leads` | `sales-prospector` | Seguimiento a leads sin respuesta |
 
@@ -385,6 +386,8 @@ Estos archivos persisten entre ejecuciones y actúan como la "memoria" del toolk
 | `.claude/brand-images/brand-style.json` | `/publish-today` ⑥A | `/publish-today` ⑥A | Análisis de marca: paleta, estilo, mood (cache 30d) |
 | `.claude/leads/{fecha}.json` | `/prospect-leads` | `/followup-leads` | Leads calificados con scores y estado de contacto |
 | `.claude/intel/{fecha}.json` | `/market-intel` | — | Reporte de precios y competidores archivado |
+| `.claude/intel/trends-{fecha}.md` | `/trend-ranking` | — | Reporte de rankings de contenido viral con análisis e ideas |
+| `.claude/intel/trends-{fecha}.json` | `/trend-ranking` | — | Datos estructurados de tendencias YouTube + TikTok |
 | `.claude/responses/` | `/respond-comments` | `/check-approvals` | Borradores de respuestas pendientes de aprobación |
 | `.claude/drafts/` | `content-approval` skill | `/check-approvals` | Borradores de posts pendientes de aprobación manager |
 | `_telegram_offset.json` | `/check-approvals` | `/check-approvals` | Offset de Telegram para no procesar updates duplicados |
@@ -408,3 +411,61 @@ Estos archivos persisten entre ejecuciones y actúan como la "memoria" del toolk
 | `OPENAI_API_KEY` | — | ✅ imagen IA | — | — | — |
 | `TIKTOK_ACCESS_TOKEN` | opcional | opcional | — | — | — |
 | `SENDER_NAME` / `SENDER_ROLE` | — | — | — | — | ✅ |
+
+### Variables exclusivas del Agente Trend Analyst
+
+| Variable | Trend Analyst | Notas |
+|---|---|---|
+| `YOUTUBE_API_KEY` | ✅ requerida | Google Cloud → YouTube Data API v3 (gratuita) |
+| `TREND_TOPICS` | ✅ requerida | Temas a analizar, separados por coma |
+| `TELEGRAM_BOT_TOKEN` | ✅ resumen | Mismo token que usan otros agentes |
+| `TELEGRAM_CHAT_ID` | ✅ resumen | Mismo chat ID |
+| `TREND_COMPETITORS_YT` | opcional | Handles de canales YouTube de competidores |
+| `TREND_COMPETITORS_TT` | opcional | Usuarios de TikTok de competidores |
+| `TREND_LOOKBACK_DAYS` | opcional | Default: 7 |
+| `TREND_TOP_N` | opcional | Default: 10 |
+
+---
+
+## 10. Análisis de tendencias — `/trend-ranking`
+
+El agente `trend-analyst` lo ejecuta semanalmente (miércoles 08:00).
+
+```mermaid
+flowchart TD
+    classDef cmd fill:#2E86AB,stroke:#1a5276,color:#fff,font-weight:bold
+    classDef skill fill:#27AE60,stroke:#1e8449,color:#fff
+    classDef api fill:#F39C12,stroke:#b7770d,color:#fff,font-weight:bold
+    classDef file fill:#8E44AD,stroke:#6c3483,color:#fff
+    classDef dec fill:#E74C3C,stroke:#c0392b,color:#fff
+
+    START(["/trend-ranking\n[--topics --days --competitors]"]):::cmd
+
+    START --> CFG["② Configuración interactiva\nUsar defaults .env o cambiar\npara esta ejecución"]
+
+    CFG --> DEC_KEY{"¿YOUTUBE_API_KEY\nconfigurada?"}:::dec
+    DEC_KEY -->|"✅ Sí"| YT
+    DEC_KEY -->|"❌ No"| SKIP_YT["Continuar solo con TikTok\n(con confirmación del usuario)"]
+
+    YT["③ fetch-youtube-trends\n• Búsqueda por tema: order=viewCount\n• Estadísticas: views, likes, comments\n• Búsqueda por canal competidor\n  (opcional)"]:::skill
+    YT --> YT_API["YouTube Data API v3\nGratuita — 10,000 units/día\nSearch: 100u · Video details: 1u"]:::api
+
+    SKIP_YT --> TT
+    YT --> TT
+
+    TT["④ fetch-tiktok-trends\n• WebSearch: 4 búsquedas por tema\n• oEmbed: título y thumbnail\n• Engagement estimado de snippets\n⚠️ datos orientativos, no oficiales"]:::skill
+    TT --> WS["WebSearch\n+ TikTok oEmbed API\n(sin credenciales requeridas)"]:::api
+
+    YT --> AN
+    TT --> AN
+
+    AN["⑤ analyze-trend-content\nPor cada video en el top:\n• por_que_funciono: 2-3 líneas\n• patron_identificado\n• factores_clave: lista"]:::skill
+
+    AN --> ID["⑥ generate-trend-ideas\n2 ideas por video analizado\nadaptadas a la empresa:\n• titulo_sugerido\n• gancho exacto\n• formato concreto\n• dificultad: baja/media/alta"]:::skill
+
+    ID --> REP["⑦ build-trend-report\n3 rankings YouTube:\n  🏆 Más vistos\n  💬 Más comentados\n  ❤️ Más likes\nTop TikTok por tema\nPatrones dominantes\nIdeas por dificultad"]:::skill
+
+    REP --> SAVE[".claude/intel/\ntrends-{fecha}.md\ntrends-{fecha}.json"]:::file
+    REP --> TEL["Telegram\nResumen ejecutivo\n≤ 4,096 caracteres"]:::api
+    TEL --> DONE(["📊 Rankings e ideas\nentregados al equipo de marketing"])
+```
