@@ -1,35 +1,70 @@
 {
   "name": "marketing-agents",
   "display_name": "Marketing Agents",
-  "description": "Social media marketing automation for small and medium businesses. Publish B2B content, monitor social activity, track competitors and prospect leads — all from Claude Code.",
-  "version": "1.0.0",
+  "description": "Multi-tenant marketing automation toolkit. Agents for content planning, publishing, social monitoring, market intelligence, prospecting and brand identity. Portable across clients via client-brief.json.",
+  "version": "2.0.0",
   "author": {
     "name": "jufaldanabo",
     "url": "https://github.com/jufaldanabo"
   },
   "repository": "https://github.com/jufaldanabo/Marketing_agents",
   "license": "MIT",
-  "skills": [
-    { "name": "init",             "path": "commands/init.md" },
-    { "name": "setup-check",      "path": "commands/setup-check.md" },
-    { "name": "publish-today",    "path": "commands/publish-today.md" },
-    { "name": "social-report",    "path": "commands/social-report.md" },
-    { "name": "market-intel",     "path": "commands/market-intel.md" },
-    { "name": "prospect-leads",   "path": "commands/prospect-leads.md" },
-    { "name": "respond-comments", "path": "commands/respond-comments.md" },
-    { "name": "followup-leads",   "path": "commands/followup-leads.md" },
-    { "name": "check-approvals",  "path": "commands/check-approvals.md" },
-    { "name": "setup-railway",    "path": "commands/setup-railway.md" },
-    { "name": "security-audit",   "path": "commands/security-audit.md" },
-    { "name": "trend-ranking",    "path": "commands/trend-ranking.md" }
+  "commands": [
+    { "name": "briefing",          "path": "commands/briefing.md" },
+    { "name": "brand-kit",         "path": "commands/brand-kit.md" },
+    { "name": "audit",             "path": "commands/audit.md" },
+    { "name": "optimize-profiles", "path": "commands/optimize-profiles.md" },
+    { "name": "content-calendar",  "path": "commands/content-calendar.md" },
+    { "name": "production-plan",   "path": "commands/production-plan.md" },
+    { "name": "publish-today",     "path": "commands/publish-today.md" },
+    { "name": "community",         "path": "commands/community.md" },
+    { "name": "ads",               "path": "commands/ads.md" },
+    { "name": "social-report",     "path": "commands/social-report.md" },
+    { "name": "report-monthly",    "path": "commands/report-monthly.md" },
+    { "name": "market-intel",      "path": "commands/market-intel.md" },
+    { "name": "trend-ranking",     "path": "commands/trend-ranking.md" },
+    { "name": "respond-comments",  "path": "commands/respond-comments.md" },
+    { "name": "prospect-leads",    "path": "commands/prospect-leads.md" },
+    { "name": "followup-leads",    "path": "commands/followup-leads.md" },
+    { "name": "check-approvals",   "path": "commands/check-approvals.md" },
+    { "name": "daily",             "path": "commands/daily.md" },
+    { "name": "dashboard",         "path": "commands/dashboard.md" },
+    { "name": "pause-posting",     "path": "commands/pause-posting.md" },
+    { "name": "resume-posting",    "path": "commands/resume-posting.md" },
+    { "name": "retry-failed",      "path": "commands/retry-failed.md" },
+    { "name": "setup-check",       "path": "commands/setup-check.md" },
+    { "name": "setup-railway",     "path": "commands/setup-railway.md" },
+    { "name": "security-audit",    "path": "commands/security-audit.md" }
+  ],
+  "agents": [
+    { "name": "content-planner",     "path": "agents/planner-agent.md" },
+    { "name": "content-publisher",   "path": "agents/publisher-agent.md" },
+    { "name": "social-monitor",      "path": "agents/monitoring-agent.md" },
+    { "name": "market-analyst",      "path": "agents/intelligence-agent.md" },
+    { "name": "sales-prospector",    "path": "agents/prospecting-agent.md" },
+    { "name": "brand-guardian",      "path": "agents/brand-guardian.md" },
+    { "name": "conductor",           "path": "agents/conductor.md" },
+    { "name": "approval-gatekeeper", "path": "agents/approval-gatekeeper.md" },
+    { "name": "account-auditor",     "path": "agents/account-auditor.md" },
+    { "name": "community-manager",   "path": "agents/community-manager.md" },
+    { "name": "paid-media",          "path": "agents/paid-media.md" },
+    { "name": "performance-analyst", "path": "agents/performance-analyst.md" },
+    { "name": "producer",            "path": "agents/producer.md" },
+    { "name": "trend-analyst",       "path": "agents/trend-analyst-agent.md" }
   ],
   "requires": {
     "env": [
       "ANTHROPIC_API_KEY",
       "TELEGRAM_BOT_TOKEN",
-      "TELEGRAM_CHAT_ID",
-      "COMPANY_NAME",
-      "INDUSTRY"
+      "TELEGRAM_CHAT_ID"
+    ],
+    "files": [
+      ".claude/client-brief.json"
     ]
+  },
+  "entry_points": {
+    "setup": "/briefing new",
+    "brand": "/brand-kit new",
+    "validate": "/setup-check"
   }
 }

@@ -1,8 +1,8 @@
 {
   "name": "marketing-agents",
   "display_name": "Marketing Agents",
-  "version": "1.0.0",
-  "description": "Social media marketing automation for small and medium businesses. Skills, agents and commands to publish content, monitor social activity, track competitors and prospect B2B leads.",
+  "version": "2.0.0",
+  "description": "Multi-tenant marketing automation toolkit. Agents for content planning, publishing, social monitoring, market intelligence, prospecting and brand identity. Portable across clients via client-brief.json.",
   "author": "jufaldanabo",
   "license": "MIT",
   "repository": "https://github.com/jufaldanabo/Marketing_agents",
@@ -14,7 +14,7 @@
       "file": "agents/publisher-agent.md",
       "model": "claude-opus-4-6",
       "thinking": "adaptive",
-      "tools": ["WebSearch", "WebFetch", "Read", "Write", "Bash"]
+      "tools": ["WebSearch", "WebFetch", "Read", "Write", "Bash", "Task"]
     },
     {
       "name": "social-monitor",
@@ -41,8 +41,24 @@
       "tools": ["WebSearch", "WebFetch", "Read", "Write", "Bash"]
     },
     {
+      "name": "content-planner",
+      "description": "Researches trends, cultural events and competitive landscape to generate monthly content calendars for the client.",
+      "file": "agents/planner-agent.md",
+      "model": "claude-opus-4-6",
+      "thinking": "adaptive",
+      "tools": ["WebSearch", "WebFetch", "Read", "Write"]
+    },
+    {
+      "name": "brand-guardian",
+      "description": "Extracts and curates the visual and verbal brand identity from client materials (logo, website, Instagram, PDF brand manual, product photos). Produces brand-kit.json for coherent content generation.",
+      "file": "agents/brand-guardian.md",
+      "model": "claude-opus-4-6",
+      "thinking": "adaptive",
+      "tools": ["Read", "Write", "Edit", "Bash", "WebFetch"]
+    },
+    {
       "name": "trend-analyst",
-      "description": "Detects viral content trends on YouTube and TikTok. Analyzes why videos performed well and generates actionable content ideas adapted to the company.",
+      "description": "Detects viral content trends on YouTube and TikTok. Analyzes why videos performed well and generates actionable content ideas for the client. Weekly cadence or on-demand via /trend-ranking.",
       "file": "agents/trend-analyst-agent.md",
       "model": "claude-sonnet-4-6",
       "thinking": "adaptive",
@@ -50,6 +66,11 @@
     }
   ],
   "skills": [
+    {
+      "name": "core",
+      "description": "Core reusable skills: load-brief, load-brand-kit, state-store, telegram-approval, telegram-notify, preflight-check. Used by all agents.",
+      "path": "skills/_core/"
+    },
     {
       "name": "publishing",
       "description": "B2B content generation and multi-platform publishing",
@@ -72,11 +93,22 @@
     },
     {
       "name": "trend-analysis",
-      "description": "YouTube API data collection, TikTok trend discovery via WebSearch, viral content analysis and content idea generation",
+      "description": "YouTube API data collection, TikTok trend discovery, viral content analysis and content idea generation",
       "path": "skills/trend_analysis/"
     }
   ],
+  "schemas": {
+    "client_brief": "skills/_core/schemas/client-brief.schema.json",
+    "brand_kit": "skills/_core/schemas/brand-kit.schema.json",
+    "state_structure": "skills/_core/schemas/state-structure.md"
+  },
   "requires": {
-    "env": ["ANTHROPIC_API_KEY", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "COMPANY_NAME", "INDUSTRY"]
+    "env": ["ANTHROPIC_API_KEY", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"],
+    "files": [".claude/client-brief.json"]
+  },
+  "entry_points": {
+    "setup": "/briefing new",
+    "brand": "/brand-kit new",
+    "validate": "/setup-check"
   }
 }

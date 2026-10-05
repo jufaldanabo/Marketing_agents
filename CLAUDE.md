@@ -1,187 +1,380 @@
-# CLAUDE.md — Digital Marketing Agents Toolkit
+# CLAUDE.md — Marketing Agents Toolkit v2.0
 
-Este archivo describe el toolkit de Claude Code para agentes de marketing digital.
-Es un repositorio de **skills, commands y agentes** listos para instalarse en proyectos de empresa.
+**Toolkit multi-tenant de automatización de marketing para Claude Code.** Cubre el flujo completo de agencia (6 fases) para cualquier cliente que configures en el repo donde se instala.
 
 ---
 
 ## ¿Qué es este toolkit?
 
-Un conjunto de archivos `.md` que definen comportamientos reutilizables para Claude Code.
-Al copiar estos archivos a un proyecto de empresa, Claude puede ejecutar flujos completos
-de marketing en redes sociales sin configuración adicional.
+Un **plugin de Claude Code** compuesto por:
+- **13 agentes** especializados (bounded contexts) que operan vía Task tool
+- **24 commands** (slash commands) como entry points thin
+- **27 skills** reutilizables (atómicos y composables)
+- **3 schemas** JSON como contratos entre componentes
 
-## Estructura del toolkit
+Instalable en cualquier repo via `install.sh`. Cada repo tiene su propio `.claude/client-brief.json` que define el cliente — **el toolkit no se modifica entre clientes, solo el brief**.
+
+---
+
+## Arquitectura
 
 ```
-Marketing_agents/                       ← Este repositorio (el toolkit)
-│
-├── commands/                           ← Slash commands (/publish-today, etc.)
-│   ├── publish-today.md               → /publish-today        — Genera y publica contenido B2B diario
-│   ├── social-report.md               → /social-report        — Reporte nocturno de métricas y comentarios
-│   ├── market-intel.md                → /market-intel         — Informe de precios y competidores
-│   ├── prospect-leads.md             → /prospect-leads       — Busca y califica clientes potenciales
-│   ├── respond-comments.md           → /respond-comments     — Genera y publica respuestas a comentarios
-│   ├── followup-leads.md             → /followup-leads       — Seguimiento multi-toque a leads sin respuesta
-│   ├── check-approvals.md            → /check-approvals      — Publica borradores aprobados via Telegram
-│   ├── setup-check.md                → /setup-check          — Valida credenciales y conexiones
-│   ├── init.md                       → /init                 — Asistente de configuración inicial guiado
-│   ├── setup-railway.md              → /setup-railway        — Configura despliegue automático en Railway
-│   ├── security-audit.md             → /security-audit       — Audita seguridad antes de desplegar
-│   └── trend-ranking.md              → /trend-ranking        — Rankings de contenido viral YouTube + TikTok
-│
-├── agents/                             ← System prompts completos de cada agente
-│   ├── publisher-agent.md             → Agente Publicador (Instagram + Facebook)
-│   ├── monitoring-agent.md            → Agente de Monitoreo Social (Telegram)
-│   ├── intelligence-agent.md         → Agente de Inteligencia de Mercado
-│   ├── prospecting-agent.md          → Agente de Prospección B2B
-│   └── trend-analyst-agent.md        → Agente Analista de Tendencias (YouTube + TikTok)
-│
-└── skills/                             ← Bloques reutilizables (building blocks)
-    ├── publishing/
-    │   ├── generate-b2b-content.md   → Genera texto B2B adaptado por plataforma
-    │   ├── publish-instagram.md      → Publica en Instagram Graph API
-    │   ├── publish-facebook.md       → Publica en Facebook Graph API
-    │   ├── generate-image-ai.md      → Genera imagen con IA (prompt + API call, todo en uno)
-    │   ├── generate-tiktok-content.md → Genera guión de video + caption de foto para TikTok
-    │   ├── publish-tiktok.md         → Publica en TikTok Content Posting API
-    │   └── content-approval.md       → Envía borrador a Telegram para aprobación del manager
-    ├── social_monitoring/
-    │   ├── send-telegram.md          → Envía reportes y alertas por Telegram Bot
-    │   ├── respond-comments.md       → Clasifica y genera respuestas a comentarios
-    │   └── check-token-expiry.md     → Verifica vencimiento de tokens Meta y alerta
-    ├── market_intelligence/
-    │   ├── monitor-prices.md         → Monitorea precios de materias primas
-    │   └── track-competitors.md      → Rastrea actividad pública de competidores
-    ├── prospecting/
-    │   ├── search-leads.md           → Busca empresas que coincidan con el ICP
-    │   ├── qualify-leads.md          → Califica y puntúa cada lead (0-100)
-    │   ├── outreach-message.md       → Genera mensajes de primer contacto personalizados
-    │   ├── follow-up-sequence.md     → Genera secuencia de seguimiento para leads sin respuesta
-    │   └── handle-positive-response.md → Gestiona respuesta positiva: mensaje + notificación
-    ├── deployment/
-    │   └── schedule-railway.md       → Despliega agentes como cron jobs en Railway
-    ├── security/
-    │   └── validate-security.md      → Valida reglas de seguridad y buenas prácticas
-    └── trend_analysis/
-        ├── fetch-youtube-trends.md   → Consulta YouTube Data API v3 (vistas, likes, comentarios)
-        ├── fetch-tiktok-trends.md    → Busca tendencias TikTok via WebSearch + oEmbed
-        ├── analyze-trend-content.md  → Analiza por qué funcionó cada video viral
-        ├── generate-trend-ideas.md   → Genera ideas de contenido adaptadas a la empresa
-        └── build-trend-report.md     → Arma rankings y reporte final con ideas priorizadas
+┌──────────────────────────────────────────────────────────┐
+│  REPO DEL CLIENTE                                         │
+│  .claude/client-brief.json   .claude/brand-kit.json       │
+│  .claude/state/              .env                         │
+└──────────────────────────────────────────────────────────┘
+                             │
+                             ↓ /command (slash)
+┌──────────────────────────────────────────────────────────┐
+│  LAYER 1 — COMMANDS (thin orchestrators, 24)              │
+│  Entry points. Validan, delegan al agente, presentan.    │
+└──────────────────────────────────────────────────────────┘
+                             │
+                             ↓ Task tool (subagent)
+┌──────────────────────────────────────────────────────────┐
+│  LAYER 2 — AGENTS (bounded contexts, 13)                  │
+│  Cognición especializada por dominio. Decisiones.        │
+└──────────────────────────────────────────────────────────┘
+                             │
+                             ↓ invoca
+┌──────────────────────────────────────────────────────────┐
+│  LAYER 3 — SKILLS (operaciones atómicas, 27)              │
+│  _core/ (6)  publishing/ (9)  social_monitoring/ (2)     │
+│  market_intelligence/ (2)  prospecting/ (5)  otros (3)   │
+└──────────────────────────────────────────────────────────┘
+                             │
+                             ↓ APIs
+┌──────────────────────────────────────────────────────────┐
+│  LAYER 4 — EXTERNAL                                       │
+│  Meta Graph, TikTok, Telegram, fal.ai, Anthropic         │
+└──────────────────────────────────────────────────────────┘
+```
+
+**Reglas de oro**:
+1. Un command NO razona — delega al agente correcto.
+2. Un agente NO publica directo a API — delega al skill.
+3. Un skill NO toma decisiones estratégicas — ejecuta operación acotada.
+4. Comunicación entre agentes = archivos JSON en `.claude/state/` con schema versionado (ver `skills/_core/schemas/state-structure.md`).
+
+---
+
+## El flujo de agencia (6 fases)
+
+Cubierto 100% por el toolkit:
+
+### Phase 1 — Diagnóstico y estrategia
+| Qué hace una agencia | Toolkit lo hace via |
+|---|---|
+| Brief con cliente (negocio, ICP, presupuesto, KPIs) | `/briefing new` (schema v2.0) |
+| Auditoría de cuentas actuales + competencia | `/audit` → `account-auditor` |
+| Buyer persona | Capturado en `/briefing` |
+| Objetivos y KPIs medibles | `brief.kpis` + `.claude/state/kpi-tracking.json` |
+| Rol de cada red | `brief.network_roles` |
+
+### Phase 2 — Marca
+| Qué hace una agencia | Toolkit lo hace via |
+|---|---|
+| Plataforma de marca (voz, propuesta) | Capturado en `/briefing` + `brand-kit` |
+| Identidad visual (logo, paleta, tipografías) | `/brand-kit new` → `brand-guardian` |
+| Manual + plantillas | `brand-kit.json` + prompt_injection auto en todo contenido |
+| Optimización de perfiles | `/optimize-profiles` → skill `optimize-profile` |
+
+### Phase 3 — Planeación de contenido (mensual)
+| Qué hace una agencia | Toolkit lo hace via |
+|---|---|
+| Pilares de contenido | Automático en `content-planner` |
+| Parrilla con copy/hashtags/CTA/responsable | `/content-calendar` → `content-planner` |
+| Frecuencia por red | De `brief.network_roles` |
+| Aprobación del cliente | `_core/telegram-approval` |
+
+### Phase 4 — Producción
+| Qué hace una agencia | Toolkit lo hace via |
+|---|---|
+| Pre-producción (guiones, shot lists) | `/production-plan` → `producer` |
+| Sesión por lotes mensual | `producer` agrupa por tipo/locación |
+| Call sheets por día | `producer` genera call sheets |
+| Specs de post-producción | `producer` genera edit specs |
+| Segunda aprobación de pieza final | `_core/telegram-approval` desde publisher |
+
+### Phase 5 — Publicación, comunidad y pauta
+| Qué hace una agencia | Toolkit lo hace via |
+|---|---|
+| Programación de posts | `/publish-today` → `content-publisher` |
+| Gestión de comunidad (comments/DMs) | `/community` → `community-manager` con FAQ + SLA |
+| Pauta Meta Ads + TikTok Ads | `/ads` → `paid-media` (nunca gasta sin aprobación humana) |
+| Colaboraciones / UGC | (manual, no automatizado aún) |
+
+### Phase 6 — Monitoreo y optimización
+| Qué hace una agencia | Toolkit lo hace via |
+|---|---|
+| Métricas 24-72h por pieza | `performance-analyst` (modo `post-24h`, `post-72h`) |
+| Seguimiento semanal | `performance-analyst` (modo `weekly`) + `social-monitor` nocturno |
+| Informe mensual vs KPIs | `/report-monthly` → `performance-analyst` |
+| Retroalimentación al mes siguiente | Evento `performance_insight` → `content-planner` siguiente ciclo |
+
+---
+
+## Los 14 agentes
+
+| Agente | Fase | Modelo | Responsabilidad |
+|---|---|---|---|
+| `account-auditor` | 1 | opus | Audita cuentas + competencia, valida realismo de KPIs |
+| `brand-guardian` | 2 | opus | Extrae identidad visual/verbal del cliente |
+| `content-planner` | 3 | opus | Parrilla mensual con razonamiento estratégico |
+| `trend-analyst` | 3 | sonnet | Analiza tendencias virales YouTube + TikTok, genera ideas de contenido |
+| `producer` | 4 | opus | Plan de rodaje batch mensual |
+| `content-publisher` | 5 | opus | Publica contenido diario multi-plataforma |
+| `community-manager` | 5 | sonnet | Comments/DMs con FAQ + SLA + escalación |
+| `paid-media` | 5 | opus | Meta Ads + TikTok Ads (nunca gasta solo) |
+| `social-monitor` | 6 | sonnet | Reporte nocturno + detección crisis + token health |
+| `performance-analyst` | 6 | opus | Análisis 24h/72h/semanal/mensual vs KPIs |
+| `conductor` | cross | opus | Orquestación meta — eventos, circuit breakers, flujo diario |
+| `approval-gatekeeper` | infra | sonnet | Gestión asíncrona de aprobaciones humanas |
+| `market-analyst` | aux | opus | Inteligencia de mercado (precios + competencia pública) |
+| `sales-prospector` | aux B2B | opus | Pipeline comercial B2B (no en flujo agencia principal) |
+
+---
+
+## Los 24 commands
+
+### Flujo diario / orquestación (6)
+- `/daily` — flujo completo del día (reemplaza ejecutar múltiples manuales)
+- `/dashboard` — vista ejecutiva consolidada
+- `/pause-posting` + `/resume-posting` — circuit breakers manuales
+- `/check-approvals` — procesar aprobaciones Telegram pendientes
+- `/retry-failed` — recuperar operaciones fallidas
+
+### Phase 1 — Diagnóstico (2)
+- `/briefing new|update|show|validate` — brief del cliente
+- `/audit` — auditoría de cuentas + competencia
+
+### Phase 2 — Marca (2)
+- `/brand-kit new|update|show` — identidad visual y verbal
+- `/optimize-profiles` — optimizar bios, links, destacadas
+
+### Phase 3 — Planeación (2)
+- `/content-calendar` — parrilla mensual
+- `/trend-ranking` — ideas de contenido basadas en virales de YouTube + TikTok
+
+### Phase 4 — Producción (1)
+- `/production-plan` — plan de rodaje batch
+
+### Phase 5 — Publicación (4)
+- `/publish-today` — publicar contenido del día
+- `/community` — gestión conversacional
+- `/ads` — pauta digital
+- `/respond-comments` — responder comentarios específicos
+
+### Phase 6 — Monitoreo (3)
+- `/social-report` — reporte nocturno
+- `/report-monthly` — informe mensual vs KPIs
+- `/market-intel` — inteligencia de mercado
+
+### Auxiliares B2B (2)
+- `/prospect-leads` — búsqueda y calificación
+- `/followup-leads` — secuencia de seguimiento
+
+### Infraestructura (3)
+- `/setup-check` — validación de credenciales
+- `/setup-railway` — despliegue como cron jobs
+- `/security-audit` — auditoría de seguridad
+
+---
+
+## Multi-tenancy — cómo funciona
+
+```
+cualquier-repo-cliente/
+├── .claude/
+│   ├── client-brief.json          ← datos del cliente (v2.0)
+│   ├── brand-kit.json             ← identidad visual
+│   ├── brand-images/              ← fotos, logos
+│   ├── commands/ agents/ skills/  ← toolkit instalado
+│   └── state/                     ← estado operacional
+│       ├── calendar/ posts/ drafts/ approvals/
+│       ├── reports/ intel/ leads/ followups/
+│       ├── audits/ community/ ads/ performance/
+│       ├── production/ dashboards/
+│       ├── locks/ handoffs/ logs/
+│       └── insights/              ← feedback loop al planner
+├── .env                           ← credenciales (gitignored)
+└── CLAUDE.md                      ← mínimo generado por install
+```
+
+El toolkit **nunca se modifica** entre clientes. Todo cambia vía:
+- `client-brief.json` (configuración de negocio)
+- `brand-kit.json` (identidad)
+- `.env` (credenciales)
+
+Para instalar en otro repo: `bash install.sh /ruta/al/repo-cliente`
+
+---
+
+## Feedback loop fundamental
+
+Lo que convierte el toolkit en **sistema que aprende**:
+
+```
+1. content-publisher publica  → emite post_published
+2. performance-analyst 24h/72h → emite post_candidate_for_boost (si gana)
+3. performance-analyst mensual → emite performance_insight
+4. conductor acumula insights en state/insights/pending-for-planner.json
+5. content-planner siguiente ciclo lee insights + ajusta parrilla
+6. Loop vuelve a 1 con parrilla optimizada
+```
+
+Y los otros loops:
+- `account-auditor` → `kpi_adjustment_needed` → humano ajusta brief
+- `performance-analyst` → `campaign_underperforming` → `paid-media` optimiza
+- `social-monitor`/`community-manager` → `crisis_detected` → `conductor` pausa publisher
+
+---
+
+## Repo del toolkit (este)
+
+```
+Marketing_agents/
+├── commands/                       ← 24 slash commands
+├── agents/                         ← 13 subagentes con frontmatter YAML
+├── skills/
+│   ├── _core/                      ← 6 skills fundacionales + 4 schemas
+│   │   ├── schemas/
+│   │   │   ├── client-brief.schema.json  (v2.0 con objectives, kpis, budget, persona, roles)
+│   │   │   ├── brand-kit.schema.json
+│   │   │   ├── kpi-tracking.schema.json
+│   │   │   └── state-structure.md  ← taxonomía de 23 eventos handoff
+│   │   ├── load-brief.md
+│   │   ├── load-brand-kit.md
+│   │   ├── state-store.md          ← idempotency, locks, events
+│   │   ├── telegram-approval.md
+│   │   ├── telegram-notify.md
+│   │   └── preflight-check.md
+│   ├── publishing/ (9)
+│   ├── social_monitoring/ (2)
+│   ├── market_intelligence/ (2)
+│   ├── prospecting/ (5)
+│   ├── deployment/ (1)
+│   └── security/ (1)
+├── demo/                           ← FastAPI web para probar sin APIs reales
+├── install.sh                      ← instalador multi-tenant
+├── plugin.json
+├── .claude-plugin/plugin.json      ← manifest oficial
+└── CLAUDE.md                       ← este archivo
 ```
 
 ---
 
-## Cómo instalar en un proyecto de empresa
+## Comandos recomendados por fase
 
-### Opción A — Copiar commands (recomendado)
+### Onboarding de cliente nuevo (día 1)
+```
+1. /briefing new          # 10-15 min, captura todo el brief v2.0
+2. /setup-check           # validar credenciales
+3. /audit                 # baseline real de cuentas (ajusta KPIs irreales)
+4. /brand-kit new         # extraer identidad visual
+5. /optimize-profiles     # bios/links alineados con objetivos
+```
+
+### Operación mensual
+```
+Día 20: /production-plan     # plan de rodaje del próximo mes
+Día 25: /content-calendar    # parrilla del próximo mes
+Día 1 : /report-monthly      # informe del mes anterior (incluye KPIs, feedback)
+```
+
+### Operación diaria (automatizar con Railway cron)
+```
+/daily                 # publisher + community + monitor según hora/día
+```
+
+Si prefieres control granular:
+```
+Mañana : /publish-today
+Cada 4h: /community
+Noche  : /social-report
+Lunes  : /market-intel + /dashboard
+```
+
+### Pausas y recuperación
+```
+/pause-posting "razón"        # circuit breaker manual
+/resume-posting                # levantar
+/retry-failed --dry-run        # ver qué quedó pendiente
+/retry-failed                  # reintentar lo recuperable
+```
+
+---
+
+## Modelos por tarea
+
+- **Generación creativa / estratégica**: `claude-opus-4-6` + thinking adaptivo
+- **Análisis / síntesis / clasificación**: `claude-sonnet-4-6`
+- **Validaciones / API calls simples**: `claude-haiku-4-5`
+
+Cada skill y agente declara su modelo en el frontmatter YAML.
+
+---
+
+## Instalación
+
+### En un repo nuevo
+
 ```bash
-# Copia los slash commands al proyecto de la empresa
-cp commands/*.md /ruta/al/proyecto-empresa/.claude/commands/
-
-# Luego desde Claude Code en ese proyecto:
-# /publish-today
-# /social-report
-# /market-intel
+cd /ruta/al/repo-del-cliente
+bash <(curl -sL https://raw.githubusercontent.com/jufaldanabo/Marketing_agents/main/install.sh)
 ```
 
-### Opción B — Referenciar skills desde CLAUDE.md
-En el `CLAUDE.md` del proyecto de empresa, agrega:
-```markdown
-## Skills disponibles
-Ver toolkit: /ruta/al/Marketing_agents/skills/
-```
+### Desde el toolkit clonado (dev)
 
-### Opción C — Git submodule
 ```bash
-git submodule add https://github.com/usuario/Marketing_agents .claude/marketing-toolkit
+cd ~/Documents/Repos\ github/Marketing_agents
+bash install.sh /ruta/al/repo-del-cliente
 ```
 
----
+### Después de instalar
 
-## Variables de configuración por empresa
-
-Cada command/skill usa estas variables (se definen en el `.env` del proyecto empresa):
-
-| Variable | Agentes que la usan | Descripción |
-|---|---|---|
-| `ANTHROPIC_API_KEY` | Todos | API key de Anthropic |
-| `COMPANY_NAME` | Todos | Nombre de la empresa |
-| `INDUSTRY` | Todos | Sector industrial (ej. textil, manufactura) |
-| `INSTAGRAM_ACCESS_TOKEN` | Publicador, Monitoreo | Token de acceso Instagram Graph API |
-| `INSTAGRAM_BUSINESS_ACCOUNT_ID` | Publicador, Monitoreo | ID de cuenta de negocio Instagram |
-| `FACEBOOK_ACCESS_TOKEN` | Publicador, Monitoreo | Token de página de Facebook |
-| `FACEBOOK_PAGE_ID` | Publicador, Monitoreo | ID de la página de Facebook |
-| `FACEBOOK_APP_ID` | Monitoreo, Setup | App ID para verificar vencimiento de tokens |
-| `FACEBOOK_APP_SECRET` | Monitoreo, Setup | App Secret para verificar vencimiento de tokens |
-| `TIKTOK_ACCESS_TOKEN` | Publicador (opcional) | Token OAuth 2.0 — scope: `video.publish` |
-| `TIKTOK_OPEN_ID` | Publicador (opcional) | open_id del usuario de TikTok for Developers |
-| `TELEGRAM_BOT_TOKEN` | Monitoreo, Intel, Prospección | Token del bot de Telegram |
-| `TELEGRAM_CHAT_ID` | Monitoreo, Intel, Prospección | Chat ID donde enviar reportes |
-| `COMMODITIES` | Inteligencia | Lista de materias primas a monitorear |
-| `COMPETITORS` | Inteligencia | Lista de competidores a rastrear |
-| `PRODUCT` | Prospección | Producto/servicio que vende la empresa |
-| `INDUSTRY_TARGET` | Prospección | Sector de los clientes objetivo |
-| `GEOGRAPHY` | Prospección | País o región objetivo de ventas |
-| `SENDER_NAME` | Prospección | Nombre del vendedor que contactará |
-| `SENDER_ROLE` | Prospección | Cargo del vendedor |
-| `YOUTUBE_API_KEY` | Trend Analyst | API key de YouTube Data API v3 (Google Cloud, gratuita) |
-| `TREND_TOPICS` | Trend Analyst | Temas a analizar, ej. "confección industrial, telas técnicas" |
-| `TREND_COMPETITORS_YT` | Trend Analyst | Canales YouTube de competidores, ej. "@canal1,@canal2" (opcional) |
-| `TREND_COMPETITORS_TT` | Trend Analyst | Usuarios TikTok de competidores, ej. "@user1,@user2" (opcional) |
-| `TREND_LOOKBACK_DAYS` | Trend Analyst | Días hacia atrás para buscar tendencias (default: 7) |
-| `TREND_TOP_N` | Trend Analyst | Videos por ranking (default: 10) |
-
----
-
-## Agentes del toolkit
-
-### 1. Agente Publicador
-- **Tarea**: Genera contenido B2B diario y publica en Instagram y Facebook
-- **Cuándo corre**: Diariamente (mañana)
-- **Archivo**: `agents/publisher-agent.md`
-- **Command**: `/publish-today`
-
-### 2. Agente de Monitoreo Social
-- **Tarea**: Revisa comentarios, mensajes y métricas; notifica por Telegram
-- **Cuándo corre**: Noche (automático)
-- **Archivo**: `agents/monitoring-agent.md`
-- **Commands**: `/social-report`, `/respond-comments`
-
-### 3. Agente de Inteligencia de Mercado
-- **Tarea**: Monitorea precios de materias primas y actividad de competidores
-- **Cuándo corre**: Semanal o bajo demanda
-- **Archivo**: `agents/intelligence-agent.md`
-- **Command**: `/market-intel`
-
-### 4. Agente de Prospección B2B
-- **Tarea**: Busca, califica y prepara el primer contacto con clientes potenciales
-- **Cuándo corre**: Bajo demanda o semanal
-- **Archivo**: `agents/prospecting-agent.md`
-- **Commands**: `/prospect-leads`, `/followup-leads`
-
-### 5. Agente Analista de Tendencias
-- **Tarea**: Detecta contenido viral en YouTube y TikTok, analiza patrones de éxito y genera ideas adaptadas a la empresa
-- **Cuándo corre**: Semanal (miércoles 08:00)
-- **Archivo**: `agents/trend-analyst-agent.md`
-- **Command**: `/trend-ranking`
+1. Copia `.env.example` → `.env` y rellena credenciales
+2. Abre Claude Code en el repo del cliente
+3. `/briefing new` → captura el brief
+4. `/setup-check` → valida que todo funcione
+5. `/audit` → baseline real
 
 ---
 
 ## Convenciones del toolkit
 
-- Los archivos `.md` son los **artefactos principales** — no hay código Python en este repo
-- Cada skill es **autocontenido**: describe qué hacer, cómo hacerlo y qué devolver
-- Los commands son **ejecutables directamente** desde Claude Code con `/nombre-command`
-- Los agentes son **system prompts** completos listos para usar con la API de Claude
-
-## Modelo de IA por defecto
-
-- **Generación de contenido**: `claude-opus-4-6` (máxima calidad)
-- **Tareas de monitoreo**: `claude-sonnet-4-6` (balance velocidad/costo)
-- **Clasificación simple**: `claude-haiku-4-5` (rápido y económico)
+- Archivos `.md` son **artefactos primarios** (no hay código Python en el toolkit — solo en `demo/`)
+- Frontmatter YAML en todo skill y agente (name, description, allowed-tools, model)
+- Idempotency keys SHA1 en operaciones destructivas (ver `_core/state-store`)
+- Events con schema versionado para interoperabilidad entre agentes (ver `state-structure.md`)
+- Comunicación con humano: siempre vía `_core/telegram-approval` (síncrono) o `_core/telegram-notify` (fire-and-forget)
+- Idioma del toolkit: inglés en nombres, español en descripciones/system prompts (el cliente final habla español)
 
 ---
 
-*Toolkit iniciado: febrero 2026 | Idioma de código: inglés | Comunicación: español*
+## Scope y limitaciones
+
+### Lo que el toolkit SÍ hace
+- Captura brief completo con objetivos + KPIs + presupuesto + persona
+- Audita cuentas actuales + competencia
+- Extrae identidad de marca de materiales reales
+- Planea parrillas mensuales con razonamiento estratégico
+- Produce dossier completo de rodaje batch
+- Publica en IG/FB/TikTok con aprobación humana
+- Gestiona comunidad con FAQ + SLA
+- Diseña campañas de pauta (instrucciones ejecutables, no auto-gasto)
+- Monitorea comentarios/métricas con alertas
+- Analiza performance vs KPIs y cierra feedback loop
+- Prospecta leads B2B (auxiliar)
+
+### Lo que el toolkit NO hace
+- No graba video ni toma fotos (planifica, humano ejecuta)
+- No edita video / retoca fotos (produce specs)
+- No gasta en pauta sin aprobación humana explícita
+- No modifica bio/perfiles automáticamente (APIs no lo permiten)
+- No garantiza resultados — probabilístico como todo marketing
+
+---
+
+*Toolkit v2.0 | Última actualización: refactor completo 2026-10 | Alineado con flujo de agencia de 6 fases*
