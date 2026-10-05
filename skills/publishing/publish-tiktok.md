@@ -9,7 +9,6 @@ model: claude-haiku-4-5
 
 **Propósito**: Publica contenido en TikTok vía Content Posting API.
 Soporta dos flujos: post de foto (automatizable) y video (requiere archivo local o URL).
-**Modelo**: No requiere Claude — llama directamente a la TikTok API
 **Usado por**: `/publish-today`, `/check-approvals`
 
 ---

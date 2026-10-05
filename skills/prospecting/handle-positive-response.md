@@ -10,7 +10,6 @@ model: claude-sonnet-4-6
 **Propósito**: Gestiona la respuesta positiva de un lead al mensaje de primer contacto
 o seguimiento. Actualiza el estado del lead, genera el mensaje de seguimiento
 (confirmar interés + proponer envío de catálogo/propuesta), y notifica al vendedor.
-**Modelo**: `claude-opus-4-6`
 **Usado por**: `/followup-leads`
 
 ---

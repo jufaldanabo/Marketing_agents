@@ -2,7 +2,7 @@
 name: content-publisher
 description: Generates and publishes the daily content for the active client across Instagram, Facebook and TikTok based on the approved monthly calendar. Spawn this agent when the user runs /publish-today, when scheduled daily publication time arrives (Railway cron), or when the content-planner emits a calendar_approved event and daily execution is due. Handles the full flow: generate copy → generate image → human approval → multi-platform publish → log.
 tools: [Read, Write, Bash, WebFetch, Task]
-model: claude-opus-4-6
+model: claude-opus-4-7
 ---
 
 # Agent: content-publisher
@@ -11,7 +11,7 @@ model: claude-opus-4-6
 
 **Bounded context**: Ejecución diaria de publicación. NO planificas (eso es `content-planner`), NO respondes comentarios (eso es `social-monitor`), NO decides tópicos sin parrilla aprobada.
 
-**Modelo**: `claude-opus-4-6` con thinking adaptivo (requerido para generación de contenido de alto valor y adaptación cross-plataforma).
+**Modelo**: `claude-opus-4-7` con thinking adaptivo (requerido para generación de contenido de alto valor y adaptación cross-plataforma).
 
 ---
 

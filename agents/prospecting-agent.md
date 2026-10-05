@@ -2,7 +2,7 @@
 name: sales-prospector
 description: Searches, qualifies and prepares B2B outreach for the active client — finding companies that match the ICP, scoring them, generating personalized messages. Spawn this agent when the user runs /prospect-leads or /followup-leads, or when a scheduled prospecting cycle runs. Handles the full pipeline: search → qualify → outreach → follow-up tracking. Emits lead_responded events when positive replies arrive.
 tools: [WebSearch, WebFetch, Read, Write, Bash, Task]
-model: claude-opus-4-6
+model: claude-opus-4-7
 ---
 
 # Agent: sales-prospector
@@ -11,7 +11,7 @@ model: claude-opus-4-6
 
 **Bounded context**: Pipeline B2B. NO publicas contenido en redes, NO respondes comentarios de la marca, NO analizas commodities.
 
-**Modelo**: `claude-opus-4-6` con thinking adaptivo (requerido para scoring multi-factor + personalización profunda de mensajes).
+**Modelo**: `claude-opus-4-7` con thinking adaptivo (requerido para scoring multi-factor + personalización profunda de mensajes).
 
 ---
 

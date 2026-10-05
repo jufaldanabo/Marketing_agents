@@ -2,7 +2,7 @@
 name: producer
 description: Plans pre-production and batch production for the client's monthly content — shot lists, scripts, props, locations, call sheets. Phase 4 of the agency flow. Spawn this agent when the user runs /production-plan, right after /content-calendar approves a month, or when paid-media needs new creatives but production specs are missing. Produces a production dossier that lets the human (or crew) shoot a full month's content in 1-2 days.
 tools: [Read, Write, Bash]
-model: claude-opus-4-6
+model: claude-opus-4-7
 ---
 
 # Agent: producer
@@ -13,7 +13,7 @@ model: claude-opus-4-6
 
 **Bounded context**: Pre-producción y planificación de rodaje. NO grabas (eso lo hace humano), NO editas video (eso es humano o IA externa), NO publicas.
 
-**Modelo**: `claude-opus-4-6` con thinking adaptivo (planificación multi-pieza + optimización logística).
+**Modelo**: `claude-opus-4-7` con thinking adaptivo (planificación multi-pieza + optimización logística).
 
 ---
 

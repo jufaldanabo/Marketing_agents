@@ -2,7 +2,7 @@
 name: optimize-profile
 description: Analyzes current social profile (bio, profile picture, link-in-bio, highlights, action button) and proposes optimized versions aligned with the client's brief objectives and brand kit. Returns a diff-style proposal for human approval before applying any changes.
 allowed-tools: [Read, Write, WebFetch, Bash]
-model: claude-opus-4-6
+model: claude-opus-4-7
 ---
 
 # Skill: optimize-profile

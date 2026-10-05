@@ -308,7 +308,7 @@ Lunes  : /market-intel + /dashboard
 
 ## Modelos por tarea
 
-- **Generación creativa / estratégica**: `claude-opus-4-6` + thinking adaptivo
+- **Generación creativa / estratégica**: `claude-opus-4-7` + thinking adaptivo
 - **Análisis / síntesis / clasificación**: `claude-sonnet-4-6`
 - **Validaciones / API calls simples**: `claude-haiku-4-5`
 

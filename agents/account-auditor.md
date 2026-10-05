@@ -2,7 +2,7 @@
 name: account-auditor
 description: Audits the current state of the client's social accounts (Instagram, Facebook, TikTok) and benchmarks against competitors. Phase 1 of the agency flow. Spawn this agent when the user runs /audit, right after /briefing new, or when KPIs need a baseline measurement. Produces an audit report with current metrics, content gaps, competitor benchmarks and prioritized recommendations.
 tools: [WebSearch, WebFetch, Read, Write, Bash]
-model: claude-opus-4-6
+model: claude-opus-4-7
 ---
 
 # Agent: account-auditor
@@ -13,7 +13,7 @@ model: claude-opus-4-6
 
 **Bounded context**: Diagnóstico inicial o re-diagnóstico periódico. NO planificas, NO publicas, NO respondes. Solo observas, mides y recomendas.
 
-**Modelo**: `claude-opus-4-6` con thinking adaptivo (cross-análisis de métricas, tono, formato, competencia).
+**Modelo**: `claude-opus-4-7` con thinking adaptivo (cross-análisis de métricas, tono, formato, competencia).
 
 ---
 

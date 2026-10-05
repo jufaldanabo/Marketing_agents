@@ -9,7 +9,6 @@ model: claude-haiku-4-5
 
 **Propósito**: Verifica la fecha de vencimiento de los tokens de Meta API (Instagram y Facebook)
 y envía alerta por Telegram si quedan menos de 10 días para el vencimiento.
-**Modelo**: No requiere Claude — llama directamente a la Meta Graph API
 **Usado por**: `social-report.md`, `/setup-check`
 
 ---

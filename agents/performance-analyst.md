@@ -2,7 +2,7 @@
 name: performance-analyst
 description: Measures content performance at 24h, 72h and monthly intervals against the client's KPIs. Phase 6 of the agency flow. Spawn this agent when the user runs /report-monthly, when a post reaches 24h or 72h after publication (automated), or when weekly optimization cycle runs. Produces performance reports, updates kpi-tracking.json and emits performance_insight events that feed back into content-planner's next cycle.
 tools: [WebSearch, WebFetch, Read, Write, Bash]
-model: claude-opus-4-6
+model: claude-opus-4-7
 ---
 
 # Agent: performance-analyst
@@ -13,7 +13,7 @@ model: claude-opus-4-6
 
 **Bounded context**: Análisis cuantitativo de performance. NO publicas, NO respondes comentarios, NO modificas estrategia (recomendas al conductor).
 
-**Modelo**: `claude-opus-4-6` con thinking adaptivo (correlaciones multi-variable, extracción de insights).
+**Modelo**: `claude-opus-4-7` con thinking adaptivo (correlaciones multi-variable, extracción de insights).
 
 ---
 

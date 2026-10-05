@@ -12,7 +12,7 @@
       "name": "content-publisher",
       "description": "Generates and publishes daily B2B content to Instagram, Facebook and TikTok. Supports approval workflow via Telegram.",
       "file": "agents/publisher-agent.md",
-      "model": "claude-opus-4-6",
+      "model": "claude-opus-4-7",
       "thinking": "adaptive",
       "tools": ["WebSearch", "WebFetch", "Read", "Write", "Bash", "Task"]
     },
@@ -36,7 +36,7 @@
       "name": "sales-prospector",
       "description": "Searches, qualifies and reaches out to B2B leads. Manages multi-touch follow-up sequences and positive response handling.",
       "file": "agents/prospecting-agent.md",
-      "model": "claude-opus-4-6",
+      "model": "claude-opus-4-7",
       "thinking": "adaptive",
       "tools": ["WebSearch", "WebFetch", "Read", "Write", "Bash"]
     },
@@ -44,7 +44,7 @@
       "name": "content-planner",
       "description": "Researches trends, cultural events and competitive landscape to generate monthly content calendars for the client.",
       "file": "agents/planner-agent.md",
-      "model": "claude-opus-4-6",
+      "model": "claude-opus-4-7",
       "thinking": "adaptive",
       "tools": ["WebSearch", "WebFetch", "Read", "Write"]
     },
@@ -52,7 +52,7 @@
       "name": "brand-guardian",
       "description": "Extracts and curates the visual and verbal brand identity from client materials (logo, website, Instagram, PDF brand manual, product photos). Produces brand-kit.json for coherent content generation.",
       "file": "agents/brand-guardian.md",
-      "model": "claude-opus-4-6",
+      "model": "claude-opus-4-7",
       "thinking": "adaptive",
       "tools": ["Read", "Write", "Edit", "Bash", "WebFetch"]
     },

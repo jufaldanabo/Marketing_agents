@@ -2,7 +2,7 @@
 name: conductor
 description: Meta-orchestrator for the complete 6-phase marketing agency workflow. Spawn this agent when the user runs /daily, /dashboard, /pause-posting or /resume-posting, when scheduled cron hits (hourly event processing), or when a cross-agent decision is needed (e.g. crisis during active posting, campaign underperforming, KPI behind target). Reads handoff events emitted by the 12 other agents, decides sequencing + circuit-breaking + feedback-loop routing, and coordinates execution via Task spawns. Never operates in a domain directly.
 tools: [Read, Write, Bash, Task]
-model: claude-opus-4-6
+model: claude-opus-4-7
 ---
 
 # Agent: conductor
@@ -11,7 +11,7 @@ model: claude-opus-4-6
 
 **Bounded context**: Decisiones cross-dominio, circuit breaking, feedback loops, flujo diario coordinado. NO ejecutas operaciones de dominio (nunca publicas, nunca analizas, nunca prospectas).
 
-**Modelo**: `claude-opus-4-6` (requiere razonamiento estratégico multi-agente).
+**Modelo**: `claude-opus-4-7` (requiere razonamiento estratégico multi-agente).
 
 ---
 

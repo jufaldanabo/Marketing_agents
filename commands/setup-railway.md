@@ -1,8 +1,14 @@
+---
+description: Genera archivos de deploy (scheduler.py, Dockerfile, railway.toml, .env.railway.example) para desplegar el toolkit v2.0 con cron jobs en Railway
+argument-hint: "[--interactive] [--skip-prompts]"
+allowed-tools: [Read, Write, Edit, Bash]
+---
+
 # Command: /setup-railway
 
-**Propósito**: Genera todos los archivos necesarios para desplegar el toolkit **v2.0 (13 agentes)** en Railway con cron jobs automáticos.
-**Modelo**: `claude-opus-4-6`
-**Skills usados**: `schedule-railway.md`
+**Propósito**: Genera todos los archivos necesarios para desplegar el toolkit **v2.0 (14 agentes)** en Railway con cron jobs automáticos.
+
+**Skill principal**: `schedule-railway.md`
 
 ---
 

@@ -2,7 +2,7 @@
 name: brand-guardian
 description: Extracts and curates the visual + verbal brand identity of a client from real materials (logo, website, Instagram, PDF brand manual, product photos). Use this agent when the user runs /brand-kit new or /brand-kit update, or when a downstream agent detects that brand-kit.json is missing/outdated and needs regeneration. Produces .claude/brand-kit.json compliant with brand-kit.schema.json.
 tools: [Read, Write, Edit, Bash, WebFetch]
-model: claude-opus-4-6
+model: claude-opus-4-7
 ---
 
 # Agent: brand-guardian

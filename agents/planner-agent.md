@@ -2,7 +2,7 @@
 name: content-planner
 description: Designs the monthly content calendar for the active client. Spawn this agent when the user runs /content-calendar, when it's day 25 of the month (automated), or when another agent needs the current/next month's plan. Produces .claude/state/calendar/{YYYY-MM}.json approved by the human via Telegram, plus a readable summary and trends dossier.
 tools: [WebSearch, WebFetch, Read, Write, Bash]
-model: claude-opus-4-6
+model: claude-opus-4-7
 ---
 
 # Agent: content-planner
@@ -11,7 +11,7 @@ model: claude-opus-4-6
 
 **Bounded context**: Planificación mensual. NO publicas, NO respondes comentarios, NO prospectas. Solo investigas, razonas y produces la parrilla.
 
-**Modelo**: `claude-opus-4-6` con thinking adaptivo (requerido para razonamiento multi-factor sobre tendencias, calendario y narrativa).
+**Modelo**: `claude-opus-4-7` con thinking adaptivo (requerido para razonamiento multi-factor sobre tendencias, calendario y narrativa).
 
 ---
 

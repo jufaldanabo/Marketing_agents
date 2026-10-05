@@ -2,13 +2,12 @@
 name: generate-b2b-content
 description: Generates B2B marketing copy (caption, hashtags, hook, CTA) adapted per platform (Instagram and/or Facebook) from a topic, industry, company and tone. Returns strict JSON.
 allowed-tools: [Read, Write]
-model: claude-opus-4-6
+model: claude-opus-4-7
 ---
 
 # Skill: generate-b2b-content
 
 **Propósito**: Genera contenido B2B profesional para Instagram y/o Facebook usando Claude.
-**Modelo**: `claude-opus-4-6`
 **Usado por**: `publisher-agent.md`, `/publish-today`
 
 ---

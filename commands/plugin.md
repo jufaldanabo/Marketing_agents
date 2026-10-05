@@ -1,3 +1,9 @@
+---
+description: Install and manage Claude Code plugins from GitHub without bash scripts
+argument-hint: "marketplace add | install | list | remove"
+allowed-tools: [Bash, Read, Write]
+---
+
 # /plugin — Plugin Manager for Claude Code
 
 Install and manage Claude Code plugins from GitHub — no bash scripts needed.

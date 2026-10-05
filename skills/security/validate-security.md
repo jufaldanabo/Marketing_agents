@@ -2,14 +2,13 @@
 name: validate-security
 description: Audita archivos del toolkit buscando violaciones de seguridad (secrets hardcodeados, .env trackeado, logs con PII, bypassPermissions mal usado) con severidades CRÍTICO/ALTO/MEDIO/BAJO.
 allowed-tools: [Bash, Read, Grep]
-model: claude-haiku-4-5
+model: claude-sonnet-4-6
 ---
 
 # Skill: validate-security
 
 **Propósito**: Valida reglas de seguridad y buenas prácticas específicas del toolkit:
 Meta Graph API, Anthropic API, web scraping y notificaciones Telegram.
-**Modelo**: `claude-sonnet-4-6`
 **Usado por**: `/security-audit`
 
 ---
@@ -345,7 +344,7 @@ jobs diarios, esto se multiplica por el número de ejecuciones.
 ```python
 # ❌ INCORRECTO — sin límite de tokens
 response = client.messages.create(
-    model="claude-opus-4-6",
+    model="claude-opus-4-7",
     messages=[{"role": "user", "content": long_prompt}]
     # max_tokens no especificado → default puede ser muy alto
 )
@@ -362,7 +361,7 @@ MAX_TOKENS_BY_AGENT = {
 }
 
 response = client.messages.create(
-    model="claude-opus-4-6",
+    model="claude-opus-4-7",
     max_tokens=MAX_TOKENS_BY_AGENT.get(agent_name, 4096),
     messages=[{"role": "user", "content": prompt}]
 )
@@ -379,20 +378,20 @@ if actual_tokens > MAX_TOKENS_BY_AGENT[agent_name] * 0.9:
 **Severidad**: 🟡 MEDIO
 **Aplica a**: Todos los archivos de skills y commands
 
-Usar `claude-opus-4-6` para clasificar spam de comentarios cuesta ~25x más
+Usar `claude-opus-4-7` para clasificar spam de comentarios cuesta ~25x más
 que `claude-haiku-4-5` sin beneficio real en calidad.
 
 ```
 # ❌ INCORRECTO — opus para todas las tareas
-skills/publishing/generate-b2b-content.md  → claude-opus-4-6  ✅ (correcto)
-skills/social_monitoring/respond-comments.md → claude-opus-4-6  ❌ (excesivo)
-skills/social_monitoring/send-telegram.md  → claude-opus-4-6  ❌ (absurdo)
+skills/publishing/generate-b2b-content.md  → claude-opus-4-7  ✅ (correcto)
+skills/social_monitoring/respond-comments.md → claude-opus-4-7  ❌ (excesivo)
+skills/social_monitoring/send-telegram.md  → claude-opus-4-7  ❌ (absurdo)
 ```
 
 ```
 # ✅ CORRECTO — modelo apropiado por complejidad de tarea
 
-claude-opus-4-6   → Generación de contenido creativo B2B
+claude-opus-4-7   → Generación de contenido creativo B2B
                   → Análisis estratégico de mercado
                   → Prospección y calificación de leads
                   → Planificación de secuencias de seguimiento

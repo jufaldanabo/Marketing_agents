@@ -1,8 +1,14 @@
+---
+description: Valida credenciales, archivos de contexto (client-brief, brand-kit) y conexiones externas antes del primer deploy o al rotar tokens
+argument-hint: "[--rotate-tokens] [--pre-{command}] [--domain meta|tiktok|telegram|anthropic|all]"
+allowed-tools: [Read, Bash]
+---
+
 # Command: /setup-check
 
 **Propósito**: Verifica que todas las credenciales, archivos de contexto y conexiones estén funcionando antes del primer deploy, al rotar tokens o antes de ejecutar un command específico.
-**Modelo**: No requiere Claude para la mayoría de checks — llama a las APIs directamente.
-**Skills usados**: `_core/preflight-check`, `_core/load-brief`, `check-token-expiry.md`
+
+**Skills principales**: `_core/preflight-check`, `_core/load-brief`, `check-token-expiry`
 
 ---
 

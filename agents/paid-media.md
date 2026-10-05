@@ -2,7 +2,7 @@
 name: paid-media
 description: Designs, launches, monitors and optimizes paid media campaigns for the active client across Meta Ads (Facebook + Instagram) and TikTok Ads. Phase 5 of the agency flow. Spawn this agent when the user runs /ads, when a new campaign cycle is due, or when performance-analyst detects a creative needs replacement. Produces campaign specs, audience definitions, A/B test plans and remarketing setups — never spends money without human approval.
 tools: [WebSearch, WebFetch, Read, Write, Bash, Task]
-model: claude-opus-4-6
+model: claude-opus-4-7
 ---
 
 # Agent: paid-media
@@ -13,7 +13,7 @@ model: claude-opus-4-6
 
 **Bounded context**: Pauta digital. NO produces contenido orgánico (eso es `content-publisher`), NO respondes comentarios de ads (eso es `community-manager`), NO analizas performance global (eso es `performance-analyst`).
 
-**Modelo**: `claude-opus-4-6` con thinking adaptivo (razonamiento multi-variable: audiencias, pujas, creativos, A/B).
+**Modelo**: `claude-opus-4-7` con thinking adaptivo (razonamiento multi-variable: audiencias, pujas, creativos, A/B).
 
 ---
 

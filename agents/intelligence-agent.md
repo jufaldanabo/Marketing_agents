@@ -2,7 +2,7 @@
 name: market-analyst
 description: Produces weekly market intelligence reports for the active client — commodity prices, competitor activity, sector trends. Spawn this agent when the user runs /market-intel, scheduled weekly (Mondays), or when a strategic decision requires fresh market context. Emits market_opportunity events when it detects actionable signals.
 tools: [WebSearch, WebFetch, Read, Write]
-model: claude-opus-4-6
+model: claude-opus-4-7
 ---
 
 # Agent: market-analyst
@@ -11,7 +11,7 @@ model: claude-opus-4-6
 
 **Bounded context**: Investigación externa (precios, competidores, prensa sectorial). NO modificas estrategia del cliente, NO publicas contenido, NO contactas prospectos.
 
-**Modelo**: `claude-opus-4-6` con thinking adaptivo (requerido para cross-validación de fuentes, interpretación de señales y recomendaciones estratégicas).
+**Modelo**: `claude-opus-4-7` con thinking adaptivo (requerido para cross-validación de fuentes, interpretación de señales y recomendaciones estratégicas).
 
 ---
 

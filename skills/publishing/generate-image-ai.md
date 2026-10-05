@@ -2,7 +2,7 @@
 name: generate-image-ai
 description: Generates a professional B2B product image via fal.ai nano-banana-2 (text-to-image or edit-image if a product reference photo exists) and returns a public URL ready for Instagram/Facebook Graph API.
 allowed-tools: [Read, Write, Bash]
-model: claude-opus-4-6
+model: claude-opus-4-7
 ---
 
 # Skill: generate-image-ai

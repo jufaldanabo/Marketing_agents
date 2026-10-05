@@ -1,9 +1,15 @@
+---
+description: Audita el proyecto contra reglas de seguridad y buenas prácticas (Meta API, Anthropic API, web scraping, Telegram, exposición de credenciales)
+argument-hint: "[--fix] [--domain meta|anthropic|telegram|all]"
+allowed-tools: [Read, Grep, Bash]
+---
+
 # Command: /security-audit
 
 **Propósito**: Audita el proyecto contra las reglas de seguridad y buenas prácticas
 del toolkit: Meta API, Anthropic API, web scraping y Telegram.
-**Modelo**: `claude-sonnet-4-6`
-**Skills usados**: `validate-security.md`
+
+**Skill principal**: `validate-security.md`
 
 ---
 

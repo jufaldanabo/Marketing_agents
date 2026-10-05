@@ -46,7 +46,7 @@ Task tool:
     2. GET /getUpdates con offset actual.
     3. Clasificar cada mensaje:
        - APROBACIÓN  → publicar en platforms del draft (ig/fb/tiktok)
-       - EDICIÓN     → regenerar con claude-opus-4-6, crear nuevo draft, re-enviar aprobación
+       - EDICIÓN     → regenerar con claude-opus-4-7, crear nuevo draft, re-enviar aprobación
        - RECHAZO     → marcar rejected + motivo
        - AMBIGUO     → responder en Telegram pidiendo draft_id si hay >1 pendiente
     4. Actualizar _telegram_offset.json con max(update_id)+1.

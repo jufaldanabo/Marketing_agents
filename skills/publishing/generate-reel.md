@@ -2,7 +2,7 @@
 name: generate-reel
 description: Generates a complete short-form reel package (scene-by-scene script, text overlays, trending audio suggestion, cover image and caption) ready to film. Delegates image generation to generate-image-ai (never calls fal.ai directly).
 allowed-tools: [Read, Write, Bash, WebSearch]
-model: claude-opus-4-6
+model: claude-opus-4-7
 ---
 
 # Skill: generate-reel
@@ -16,7 +16,6 @@ model: claude-opus-4-6
 
 **Propósito**: Genera un reel completo: guión escena por escena, text overlays,
 sugerencia de audio, cover image, y caption. Listo para filmar o producir.
-**Modelo**: `claude-opus-4-6`
 **Herramientas**: fal.ai (cover image), WebSearch (trending audio)
 **Usado por**: `/publish-today` cuando `artifact_type == "reel"`
 

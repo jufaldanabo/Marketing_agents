@@ -9,7 +9,6 @@ model: claude-haiku-4-5
 
 **Propósito**: Genera todos los archivos necesarios para desplegar el toolkit en Railway
 con los agentes programados automáticamente (cron jobs).
-**Modelo**: `claude-opus-4-6`
 **Usado por**: `/setup-railway`
 
 ---
