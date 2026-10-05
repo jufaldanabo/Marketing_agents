@@ -1,9 +1,16 @@
+---
+name: build-trend-report
+description: Compila rankings de YouTube + TikTok con análisis e ideas en reporte legible (.md) y datos estructurados (.json). Último skill del pipeline de trend-analyst — invocado tras analyze-trend-content y generate-trend-ideas.
+allowed-tools: [Read, Write, Bash]
+model: claude-sonnet-4-6
+---
+
 # Skill: build-trend-report
 
 **Propósito**: Arma los 3 rankings de YouTube + ranking TikTok, integra los
 análisis e ideas, y genera el reporte final en formato legible para el experto
 de marketing y el JSON estructurado para uso posterior.
-**Modelo**: `claude-sonnet-4-6`
+
 **Usado por**: `agents/trend-analyst-agent.md`, `commands/trend-ranking.md`
 
 ---

@@ -1,9 +1,16 @@
+---
+name: generate-trend-ideas
+description: Genera 5-10 ideas de contenido ejecutables para el cliente adaptando patrones virales identificados — cada idea con hook, formato y tiempo estimado de producción, respetando brand kit y recursos PYME. Invocado por trend-analyst agent tras analyze-trend-content.
+allowed-tools: [Read, Write]
+model: claude-opus-4-6
+---
+
 # Skill: generate-trend-ideas
 
 **Propósito**: Genera ideas de contenido concretas y ejecutables para la empresa,
 inspiradas en los patrones virales identificados. Cada idea está adaptada al producto,
 tono y cliente ideal de la empresa — no son ideas genéricas.
-**Modelo**: `claude-sonnet-4-6` con `thinking: adaptive`
+
 **Usado por**: `agents/trend-analyst-agent.md`, `commands/trend-ranking.md`
 
 ---

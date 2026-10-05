@@ -1,9 +1,16 @@
+---
+name: analyze-trend-content
+description: Analiza por qué videos virales de YouTube/TikTok tuvieron éxito — extrae mecanismos (hook, formato, narrativa, timing) en 2-3 líneas accionables. Invocado por trend-analyst agent después de fetch-youtube-trends y fetch-tiktok-trends.
+allowed-tools: [Read, Write]
+model: claude-sonnet-4-6
+---
+
 # Skill: analyze-trend-content
 
 **Propósito**: Analiza por qué cada pieza de contenido viral funcionó — identifica
 los mecanismos de éxito (formato, gancho, narrativa, timing) y los articula en 2-3
 líneas accionables para el equipo de marketing.
-**Modelo**: `claude-sonnet-4-6` con `thinking: adaptive`
+
 **Usado por**: `agents/trend-analyst-agent.md`, `commands/trend-ranking.md`
 
 ---

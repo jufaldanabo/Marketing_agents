@@ -1,9 +1,16 @@
+---
+name: fetch-tiktok-trends
+description: Encuentra videos virales de TikTok sobre temas específicos vía WebSearch + oEmbed API (sin credenciales). Devuelve métricas estimadas (no oficiales — señalado en output). Invocado por trend-analyst agent en Fase 3 del pipeline.
+allowed-tools: [WebSearch, WebFetch, Read, Write]
+model: claude-haiku-4-5
+---
+
 # Skill: fetch-tiktok-trends
 
 **Propósito**: Encuentra videos virales de TikTok sobre un tema usando WebSearch
 y enriquece los resultados con la API oEmbed de TikTok. No requiere credenciales
 ni solicitud de aprobación.
-**Herramientas**: WebSearch + WebFetch (oEmbed)
+
 **Usado por**: `agents/trend-analyst-agent.md`, `commands/trend-ranking.md`
 
 ---

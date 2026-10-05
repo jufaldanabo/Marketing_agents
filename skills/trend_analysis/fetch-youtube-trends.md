@@ -1,8 +1,16 @@
+---
+name: fetch-youtube-trends
+description: Consulta YouTube Data API v3 (requiere YOUTUBE_API_KEY) para obtener videos virales por tema en los últimos N días — devuelve métricas exactas (views, likes, comments). Invocado por trend-analyst agent en Fase 2 del pipeline. Maneja graceful degradation si quota se agota.
+allowed-tools: [Bash, Read, Write]
+model: claude-haiku-4-5
+---
+
 # Skill: fetch-youtube-trends
 
 **Propósito**: Consulta YouTube Data API v3 para encontrar los videos más vistos,
 más comentados y con más reacciones sobre un tema en los últimos N días.
 Soporta búsqueda general por tema y búsqueda acotada a canales de competidores.
+
 **API**: YouTube Data API v3 (gratuita — cuota 10,000 units/día)
 **Usado por**: `agents/trend-analyst-agent.md`, `commands/trend-ranking.md`
 
