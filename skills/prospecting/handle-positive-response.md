@@ -1,7 +1,7 @@
 ---
 name: handle-positive-response
 description: Procesa la respuesta positiva de un lead — clasifica intención, actualiza estado en followup-tracking.json, genera mensaje de siguiente paso y notifica al vendedor por Telegram.
-allowed-tools: [Read, Write, Bash]
+allowed-tools: [Read, Write]
 model: claude-sonnet-4-6
 ---
 

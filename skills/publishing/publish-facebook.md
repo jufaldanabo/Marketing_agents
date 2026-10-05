@@ -1,6 +1,6 @@
 ---
 name: publish-facebook
-description: Publishes a text, image, or link post to a Facebook Page via Graph API v18.0 (supports scheduled publishing). Requires FACEBOOK_ACCESS_TOKEN and FACEBOOK_PAGE_ID.
+description: Use when content-publisher has an approved draft ready to publish to a Facebook Page. Supports text, image, link posts and scheduled publishing via Graph API v18.0. Requires FACEBOOK_ACCESS_TOKEN + FACEBOOK_PAGE_ID in env. Returns the published post_id and permalink.
 allowed-tools: [Bash]
 model: claude-haiku-4-5
 ---

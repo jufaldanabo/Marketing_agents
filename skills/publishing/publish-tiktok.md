@@ -1,6 +1,6 @@
 ---
 name: publish-tiktok
-description: Publishes a photo post (automatable, PULL_FROM_URL) or uploads a video (FILE_UPLOAD) to TikTok via Content Posting API. Requires TIKTOK_ACCESS_TOKEN and TIKTOK_OPEN_ID.
+description: Use when content-publisher has an approved TikTok draft ready to publish. Two flows — photo via PULL_FROM_URL (fully automated) or video via FILE_UPLOAD (requires local file). Via Content Posting API. Requires TIKTOK_ACCESS_TOKEN + TIKTOK_OPEN_ID in env (token expires every 24h — preflight-check validates).
 allowed-tools: [Bash]
 model: claude-haiku-4-5
 ---

@@ -1,6 +1,6 @@
 ---
 description: Genera archivos de deploy (scheduler.py, Dockerfile, railway.toml, .env.railway.example) para desplegar el toolkit v2.0 con cron jobs en Railway
-argument-hint: "[--interactive] [--skip-prompts]"
+argument-hint: "[--dry-run] [--interactive] [--skip-prompts]"
 allowed-tools: [Read, Write, Edit, Bash]
 ---
 

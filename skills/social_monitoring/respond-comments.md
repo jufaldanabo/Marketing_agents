@@ -1,7 +1,7 @@
 ---
 name: respond-comments
 description: Clasifica comentarios de Instagram/Facebook por tipo (comercial, técnico, positivo, negativo, spam), genera respuestas públicas y DMs personalizados al tono de marca, y envía preview a Telegram para aprobación antes de publicar.
-allowed-tools: [Read, Write, Bash]
+allowed-tools: [Read, Write]
 model: claude-sonnet-4-6
 ---
 
