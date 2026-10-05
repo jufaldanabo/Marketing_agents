@@ -1,3 +1,12 @@
+---
+name: respond-comments
+description: Clasifica comentarios de Instagram/Facebook por tipo (comercial, técnico, positivo, negativo, spam), genera respuestas públicas y DMs personalizados al tono de marca, y envía preview a Telegram para aprobación antes de publicar.
+allowed-tools: [Read, Write, Bash]
+model: claude-sonnet-4-6
+---
+
+> **Nota**: Este skill combina clasificación + generación + notificación. En futuras versiones puede splitearse en skills atómicos. Si vas a añadir funcionalidad, considera si pertenece aquí o en un skill nuevo.
+
 # Skill: respond-comments
 
 **Propósito**: Genera respuestas apropiadas y personalizadas a comentarios en Instagram y Facebook.
@@ -8,9 +17,10 @@
 
 ## Por qué este skill cierra el ciclo
 
-El skill `send-telegram.md` notifica sobre comentarios pendientes.
+El skill `_core/telegram-notify` notifica sobre comentarios pendientes.
 Este skill genera las respuestas — cerrando el loop: detectar → analizar → responder.
 Responder en las primeras 2 horas aumenta el alcance orgánico en ~40%.
+Para mostrar preview y pedir aprobación antes de publicar, delega en `_core/telegram-approval`.
 
 ## Inputs requeridos
 

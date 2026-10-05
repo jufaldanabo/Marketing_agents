@@ -1,3 +1,10 @@
+---
+name: monitor-prices
+description: Busca precios actuales de materias primas (commodities) con WebSearch/WebFetch sobre fuentes especializadas (Cotlook, IWTO, Investing.com, etc.), calcula variaciones semanales/mensuales y produce análisis estructurado por commodity con tendencia y factores.
+allowed-tools: [WebSearch, WebFetch, Read, Write]
+model: claude-sonnet-4-6
+---
+
 # Skill: monitor-prices
 
 **Propósito**: Busca y recopila precios actuales de materias primas usando búsqueda web.

@@ -1,3 +1,10 @@
+---
+name: generate-tiktok-content
+description: Generates native TikTok content (short video script and/or photo-post caption) with hook, hashtags and sound style, tailored to small/informal B2B businesses. Returns strict JSON.
+allowed-tools: [Read, Write]
+model: claude-opus-4-6
+---
+
 # Skill: generate-tiktok-content
 
 **Propósito**: Genera contenido para TikTok en dos formatos: guión de video (15-60 seg)

@@ -1,3 +1,10 @@
+---
+name: publish-tiktok
+description: Publishes a photo post (automatable, PULL_FROM_URL) or uploads a video (FILE_UPLOAD) to TikTok via Content Posting API. Requires TIKTOK_ACCESS_TOKEN and TIKTOK_OPEN_ID.
+allowed-tools: [Bash]
+model: claude-haiku-4-5
+---
+
 # Skill: publish-tiktok
 
 **Propósito**: Publica contenido en TikTok vía Content Posting API.

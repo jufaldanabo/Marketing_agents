@@ -1,3 +1,10 @@
+---
+name: track-competitors
+description: Rastrea actividad pública de competidores (lanzamientos, precios, campañas, prensa, redes sociales) con WebSearch/WebFetch, clasifica señales por nivel de amenaza y detecta oportunidades competitivas para la empresa.
+allowed-tools: [WebSearch, WebFetch, Read, Write]
+model: claude-sonnet-4-6
+---
+
 # Skill: track-competitors
 
 **Propósito**: Rastrea actividad pública de competidores en redes sociales y prensa.

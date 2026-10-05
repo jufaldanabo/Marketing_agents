@@ -1,3 +1,10 @@
+---
+name: schedule-railway
+description: Genera scheduler.py, Dockerfile, railway.toml y archivos de deploy para programar los agentes del toolkit como cron jobs autónomos en Railway.
+allowed-tools: [Bash, Read, Write, Edit]
+model: claude-haiku-4-5
+---
+
 # Skill: schedule-railway
 
 **Propósito**: Genera todos los archivos necesarios para desplegar el toolkit en Railway
@@ -12,6 +19,7 @@ con los agentes programados automáticamente (cron jobs).
 ```
 Railway Project
 │
+├── [Cron Service] content-planner     → corre día 25 de cada mes 8am
 ├── [Cron Service] publisher-agent     → corre diario 8am L-V
 ├── [Cron Service] social-report       → corre diario 10pm
 ├── [Cron Service] respond-comments    → corre diario 9am y 3pm
@@ -88,6 +96,12 @@ except ImportError:
 # ─── Configuración de agentes ────────────────────────────────────────────────
 
 AGENTS = {
+    "content-planner": {
+        "cmd_file": "commands/content-calendar.md",
+        "description": "Genera parrilla mensual de contenido con tendencias y eventos",
+        "allowed_tools": ["Read", "Write", "WebFetch", "WebSearch", "Bash"],
+        "max_turns": 50,
+    },
     "publisher": {
         "cmd_file": "commands/publish-today.md",
         "description": "Genera y publica contenido B2B en Instagram y Facebook",
@@ -275,8 +289,19 @@ python-dotenv>=1.0.0
 builder = "DOCKERFILE"
 dockerfilePath = "deploy/Dockerfile"
 
+# ─── Planificador de Contenido ────────────────────────────────────────────────
+# Genera la parrilla mensual de contenido con análisis de tendencias
+# Horario: Día 25 de cada mes a las 8:00am UTC
+[[services]]
+name = "content-planner"
+
+[services.deploy]
+startCommand = "python deploy/scheduler.py content-planner"
+cronSchedule = "0 8 25 * *"
+
 # ─── Agente Publicador ────────────────────────────────────────────────────────
 # Publica contenido B2B en Instagram y Facebook
+# Lee la parrilla mensual aprobada como fuente primaria
 # Horario: Lunes a viernes a las 8:00am UTC
 [[services]]
 name = "publisher-agent"
@@ -598,6 +623,7 @@ Archivos generados:
 ✅ deploy/README-deploy.md   — Instrucciones paso a paso
 
 Servicios programados:
+📅 content-planner      → Día 25 de cada mes 8:00 UTC
 📅 publisher-agent      → Lun-Vie 8:00 UTC
 📅 social-report        → Todos los días 22:00 UTC
 📅 respond-comments-am  → Lun-Vie 9:00 UTC

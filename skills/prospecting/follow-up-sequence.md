@@ -1,3 +1,10 @@
+---
+name: follow-up-sequence
+description: Genera mensajes de seguimiento multi-toque (etapas 1-4 incluyendo break-up) para leads sin respuesta, cada uno con ángulo nuevo y valor agregado.
+allowed-tools: [Read, Write]
+model: claude-opus-4-6
+---
+
 # Skill: follow-up-sequence
 
 **Propósito**: Genera secuencias de seguimiento multi-toque para leads que no respondieron al primer contacto.

@@ -1,3 +1,10 @@
+---
+name: validate-security
+description: Audita archivos del toolkit buscando violaciones de seguridad (secrets hardcodeados, .env trackeado, logs con PII, bypassPermissions mal usado) con severidades CRÍTICO/ALTO/MEDIO/BAJO.
+allowed-tools: [Bash, Read, Grep]
+model: claude-haiku-4-5
+---
+
 # Skill: validate-security
 
 **Propósito**: Valida reglas de seguridad y buenas prácticas específicas del toolkit:

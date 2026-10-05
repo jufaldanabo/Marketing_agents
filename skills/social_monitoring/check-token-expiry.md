@@ -1,3 +1,10 @@
+---
+name: check-token-expiry
+description: Verifica vencimiento y validez de tokens de Meta Graph API (Instagram y Facebook) vía /debug_token, calcula días restantes, valida permisos requeridos, y dispara alertas por Telegram con umbrales 3/10/30 días.
+allowed-tools: [Bash, Read, Write]
+model: claude-haiku-4-5
+---
+
 # Skill: check-token-expiry
 
 **Propósito**: Verifica la fecha de vencimiento de los tokens de Meta API (Instagram y Facebook)
@@ -88,6 +95,8 @@ POST https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage
   "parse_mode": "Markdown"
 }
 ```
+
+> Delegar envío al skill `_core/telegram-notify` cuando esté disponible.
 
 ### Alerta preventiva (< 10 días)
 

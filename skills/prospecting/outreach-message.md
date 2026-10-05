@@ -1,3 +1,10 @@
+---
+name: outreach-message
+description: Genera mensajes de primer contacto B2B personalizados por canal (LinkedIn, email, WhatsApp) para hot/warm leads calificados, con una variante principal y 2 alternativas.
+allowed-tools: [Read, Write]
+model: claude-opus-4-6
+---
+
 # Skill: outreach-message
 
 **Propósito**: Genera mensajes de primer contacto personalizados para cada prospecto.

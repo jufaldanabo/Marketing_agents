@@ -1,3 +1,10 @@
+---
+name: qualify-leads
+description: Evalúa y puntúa cada lead (0-100) según ajuste de perfil, intención de compra y accesibilidad, para priorizar outreach a los prospectos más calificados.
+allowed-tools: [Read, Write]
+model: claude-sonnet-4-6
+---
+
 # Skill: qualify-leads
 
 **Propósito**: Evalúa y puntúa cada lead según su ajuste con el ICP y probabilidad de conversión.

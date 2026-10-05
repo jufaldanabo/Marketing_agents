@@ -1,3 +1,10 @@
+---
+name: handle-positive-response
+description: Procesa la respuesta positiva de un lead — clasifica intención, actualiza estado en followup-tracking.json, genera mensaje de siguiente paso y notifica al vendedor por Telegram.
+allowed-tools: [Read, Write, Bash]
+model: claude-sonnet-4-6
+---
+
 # Skill: handle-positive-response
 
 **Propósito**: Gestiona la respuesta positiva de un lead al mensaje de primer contacto
@@ -146,14 +153,35 @@ Máximo 150 palabras. Tono de nota interna, no formal.
 
 ## Paso 5 — Notificar al vendedor por Telegram
 
+Invocar el skill **`_core/telegram-notify`** con el siguiente payload (no hacer `curl` inline):
+
 ```
-POST https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage
-{
-  "chat_id": "{TELEGRAM_CHAT_ID}",
-  "text": "🎯 LEAD RESPONDIÓ POSITIVAMENTE\n\n🏢 {LEAD.company_name}\n👤 {LEAD.contact.name} — {LEAD.contact.role}\n📱 Canal: {CHANNEL}\n\n💬 Dijo: \"{RESPONSE_TEXT}\"\n\n📊 Intención: {INTENT_EMOJI} {INTENT}\n\n📝 MENSAJE LISTO PARA ENVIAR:\n\n{MENSAJE_GENERADO}\n\n---\n🗒 NOTA INTERNA:\n{NOTA_DE_PREPARACION}\n\n✅ Actualizado en followup-tracking.json",
-  "parse_mode": "Markdown"
-}
+Skill: _core/telegram-notify
+Inputs:
+  - parse_mode: "Markdown"
+  - text: |
+      🎯 LEAD RESPONDIÓ POSITIVAMENTE
+
+      🏢 {LEAD.company_name}
+      👤 {LEAD.contact.name} — {LEAD.contact.role}
+      📱 Canal: {CHANNEL}
+
+      💬 Dijo: "{RESPONSE_TEXT}"
+
+      📊 Intención: {INTENT_EMOJI} {INTENT}
+
+      📝 MENSAJE LISTO PARA ENVIAR:
+
+      {MENSAJE_GENERADO}
+
+      ---
+      🗒 NOTA INTERNA:
+      {NOTA_DE_PREPARACION}
+
+      ✅ Actualizado en followup-tracking.json
 ```
+
+El skill `_core/telegram-notify` encapsula el POST a la Telegram Bot API usando `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID` del entorno — este skill nunca debe emitir el `curl` directamente.
 
 **Emojis por intención:**
 - `alta_intencion` → 🔥

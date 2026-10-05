@@ -1,3 +1,10 @@
+---
+name: search-leads
+description: Busca empresas y contactos B2B que coincidan con el perfil de cliente ideal (ICP) usando fuentes públicas como LinkedIn, directorios sectoriales y prensa especializada.
+allowed-tools: [WebSearch, WebFetch, Read, Write]
+model: claude-sonnet-4-6
+---
+
 # Skill: search-leads
 
 **Propósito**: Busca empresas y contactos que coincidan con el perfil de cliente ideal (ICP).
