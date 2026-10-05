@@ -1,0 +1,160 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://marketing-agents.dev/schemas/brand-kit.schema.json",
+  "title": "Brand Kit",
+  "description": "Identidad visual y verbal extraída por el agente brand-guardian a partir de materiales del cliente. Se inyecta en toda generación de contenido e imagen.",
+  "type": "object",
+  "required": ["version", "brand_name", "generated_at", "colors", "typography", "visual_identity", "content_voice", "prompt_injection"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "brand_name": {"type": "string"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "updated_at": {"type": "string", "format": "date-time"},
+    "sources": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Trazabilidad: fuentes usadas para extraer el brand kit (ej. 'web:example.com', 'ig:@handle', 'pdf:manual-marca.pdf')."
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["extracted", "inferred", "suggested"],
+      "description": "extracted = de materiales directos; inferred = cruzando fuentes; suggested = sin materiales, basado en benchmarks del sector."
+    },
+    "colors": {
+      "type": "object",
+      "required": ["primary", "secondary", "background", "text_dark"],
+      "additionalProperties": false,
+      "properties": {
+        "primary": {"$ref": "#/definitions/hexColor"},
+        "secondary": {"$ref": "#/definitions/hexColor"},
+        "accent": {"$ref": "#/definitions/hexColor"},
+        "background": {"$ref": "#/definitions/hexColor"},
+        "text_dark": {"$ref": "#/definitions/hexColor"},
+        "text_light": {"$ref": "#/definitions/hexColor"},
+        "palette_description": {"type": "string"}
+      }
+    },
+    "typography": {
+      "type": "object",
+      "required": ["headings_font", "body_font"],
+      "additionalProperties": false,
+      "properties": {
+        "headings_font": {"type": "string"},
+        "body_font": {"type": "string"},
+        "style_description": {"type": "string"},
+        "text_on_images": {"type": "string"}
+      }
+    },
+    "visual_identity": {
+      "type": "object",
+      "required": ["photography_style", "mood", "avoid"],
+      "additionalProperties": false,
+      "properties": {
+        "photography_style": {"type": "string"},
+        "color_treatment": {"type": "string"},
+        "composition": {"type": "string"},
+        "mood": {"type": "string"},
+        "lighting": {"type": "string"},
+        "textures": {"type": "string"},
+        "avoid": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1
+        }
+      }
+    },
+    "logo": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "description": {"type": "string"},
+        "placement": {"type": "string"},
+        "clear_space": {"type": "string"},
+        "usage_rules": {"type": "string"},
+        "file_path": {"type": "string"}
+      }
+    },
+    "brand_elements": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "patterns": {"type": "string"},
+        "icons_style": {"type": "string"},
+        "borders": {"type": "string"},
+        "graphic_style": {"type": "string"},
+        "carousel_style": {"type": "string"}
+      }
+    },
+    "content_voice": {
+      "type": "object",
+      "required": ["personality", "tone_spectrum", "emoji_usage", "formatting_rules", "forbidden_words"],
+      "additionalProperties": false,
+      "properties": {
+        "personality": {"type": "string"},
+        "tone_spectrum": {"type": "string"},
+        "emoji_usage": {"type": "string"},
+        "hashtag_style": {"type": "string"},
+        "formatting_rules": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "signature_phrases": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "forbidden_words": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "platform_adaptations": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "instagram": {"$ref": "#/definitions/platformAdaptation"},
+        "facebook": {"$ref": "#/definitions/platformAdaptation"},
+        "tiktok": {"$ref": "#/definitions/platformAdaptation"},
+        "linkedin": {"$ref": "#/definitions/platformAdaptation"}
+      }
+    },
+    "prompt_injection": {
+      "type": "object",
+      "description": "Fragmentos que se inyectan automáticamente en TODA generación downstream.",
+      "required": ["image_prefix", "image_suffix", "content_prefix", "content_suffix"],
+      "additionalProperties": false,
+      "properties": {
+        "image_prefix": {
+          "type": "string",
+          "description": "Antepuesto a cada prompt de imagen para fal.ai u otros."
+        },
+        "image_suffix": {
+          "type": "string",
+          "description": "Añadido al final de cada prompt de imagen (incluye hex de colores)."
+        },
+        "content_prefix": {
+          "type": "string",
+          "description": "Instrucción de voz al inicio de cada generación de texto."
+        },
+        "content_suffix": {
+          "type": "string",
+          "description": "Reglas finales + CTA style al final de cada texto."
+        }
+      }
+    }
+  },
+  "definitions": {
+    "hexColor": {
+      "type": "string",
+      "pattern": "^#[0-9A-Fa-f]{6}$"
+    },
+    "platformAdaptation": {
+      "type": "object",
+      "additionalProperties": {"type": "string"}
+    }
+  }
+}

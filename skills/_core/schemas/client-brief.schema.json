@@ -1,0 +1,300 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://marketing-agents.dev/schemas/client-brief.schema.json",
+  "title": "Client Brief",
+  "description": "Documento fundacional del cliente que todos los agentes del toolkit leen como contexto. Generado por /briefing new, actualizado por /briefing update. Captura las 6 dimensiones de un brief de agencia: identidad, ICP, mercado, equipo comercial, catálogo, objetivos+KPIs+presupuesto+persona+roles por red.",
+  "type": "object",
+  "required": ["version", "created_at", "company", "icp", "sales", "objectives"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "2.0",
+      "description": "v2.0 añade objectives, kpis, budget, buyer_persona, network_roles sobre v1.0."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "company": {
+      "type": "object",
+      "description": "Identidad y características del cliente (sección 1 del brief).",
+      "required": ["name", "industry", "product", "tone", "location", "platforms"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "industry": {"type": "string", "minLength": 1},
+        "product": {"type": "string", "minLength": 1},
+        "tone": {"type": "string", "minLength": 1},
+        "location": {"type": "string", "minLength": 1},
+        "value_proposition": {"type": "string"},
+        "mission": {"type": "string", "description": "Propósito de la marca en una frase."},
+        "platforms": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["instagram", "facebook", "tiktok", "linkedin", "youtube"]},
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      }
+    },
+    "objectives": {
+      "type": "object",
+      "description": "Objetivos de negocio del cliente (Phase 1 del flujo de agencia). Determinan prioridades de todos los agentes.",
+      "required": ["primary", "timeline_days"],
+      "additionalProperties": false,
+      "properties": {
+        "primary": {
+          "type": "string",
+          "enum": ["sales", "leads", "awareness", "community", "retention", "launch"],
+          "description": "Objetivo primario del período."
+        },
+        "secondary": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["sales", "leads", "awareness", "community", "retention", "launch"]},
+          "uniqueItems": true
+        },
+        "timeline_days": {
+          "type": "integer",
+          "minimum": 7,
+          "maximum": 365,
+          "description": "Horizonte temporal del plan (típicamente 90 días)."
+        },
+        "narrative": {
+          "type": "string",
+          "description": "Narrativa de 1-2 líneas del objetivo (ej. 'Pasar de 20 a 60 leads/mes vía IG en 90 días')."
+        }
+      }
+    },
+    "kpis": {
+      "type": "array",
+      "description": "Métricas medibles con baseline, target y deadline. Phase 1 del flujo.",
+      "items": {
+        "type": "object",
+        "required": ["metric", "baseline", "target", "deadline"],
+        "additionalProperties": false,
+        "properties": {
+          "metric": {
+            "type": "string",
+            "description": "Nombre de la métrica (ej. 'leads_per_month_instagram', 'reach_weekly_facebook', 'engagement_rate_tiktok')."
+          },
+          "baseline": {
+            "type": "number",
+            "description": "Valor actual medido."
+          },
+          "target": {
+            "type": "number",
+            "description": "Valor objetivo a alcanzar."
+          },
+          "deadline": {
+            "type": "string",
+            "format": "date",
+            "description": "Fecha ISO 8601 para alcanzar el target."
+          },
+          "measured_from": {
+            "type": "string",
+            "description": "Fuente de medición (ej. 'instagram_insights', 'meta_business_suite', 'manual_tracking')."
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["primary", "secondary", "tertiary"],
+            "description": "Importancia relativa. Primary KPIs son los que performance-analyst reporta primero."
+          }
+        }
+      }
+    },
+    "budget": {
+      "type": "object",
+      "description": "Presupuesto mensual del cliente (necesario para paid-media y production planning).",
+      "additionalProperties": false,
+      "properties": {
+        "currency": {"type": "string", "default": "USD", "description": "Código ISO 4217 (USD, COP, MXN, EUR, etc.)."},
+        "paid_media_monthly": {"type": "number", "minimum": 0, "description": "Para campañas en Meta Ads + TikTok Ads."},
+        "production_monthly": {"type": "number", "minimum": 0, "description": "Fotografía, video, edición."},
+        "influencer_monthly": {"type": "number", "minimum": 0, "description": "Colaboraciones y UGC."},
+        "tools_monthly": {"type": "number", "minimum": 0, "description": "Suscripciones (Metricool, Canva, etc.)."},
+        "notes": {"type": "string"}
+      }
+    },
+    "network_roles": {
+      "type": "object",
+      "description": "Rol estratégico de cada red social activa (Phase 1 del flujo). Determina qué formatos prioriza content-planner.",
+      "additionalProperties": false,
+      "properties": {
+        "instagram": {"$ref": "#/definitions/networkRole"},
+        "facebook": {"$ref": "#/definitions/networkRole"},
+        "tiktok": {"$ref": "#/definitions/networkRole"},
+        "linkedin": {"$ref": "#/definitions/networkRole"},
+        "youtube": {"$ref": "#/definitions/networkRole"}
+      }
+    },
+    "buyer_persona": {
+      "type": "object",
+      "description": "Persona ideal del comprador (Phase 1 del flujo). Diferente del ICP: el ICP es la empresa, la persona es el humano que decide.",
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string", "description": "Nombre ficticio para humanizar ('María Compras', 'Carlos Decisor')."},
+        "age_range": {"type": "string", "description": "ej. '35-45'."},
+        "role": {"type": "string", "description": "Cargo profesional."},
+        "pain_points": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Dolores específicos del día a día que el producto resuelve."
+        },
+        "goals": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Metas profesionales/personales relevantes."
+        },
+        "format_preferences": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["reels", "carousels", "posts", "stories", "videos_largos", "podcasts", "infografias", "lives"]},
+          "description": "Formatos de contenido que consume."
+        },
+        "journey_stage": {
+          "type": "string",
+          "enum": ["awareness", "consideration", "decision", "retention"],
+          "description": "Etapa del customer journey donde se enfocará el contenido."
+        },
+        "channels_used": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Dónde pasa su tiempo (ej. 'instagram', 'linkedin', 'whatsapp')."
+        },
+        "objections": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Objeciones típicas que hay que abordar en el contenido/outreach."
+        }
+      }
+    },
+    "icp": {
+      "type": "object",
+      "description": "Ideal Customer Profile (B2B) — la EMPRESA ideal. Para B2C solo rellenar los campos aplicables.",
+      "required": ["industry_target", "geography"],
+      "additionalProperties": false,
+      "properties": {
+        "industry_target": {"type": "string"},
+        "geography": {"type": "string"},
+        "company_size": {"type": "string", "enum": ["solo", "small", "medium", "large", "mixed", "b2c"]},
+        "decision_maker_role": {"type": "string"},
+        "pain_points": {"type": "array", "items": {"type": "string"}},
+        "buying_triggers": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "market": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "competitors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "additionalProperties": false,
+            "properties": {
+              "name": {"type": "string"},
+              "notes": {"type": "string"},
+              "url": {"type": "string", "format": "uri"},
+              "instagram": {"type": "string"},
+              "facebook": {"type": "string"},
+              "tiktok": {"type": "string"}
+            }
+          }
+        },
+        "commodities": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "sales": {
+      "type": "object",
+      "required": ["sender_name", "sender_role"],
+      "additionalProperties": false,
+      "properties": {
+        "sender_name": {"type": "string"},
+        "sender_role": {"type": "string"},
+        "contact_channels": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["linkedin", "whatsapp", "email", "instagram-dm"]}
+        },
+        "response_sla_hours": {
+          "type": "integer",
+          "description": "Tiempo máximo esperado para responder DMs y comentarios comerciales (default 24h)."
+        }
+      }
+    },
+    "catalog": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "default_product": {"type": "string"},
+        "products": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["slug", "name"],
+            "additionalProperties": false,
+            "properties": {
+              "slug": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+              "name": {"type": "string"},
+              "description": {"type": "string"},
+              "technical_description": {"type": "string"},
+              "characteristics": {"type": "object", "additionalProperties": {"type": "string"}},
+              "colors": {"type": "array", "items": {"type": "string"}},
+              "keywords": {"type": "array", "items": {"type": "string"}},
+              "has_reference_images": {"type": "boolean"},
+              "reference_images": {"type": "array", "items": {"type": "string"}},
+              "is_default": {"type": "boolean"},
+              "description_approved_by_user": {"type": "boolean"}
+            }
+          }
+        }
+      }
+    },
+    "credentials_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "meta": {"$ref": "#/definitions/credentialStatus"},
+        "tiktok": {"$ref": "#/definitions/credentialStatus"},
+        "telegram": {"$ref": "#/definitions/credentialStatus"},
+        "anthropic": {"$ref": "#/definitions/credentialStatus"},
+        "meta_ads": {"$ref": "#/definitions/credentialStatus"},
+        "tiktok_ads": {"$ref": "#/definitions/credentialStatus"}
+      }
+    }
+  },
+  "definitions": {
+    "credentialStatus": {
+      "type": "string",
+      "enum": ["has", "needs", "not_applicable"]
+    },
+    "networkRole": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "role_description": {
+          "type": "string",
+          "description": "Descripción del rol de esta red (ej. 'vitrina + ventas', 'descubrimiento orgánico', 'pauta + remarketing')."
+        },
+        "primary_formats": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["reels", "carousels", "posts", "stories", "lives", "video_largo", "tiktok_video", "tiktok_photo"]},
+          "description": "Formatos principales a producir en esta red."
+        },
+        "frequency_per_week": {
+          "type": "object",
+          "additionalProperties": {"type": "number"},
+          "description": "Frecuencia por formato (ej. {reels: 3, stories: 7, carousels: 2})."
+        },
+        "primary_objective": {
+          "type": "string",
+          "enum": ["reach", "engagement", "conversion", "retention", "service"],
+          "description": "Qué métrica primaria se persigue en esta red."
+        }
+      }
+    }
+  }
+}

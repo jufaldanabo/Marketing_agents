@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://marketing-agents.dev/schemas/kpi-tracking.schema.json",
+  "title": "KPI Tracking",
+  "description": "Rastrea la evolución de los KPIs definidos en client-brief.json a lo largo del tiempo. Es escrito por performance-analyst y leído por conductor, content-planner y commands de reporte.",
+  "type": "object",
+  "required": ["version", "updated_at", "kpis"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "period_start": {
+      "type": "string",
+      "format": "date",
+      "description": "Inicio del período de medición (típicamente la fecha del brief)."
+    },
+    "kpis": {
+      "type": "array",
+      "description": "Un objeto por cada KPI del brief, con histórico de mediciones.",
+      "items": {
+        "type": "object",
+        "required": ["metric", "baseline", "target", "deadline", "measurements"],
+        "additionalProperties": false,
+        "properties": {
+          "metric": {
+            "type": "string",
+            "description": "Nombre de la métrica (debe coincidir con kpi.metric en client-brief.json)."
+          },
+          "baseline": {"type": "number"},
+          "target": {"type": "number"},
+          "deadline": {"type": "string", "format": "date"},
+          "priority": {"type": "string", "enum": ["primary", "secondary", "tertiary"]},
+          "current_value": {
+            "type": "number",
+            "description": "Valor más reciente medido."
+          },
+          "progress_pct": {
+            "type": "number",
+            "description": "% de progreso hacia el target. 100 = alcanzado. Puede exceder 100 si se supera."
+          },
+          "trajectory": {
+            "type": "string",
+            "enum": ["on_track", "at_risk", "behind", "achieved", "exceeded"],
+            "description": "Estado basado en progreso vs tiempo transcurrido."
+          },
+          "measurements": {
+            "type": "array",
+            "description": "Serie temporal de mediciones.",
+            "items": {
+              "type": "object",
+              "required": ["date", "value"],
+              "additionalProperties": false,
+              "properties": {
+                "date": {"type": "string", "format": "date"},
+                "value": {"type": "number"},
+                "source": {"type": "string"},
+                "notes": {"type": "string"}
+              }
+            }
+          },
+          "insights": {
+            "type": "array",
+            "description": "Hallazgos relevantes para esta métrica (ej. 'reels funcionan 3x mejor que posts estáticos').",
+            "items": {"type": "string"}
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "description": "Resumen agregado del progreso.",
+      "additionalProperties": false,
+      "properties": {
+        "on_track_count": {"type": "integer"},
+        "at_risk_count": {"type": "integer"},
+        "behind_count": {"type": "integer"},
+        "achieved_count": {"type": "integer"},
+        "overall_health": {
+          "type": "string",
+          "enum": ["green", "yellow", "red"],
+          "description": "Verde = todos on_track o mejor; Amarillo = 1-2 at_risk; Rojo = cualquier KPI primary behind."
+        }
+      }
+    }
+  }
+}
