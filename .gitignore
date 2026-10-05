@@ -1,0 +1,22 @@
+# Demo data (isolated per client run)
+demo/.data/
+
+# Production state (generated in client projects)
+.claude/
+
+# Environment variables
+.env
+.env.local
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
