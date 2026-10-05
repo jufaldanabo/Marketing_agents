@@ -1,226 +1,127 @@
+---
+description: Genera y envía mensajes de seguimiento a leads sin respuesta.
+argument-hint: [lead_id]
+allowed-tools: [Read, Write, Task, Bash]
+---
+
 # Command: /followup-leads
 
-**Propósito**: Genera mensajes de seguimiento para leads que no respondieron al primer contacto.
-**Modelo**: `claude-opus-4-6`
-**Skills usados**: `follow-up-sequence.md`, `qualify-leads.md`
+**Propósito**: Reactivar leads que no respondieron al primer contacto con una secuencia de seguimiento multi-toque.
+**Agente invocado**: `sales-prospector` (modo `followup`, vía Task tool)
+**Fase del flujo de agencia**: Auxiliar B2B (prospección y pipeline)
 
 ---
 
-## Cuándo usar este command
+## Precondiciones
 
-Usar cuando han pasado 5+ días desde el primer mensaje a un lead y no hay respuesta.
-Ideal ejecutarlo 1-2 veces por semana para mantener el pipeline activo.
+1. Ejecutar `_core/load-brief` → si falta `.claude/client-brief.json` o `brief.b2b_sales.enabled != true`, abortar con mensaje:
+   `⚠️ Este cliente no tiene prospección B2B activada. Edita brief.b2b_sales.enabled.`
+2. Ejecutar `_core/preflight-check --domains anthropic,telegram` → abortar si alguno es crítico (sin API key o sin bot).
+3. Verificar que exista `.claude/leads/followup-tracking.json`. Si no existe pero hay reportes previos en `.claude/leads/YYYY-MM-DD/leads-report.json`, inicializarlo con todos los leads conocidos en estado `no_response`.
 
-```bash
-/followup-leads           # Revisa todos los leads activos y genera seguimientos
-/followup-leads urgent    # Solo leads Hot que llevan 7+ días sin respuesta
-/followup-leads {EMPRESA} # Seguimiento específico para una empresa
-/followup-leads stage 2   # Solo genera seguimientos de etapa 2
-```
+---
 
-## Flujo de ejecución
+## Flujo
 
-### Paso 1 — Leer leads activos
+### Paso 1 — Parsear argumentos
 
-Leer archivos de leads guardados en `.claude/leads/`:
-
-```
-.claude/leads/
-├── 2026-02-20/
-│   ├── leads-report.json          ← lista de leads calificados
-│   └── outreach-*.md              ← mensajes de primer contacto
-├── 2026-02-24/
-│   └── leads-report.json
-└── followup-tracking.json         ← historial de seguimientos
-```
-
-**Estructura de followup-tracking.json:**
-```json
-{
-  "leads": [
-    {
-      "company_name": "Confecciones El Valle",
-      "contact": "María González",
-      "channel": "linkedin",
-      "score": 88,
-      "category": "hot",
-      "first_contact_date": "2026-02-20",
-      "last_contact_date": "2026-02-20",
-      "sequence_stage": 1,
-      "status": "no_response",
-      "notes": ""
-    }
-  ]
-}
-```
-
-Si `followup-tracking.json` no existe, crearlo con todos los leads del reporte más reciente.
-
-### Paso 2 — Identificar qué leads necesitan seguimiento
-
-Para cada lead con `status = "no_response"`, calcular días desde `last_contact_date`:
-
-| Días sin respuesta | Etapa recomendada |
+| Argumento | Significado |
 |---|---|
-| 5-8 días | Seguimiento 1 |
-| 10-13 días | Seguimiento 2 |
-| 16-20 días | Seguimiento 3 |
-| 22+ días | Break-up |
-| Respondió positivo | ✅ Mover a CRM / siguiente paso |
-| Respondió negativo | ❌ Marcar como "no interesado por ahora" |
+| (vacío) | Procesar **todos** los leads con acción pendiente hoy |
+| `$1 = lead_id` | Solo seguimiento del lead específico (ej. `confecciones-el-valle`) |
+| `$1 = --urgent` | Solo leads Hot con 7+ días sin respuesta |
+| `$1 = --stage N` | Solo leads cuya próxima etapa calculada = N |
 
-Filtrar solo los leads que requieren acción hoy.
-Ordenar por: prioridad (hot > warm) y días sin respuesta (mayor primero).
+### Paso 2 — Delegar al agente vía Task
 
-### Paso 3 — Mostrar leads pendientes
-
-Presentar resumen antes de generar mensajes:
+Invocar `sales-prospector` con el modo `followup`:
 
 ```
-## LEADS QUE REQUIEREN SEGUIMIENTO HOY
-Fecha: 2026-02-27 | Leads activos: {N_TOTAL} | Con acción pendiente: {N_ACCIÓN}
+Task tool:
+  subagent_type: "sales-prospector"
+  prompt: |
+    MODO: followup
+    SCOPE: {all | lead_id={X} | urgent | stage={N}}
+    TRACKING_FILE: .claude/leads/followup-tracking.json
+    LEADS_DIR: .claude/leads/
 
-🔥 HOT LEADS ({N})
-• Confecciones El Valle — María González (Etapa 2 — 11 días sin respuesta) [LinkedIn]
-• Textiles Bogotá — Carlos Ruiz (Break-up — 23 días) [Email]
+    Para cada lead con status="no_response":
+      1. Calcular días desde last_contact_date
+      2. Determinar sequence_stage (1=5-8d, 2=10-13d, 3=16-20d, 4=22+d break-up)
+      3. Leer outreach original en .claude/leads/*/outreach-{slug}.md
+      4. Generar mensaje con skill follow-up-sequence
+      5. Devolver bloque estructurado por lead:
+         - lead_id, company_name, contact, channel, stage, days
+         - mensaje principal + variante A
+         - ángulo y mejor momento de envío
 
-✅ WARM LEADS ({N})
-• ModaExport S.A. — Ana Torres (Etapa 1 — 6 días) [LinkedIn]
-
-¿Generar mensajes para todos? (S/N) o especifica cuáles:
+    Al terminar, devolver un resumen JSON con:
+      { "leads_processed": N, "messages_generated": N, "pending_file_updates": [...] }
 ```
 
-### Paso 4 — Generar mensajes de seguimiento
+### Paso 3 — Presentar resultado al usuario
 
-Para cada lead seleccionado, invocar skill `follow-up-sequence.md` con:
-- `lead` — datos del lead
-- `original_outreach` — primer mensaje enviado (leer de `.claude/leads/*/outreach-{empresa}.md`)
-- `channel` — canal del lead
-- `days_since_last_contact` — calculado en paso 2
-- `sequence_stage` — etapa calculada en paso 2
-- `company_name`, `product`, `value_proposition` — de CLAUDE.md
-
-### Paso 5 — Presentar mensajes generados
-
-Para cada lead mostrar:
+Mostrar cada mensaje generado con el bloque de acciones:
 
 ```
 ═══════════════════════════════════════
-🔥 CONFECCIONES EL VALLE — Etapa 2/4
-Contacto: María González | LinkedIn | 11 días sin respuesta
+🔥 {EMPRESA} — Etapa {N}/4
+Contacto: {NOMBRE} | {CANAL} | {DIAS}d sin respuesta
+Ángulo: {ANGULO}
+Enviar: {MEJOR_MOMENTO}
 
 MENSAJE PRINCIPAL:
-Hola María, sé que estás ocupada — te escribo muy brevemente.
-
-[...texto completo del mensaje...]
-
-Ángulo: Certificación GOTS como diferenciador competitivo
-Enviar: Martes o miércoles, 9-11am
+{TEXTO}
 
 VARIANTE A:
-[...variante alternativa...]
+{TEXTO_ALT}
 
-─────────────────────────────────────
-Acciones:
-[P] Publicar principal  [A] Publicar variante A
-[E] Editar antes de enviar  [S] Solo guardar  [X] Saltar este lead
+[P] Publicar principal  [A] Variante A
+[E] Editar  [S] Solo guardar  [X] Saltar
 ═══════════════════════════════════════
 ```
 
-### Paso 6 — Enviar o guardar mensajes
-
-Según la selección del usuario para cada lead:
-
-**Solo guardar (opción S):**
-- Guardar en `.claude/leads/{FECHA}/followup-{empresa}-stage{N}.md`
-- Copiar al portapapeles para envío manual
-
-**Enviar (requiere integración con canal):**
-
-Para LinkedIn y WhatsApp, Claude Code **no puede enviar directamente** (no hay API pública para envío automático). En su lugar:
-
-```
-📋 INSTRUCCIONES PARA ENVIAR EN LINKEDIN:
-1. Abrir: linkedin.com/messaging
-2. Buscar: {NOMBRE} en {EMPRESA}
-3. Copiar el siguiente mensaje:
-
-"{MENSAJE_COMPLETO}"
-
-✅ Una vez enviado, marca como "enviado" aquí para actualizar el tracking.
-```
-
-Para **email** (si hay configuración SMTP):
-```
-Enviar email a {EMAIL_CONTACTO}
-Asunto: {SUBJECT}
-Cuerpo: {MESSAGE}
-```
-
-### Paso 7 — Actualizar tracking
-
-Actualizar `followup-tracking.json` con:
-```json
-{
-  "company_name": "Confecciones El Valle",
-  "last_contact_date": "2026-02-27",
-  "sequence_stage": 2,
-  "last_message_sent": "seguimiento-2-gots",
-  "status": "awaiting_response"
-}
-```
+Según selección:
+- **S / P / A** → guardar en `.claude/leads/{HOY}/followup-{slug}-stage{N}.md`
+- **P / A** → copiar al portapapeles (LinkedIn/WhatsApp no tienen envío directo) con instrucciones de envío manual; si canal=email y hay SMTP configurado, enviar.
+- Actualizar `followup-tracking.json`: `last_contact_date`, `sequence_stage`, `status=awaiting_response`.
 
 Resumen final:
 
 ```
-## RESUMEN /followup-leads
-Fecha: 2026-02-27
-
+## RESUMEN /followup-leads — {FECHA}
 ✅ Mensajes generados: {N}
 📋 Copiados para envío manual: {N}
 💾 Solo guardados: {N}
-🔄 Tracking actualizado: {N} leads
 
 PRÓXIMOS SEGUIMIENTOS:
-• 2026-03-03: Confecciones El Valle — Etapa 3
-• 2026-03-05: ModaExport — Etapa 2
-• 2026-03-10: Textiles Bogotá — Break-up
-
-💾 Guardado en: .claude/leads/followup-tracking.json
+• {FECHA}: {EMPRESA} — Etapa {N}
 ```
 
-## Variables de entorno requeridas
+---
 
-```env
-COMPANY_NAME=...
-INDUSTRY=...
-PRODUCT=...
-VALUE_PROPOSITION=...
-SENDER_NAME=...
-SENDER_ROLE=...
+## Argumentos
+
+```bash
+/followup-leads                      # Todos los leads con acción hoy
+/followup-leads confecciones-valle   # Solo ese lead
+/followup-leads --urgent             # Solo Hot con 7+ días
+/followup-leads --stage 2            # Solo etapa 2
 ```
 
-## Manejo de estados de leads
-
-Los leads pueden tener los siguientes estados en `followup-tracking.json`:
-
-| Status | Descripción | Acción |
-|---|---|---|
-| `no_response` | Sin respuesta desde el último mensaje | Generar siguiente etapa |
-| `awaiting_response` | Mensaje enviado hoy, esperando | No hacer nada |
-| `responded_positive` | Respondió con interés | Mover a siguiente paso del proceso comercial |
-| `responded_negative` | No interesado | Archivar, marcar para contacto en 6 meses |
-| `not_right_time` | Respondió al break-up que sí pero más adelante | Contactar en fecha indicada |
-| `disqualified` | No es un lead válido | Remover del pipeline |
-| `closed_won` | Se convirtió en cliente | Celebrar 🎉 |
-
-## Integración con /prospect-leads
+## Ejemplo
 
 ```
-/prospect-leads   →  genera leads nuevos + mensajes iniciales
-/followup-leads   →  da seguimiento a leads ya contactados
+/followup-leads --urgent
+→ sales-prospector (modo followup, scope=urgent)
+→ 3 mensajes generados para 3 Hot leads
+→ Usuario aprueba 2, salta 1
+→ tracking.json actualizado
 ```
 
-Usar ambos commands semanalmente para mantener el pipeline activo:
-- Lunes: `/followup-leads` — revisar respuestas de la semana anterior
-- Jueves: `/prospect-leads` — agregar nuevos leads al pipeline
+## Notas
+
+- Estados válidos en `followup-tracking.json`: `no_response`, `awaiting_response`, `responded_positive`, `responded_negative`, `not_right_time`, `disqualified`, `closed_won`.
+- Si un lead llega a etapa 4 sin respuesta, se marca como break-up y pasa a `disqualified` tras 7 días sin respuesta al break-up.
+- Para integrar con `/prospect-leads`: ejecutar lunes (follow-up) y jueves (nuevos leads) para mantener el pipeline balanceado.
+- Toda la lógica real vive en el agente `sales-prospector` — este command solo orquesta el modo `followup`.

@@ -1,183 +1,150 @@
-# /social-report — Reporte Nocturno de Redes Sociales
+---
+description: Reporte nocturno de comentarios, DMs, menciones y métricas de redes sociales enviado por Telegram
+argument-hint: [YYYY-MM-DD opcional] [--platforms ig,fb,tt] [--dry-run]
+allowed-tools: [Read, Write, Task, Bash]
+---
 
-Revisa comentarios, mensajes directos y métricas del día en Instagram y Facebook.
-Genera un resumen inteligente y lo envía por Telegram.
-Ideal para ejecutar automáticamente cada noche (ej. 22:00).
+# Command: /social-report
+
+**Propósito**: Dispara el reporte nocturno de monitoreo. Delega al agente `social-monitor` la recolección de comentarios/DMs/métricas, el análisis y el envío por Telegram.
+
+**Agente invocado**: `social-monitor` (vía Task tool con `subagent_type`)
+
+**Fase del flujo de agencia**: 6 (monitoreo)
 
 ---
 
-## Instrucciones para Claude
+## Precondiciones
 
-Eres el **Agente de Monitoreo Social**. Tu trabajo es revisar la actividad
-del día en redes sociales, identificar lo más importante y notificar al equipo.
+Antes de delegar al agente, ejecutar en orden:
 
-### Paso 0 — Cargar variables de entorno
+1. **Cargar brief del cliente activo**
+   - Invocar skill `_core/load-brief` → devuelve `brief_json` con `company`, `social.platforms` activas.
+   - Si falla: abortar con mensaje `Brief no encontrado. Ejecuta /briefing new para configurar el cliente activo.`
 
-```bash
-# Local: carga .env si existe | Railway: no-op (vars ya en entorno)
-[ -f .env ] && export $(grep -v '^#' .env | xargs)
+2. **Preflight de credenciales**
+   - Invocar skill `_core/preflight-check --domains meta,telegram`
+   - Si hay fallas críticas (tokens Meta expirados o Telegram inválido), abortar y mostrar el fix (`/setup-check`).
+
+---
+
+## Flujo
+
+### Paso 1 — Interpretar argumentos
+
+Parsear `$ARGUMENTS`:
+
+- `$1` (opcional): **date** en formato `YYYY-MM-DD`. Si está vacío, usar hoy (`date +%Y-%m-%d`).
+- `--platforms ig,fb,tt`: filtrar plataformas a revisar. Default: todas las activas en `brief.social.platforms`.
+- `--dry-run`: generar el reporte y guardarlo en `.claude/state/reports/{date}.md` pero NO enviar a Telegram.
+
+Validar formato de `$1` (regex `^\d{4}-\d{2}-\d{2}$`). Si es inválido, pedir corrección y abortar.
+
+### Paso 2 — Delegar al agente vía Task
+
+Invocar el agente con el contexto completo:
+
+```
+Task(
+  subagent_type: "social-monitor",
+  description: "Reporte nocturno de redes",
+  prompt: """
+Genera el reporte diario de monitoreo social del cliente activo.
+
+Entradas:
+- brief: {brief_json}
+- target_date: {YYYY-MM-DD}
+- platforms: {["instagram", "facebook", "tiktok"] filtradas por --platforms}
+- dry_run: {true|false}
+
+Comportamiento esperado (resumido — tu system prompt es la fuente de verdad):
+1. Para cada plataforma activa, recolectar vía Graph API / TikTok API:
+   - Posts de las últimas 24h (comments_count, reactions)
+   - Comentarios y replies por post
+   - DMs / mensajes de página
+   - Insights del día (reach, impressions, engagement, follower_count)
+2. Verificar expiración de tokens Meta (skill `social_monitoring/check-token-expiry`).
+   Emitir evento `token_expiring` si <10 días.
+3. Clasificar comentarios en prioridades (alta: queja/consulta de venta; media: duda;
+   baja: emoji/felicitación) usando claude-sonnet-4-6.
+4. Detectar señales de crisis (pico de menciones negativas, viralización negativa).
+   Emitir evento `crisis_detected` si corresponde.
+5. Generar reporte ejecutivo con las 7 secciones estándar
+   (resumen, comentarios pendientes, DMs, métricas vs ayer, oportunidades,
+    alertas, acciones para mañana) — máx 500 palabras.
+6. Guardar en `.claude/state/reports/{target_date}.md`.
+7. Si dry_run=false, enviar el reporte formateado a Telegram.
+   Si dry_run=true, solo guardar el archivo y marcarlo como preview.
+
+Devuelve al terminar:
+{
+  "status": "sent" | "dry_run" | "partial" | "error",
+  "target_date": "YYYY-MM-DD",
+  "platforms_checked": ["instagram", "facebook", ...],
+  "platforms_failed": [],
+  "counts": {
+    "comments_pending": N,
+    "dms_pending": N,
+    "high_priority": N,
+    "crisis_signals": N
+  },
+  "metrics_delta": { "reach": "+12%", "followers": "+3", ... },
+  "events_emitted": ["token_expiring", "crisis_detected"],
+  "state_files": [".claude/state/reports/{date}.md"]
+}
+"""
+)
+```
+
+### Paso 3 — Presentar resultado al usuario
+
+Según `status` devuelto por el agente:
+
+- **`sent`**: Confirmar envío a Telegram. Mostrar counts (comentarios pendientes, alta prioridad, señales de crisis) y métricas delta. Sugerir `/respond-comments` si hay comentarios pendientes de alta prioridad.
+- **`dry_run`**: Confirmar que el reporte quedó en disco pero no se envió. Mostrar ruta del `.md`.
+- **`partial`**: Mostrar qué plataformas fallaron. Sugerir `/setup-check` para la plataforma caída.
+- **`error`**: Mostrar el error exacto. Si fue token: `/setup-check`. Si fue red: reintentar.
+
+Si el agente emitió `token_expiring` o `crisis_detected`, resaltar en la respuesta al usuario (son los eventos más importantes).
+
+---
+
+## Argumentos
+
+| Arg | Tipo | Default | Descripción |
+|---|---|---|---|
+| `$1` | `YYYY-MM-DD` | hoy | Fecha del reporte. |
+| `--platforms` | lista | todas activas | Filtra plataformas (`ig`, `fb`, `tt`). |
+| `--dry-run` | flag | `false` | Genera el reporte pero no lo envía a Telegram. |
+
+---
+
+## Ejemplo de uso
+
+```
+/social-report
+/social-report 2026-10-04
+/social-report --platforms ig,fb
+/social-report --dry-run
+```
+
+Resultado esperado:
+
+```
+Reporte enviado por Telegram
+  Fecha: 2026-10-05
+  Comentarios pendientes: 7 (3 alta prioridad)
+  DMs: 2 nuevos
+  Reach IG: +12% vs ayer
+  Eventos: token_expiring (FB caduca en 8 días)
+  Archivo: .claude/state/reports/2026-10-05.md
 ```
 
 ---
 
-### Paso 1 — Recopilar comentarios de Instagram
+## Notas
 
-**Obtener posts recientes (últimas 24h):**
-```
-GET https://graph.facebook.com/v18.0/{INSTAGRAM_BUSINESS_ACCOUNT_ID}/media
-  fields=id,caption,timestamp,comments_count,like_count
-  access_token={INSTAGRAM_ACCESS_TOKEN}
-```
-
-**Para cada post con comentarios, obtenerlos:**
-```
-GET https://graph.facebook.com/v18.0/{POST_ID}/comments
-  fields=id,text,username,timestamp,replies
-  access_token={INSTAGRAM_ACCESS_TOKEN}
-```
-
-**Obtener mensajes directos (Instagram DMs):**
-```
-GET https://graph.facebook.com/v18.0/{INSTAGRAM_BUSINESS_ACCOUNT_ID}/conversations
-  fields=participants,messages{message,from,created_time}
-  access_token={INSTAGRAM_ACCESS_TOKEN}
-```
-
-### Paso 2 — Recopilar comentarios de Facebook
-
-**Obtener posts recientes:**
-```
-GET https://graph.facebook.com/v18.0/{FACEBOOK_PAGE_ID}/posts
-  fields=id,message,created_time,comments{message,from,created_time},reactions.summary(true)
-  access_token={FACEBOOK_ACCESS_TOKEN}
-```
-
-**Obtener mensajes de la página:**
-```
-GET https://graph.facebook.com/v18.0/{FACEBOOK_PAGE_ID}/conversations
-  fields=participants,messages{message,from,created_time}
-  access_token={FACEBOOK_ACCESS_TOKEN}
-```
-
-### Paso 3 — Obtener métricas del día
-
-**Instagram Insights:**
-```
-GET https://graph.facebook.com/v18.0/{INSTAGRAM_BUSINESS_ACCOUNT_ID}/insights
-  metric=reach,impressions,profile_views,follower_count
-  period=day
-  access_token={INSTAGRAM_ACCESS_TOKEN}
-```
-
-**Facebook Page Insights:**
-```
-GET https://graph.facebook.com/v18.0/{FACEBOOK_PAGE_ID}/insights
-  metric=page_impressions,page_reach,page_fans,page_post_engagements
-  period=day
-  access_token={FACEBOOK_ACCESS_TOKEN}
-```
-
-### Paso 4 — Analizar con Claude
-
-Usa `claude-sonnet-4-6` para analizar toda la información:
-
-```
-SYSTEM:
-Eres un analista de redes sociales B2B. Analizas comentarios y métricas
-para identificar oportunidades de negocio, quejas que necesitan respuesta
-y tendencias importantes. Eres conciso y orientado a la acción.
-
-USER:
-Analiza la actividad de hoy en redes sociales:
-
-EMPRESA: {COMPANY_NAME}
-FECHA: {HOY}
-
-DATOS DE INSTAGRAM:
-{datos_instagram_json}
-
-DATOS DE FACEBOOK:
-{datos_facebook_json}
-
-MÉTRICAS:
-{metricas_json}
-
-Genera un reporte con estas secciones:
-1. 🎯 RESUMEN EJECUTIVO (2-3 líneas)
-2. 💬 COMENTARIOS QUE REQUIEREN RESPUESTA (lista con prioridad alta/media)
-3. 📩 MENSAJES DIRECTOS PENDIENTES (si hay alguno)
-4. 📊 MÉTRICAS DEL DÍA (vs ayer si hay datos)
-5. 🔥 OPORTUNIDADES IDENTIFICADAS
-6. ⚠️ ALERTAS (quejas, menciones negativas, etc.)
-7. ✅ ACCIONES RECOMENDADAS PARA MAÑANA
-
-Sé específico y accionable. Máximo 500 palabras.
-```
-
-### Paso 5 — Enviar por Telegram
-
-Envía el reporte al chat de Telegram:
-
-```
-POST https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage
-  chat_id={TELEGRAM_CHAT_ID}
-  text={REPORTE_FORMATEADO}
-  parse_mode=Markdown
-```
-
-**Formato del mensaje Telegram:**
-```
-🌙 *REPORTE NOCTURNO — {EMPRESA}*
-📅 {FECHA} | {HORA}
-
-{RESUMEN_EJECUTIVO}
-
-💬 *COMENTARIOS PENDIENTES ({N})*
-{LISTA_COMENTARIOS}
-
-📊 *MÉTRICAS DEL DÍA*
-• Instagram: 👁️ {reach} alcance | ❤️ {likes} likes
-• Facebook: 👁️ {impressions} impresiones | 🤝 {engagement} interacciones
-
-🔥 *OPORTUNIDADES*
-{OPORTUNIDADES}
-
-⚠️ *ALERTAS*
-{ALERTAS}
-
-✅ *PARA MAÑANA*
-{ACCIONES}
-
-_Generado automáticamente por Marketing Agents Toolkit_
-```
-
-### Paso 6 — Mostrar en consola
-
-Además de Telegram, mostrar el reporte completo en la terminal de Claude Code.
-
----
-
-## Variables requeridas
-
-| Variable | Fuente | Descripción |
-|---|---|---|
-| `INSTAGRAM_ACCESS_TOKEN` | Variable de entorno | Token de Instagram |
-| `INSTAGRAM_BUSINESS_ACCOUNT_ID` | Variable de entorno | ID cuenta Instagram |
-| `FACEBOOK_ACCESS_TOKEN` | Variable de entorno | Token de Facebook |
-| `FACEBOOK_PAGE_ID` | Variable de entorno | ID página Facebook |
-| `TELEGRAM_BOT_TOKEN` | Variable de entorno | Token del bot Telegram |
-| `TELEGRAM_CHAT_ID` | Variable de entorno | Chat/grupo destino |
-
-## Comportamiento
-
-- Si no hay actividad nueva: enviar igual el reporte con métricas básicas
-- Si falla Telegram: mostrar el reporte en consola e indicar el error
-- Si falla una API (IG o FB): continuar con la otra y señalarlo en el reporte
-- Guardar reporte en `.claude/reports/{FECHA}.md` del proyecto empresa
-
-## Programación automática
-
-Para ejecutar cada noche a las 22:00, agregar al crontab del servidor:
-```bash
-0 22 * * * cd /ruta/proyecto && claude --command social-report --no-interactive
-```
+- Este command es **thin**: NO reimplementa la lógica. Las llamadas a Graph API, clasificación de comentarios, detección de crisis y verificación de tokens viven en `agents/monitoring-agent.md` y en los skills bajo `skills/social_monitoring/*`.
+- Programación automática: Railway cron ~22:00 (ver `/setup-railway`). El agente ya está diseñado para ejecutarse de forma no-interactiva.
+- Idempotency: el agente usa `_core/state-store` con `key = sha1("report:" + target_date)` para evitar generar dos reportes del mismo día; si se re-ejecuta, actualiza el existente.
+- Para responder a los comentarios flagged, usar `/respond-comments` (flujo separado con aprobación por Telegram).
