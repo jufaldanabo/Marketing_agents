@@ -65,6 +65,7 @@ Verifica que estos campos existan y no estén vacíos:
 | `company.tone` | sí | no vacío |
 | `company.location` | sí | no vacío |
 | `company.platforms` | sí | array ≥1 |
+| `company.business_model` | sí | enum `b2b` / `b2c` / `both` |
 | `objectives.primary` | sí | enum válido |
 | `objectives.timeline_days` | sí | integer 7-365 |
 | `sales.sender_name` | sí | no vacío |
@@ -78,8 +79,13 @@ Verifica que estos campos existan y no estén vacíos:
 - `kpis` (array vacío = sin tracking de métricas)
 - `budget` (sin budget → paid-media no puede operar)
 - `buyer_persona` (sin persona → content-planner usa defaults)
-- `network_roles` (sin roles → content-planner usa heurísticas por defecto)
-- `icp` (solo requerido si es B2B)
+- `network_roles` (sin roles → content-planner los calcula via cadence_strategy: ai-recommended)
+- `icp` (solo requerido si `business_model` es `b2b` o `both`)
+
+**Reglas de validación según `business_model`**:
+- `b2b` → `icp` obligatorio con `industry_target` + `geography` mínimo. Prospección habilitada.
+- `b2c` → `icp` puede estar ausente. Prospección deshabilitada (`/prospect-leads` warning).
+- `both` → `icp` recomendado para el componente B2B.
 
 **Si falta algo obligatorio**: Reporta exactamente qué falta y sugiere `/briefing update {sección}`.
 
@@ -87,6 +93,9 @@ Verifica que estos campos existan y no estén vacíos:
 
 - Si `company.platforms` incluye `"tiktok"` pero `credentials_status.tiktok` es `"not_applicable"` → warning (no bloqueante).
 - Si `credentials_status.anthropic` no es `"has"` → warning crítico (bloqueante salvo en modo demo).
+- Si `business_model == "b2b"` y `icp` falta → warning crítico (prospección y mensajería estratégica no funcionarán).
+- Si `business_model == "b2c"` y `icp` presente → info (no se usará en contenido pero no causa error).
+- Para cada platform en `platforms`, si `network_roles[platform]` falta Y `audit` no se ha corrido → warning: "El content-planner usará heurísticas por defecto hasta que haya audit baseline o se definan roles manualmente".
 
 ### Paso 5 — Devolver contexto estructurado (v2.0)
 
@@ -96,6 +105,7 @@ Al agente invocador, devuelve el objeto completo del brief más un bloque de "co
 📋 CONTEXTO DEL CLIENTE ACTIVO (brief v2.0)
 
 Empresa: {company.name} ({company.industry}, {company.location})
+🏷️ Business model: {company.business_model.upper()}  ← determina tono y lenguaje
 Producto: {company.product}
 Tono: {company.tone}
 Plataformas activas: {company.platforms.join(", ")}
@@ -114,9 +124,11 @@ Plataformas activas: {company.platforms.join(", ")}
 
 📱 Roles de redes:
 {for each platform in company.platforms:}
-   • {platform}: {network_roles[platform].role_description or "no definido"} → {primary_objective}
+   • {platform}: {network_roles[platform].role_description or "AI-recomendado"} → {primary_objective}
+     Cadencia: {network_roles[platform].cadence_strategy or "ai-recommended"}
 
-{if icp} Cliente ideal (B2B):
+{if business_model in ["b2b", "both"] and icp}
+Cliente ideal (B2B):
    Sector: {icp.industry_target}
    Geografía: {icp.geography}
    Decisor: {icp.decision_maker_role or "no definido"}
@@ -126,6 +138,11 @@ Vendedor: {sales.sender_name} ({sales.sender_role})
 {if market.competitors} Competidores: {market.competitors.map(c => c.name).join(", ")}
 {if market.commodities} Commodities: {market.commodities.join(", ")}
 ```
+
+**Las adaptaciones de contenido downstream dependen de `business_model`**:
+- `b2b` → tono profesional, educativo, orientado a decisión, data-driven
+- `b2c` → tono conversacional, aspiracional, lifestyle, emocional
+- `both` → content-planner balancea el mix según foco del período (configurable)
 
 Cada agente usa las secciones relevantes a su dominio:
 - `content-planner` → objectives, kpis, buyer_persona, network_roles

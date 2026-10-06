@@ -16,7 +16,7 @@ model: claude-haiku-4-5
 ## Cuándo invocar
 
 - Al inicio de `generate-image-ai`, `generate-carousel`, `generate-reel`
-- Al inicio de `generate-b2b-content`, `generate-tiktok-content`
+- Al inicio de `generate-content`, `generate-tiktok-content`
 - En agente `content-publisher` antes de generar cualquier post
 - En agente `content-planner` antes de proponer tópicos
 

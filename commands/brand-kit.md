@@ -6,7 +6,7 @@ allowed-tools: [Read, Write, Edit, Bash, Task]
 
 # Command: /brand-kit
 
-**Propósito**: Entry point para gestionar `brand-kit.json` — la identidad visual y verbal que todos los skills de generación (`generate-image-ai`, `generate-b2b-content`, `generate-carousel`, etc.) inyectan en sus prompts.
+**Propósito**: Entry point para gestionar `brand-kit.json` — la identidad visual y verbal que todos los skills de generación (`generate-image-ai`, `generate-content`, `generate-carousel`, etc.) inyectan en sus prompts.
 
 **Principio**: Nunca pedir al cliente códigos hex, nombres de fuentes ni términos técnicos de diseño. El agente `brand-guardian` extrae todo de materiales reales (logo, PDFs, fotos, web).
 

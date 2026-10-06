@@ -383,7 +383,7 @@ que `claude-haiku-4-5` sin beneficio real en calidad.
 
 ```
 # ❌ INCORRECTO — opus para todas las tareas
-skills/publishing/generate-b2b-content.md  → claude-opus-4-7  ✅ (correcto)
+skills/publishing/generate-content.md  → claude-opus-4-7  ✅ (correcto)
 skills/social_monitoring/respond-comments.md → claude-opus-4-7  ❌ (excesivo)
 skills/social_monitoring/send-telegram.md  → claude-opus-4-7  ❌ (absurdo)
 ```

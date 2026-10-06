@@ -51,7 +51,7 @@ más los **top_n de TikTok** — no sobre todos los recopilados.
 
 ```
 SYSTEM:
-Eres un analista de contenido viral especializado en marketing B2B y marketing
+Eres un analista de contenido viral especializado en marketing digital (B2B y B2C) y marketing
 de redes sociales en el sector {INDUSTRY}.
 
 Tu trabajo es diseccionar por qué un video funcionó (obtuvo muchas vistas,
@@ -112,7 +112,7 @@ El modelo reconoce estos patrones cuando los observa en el título y contexto:
 | Patrón | Señal observable | Por qué genera engagement |
 |---|---|---|
 | `tutorial_paso_a_paso` | Título con "cómo", "paso a paso", "guía" | Alto valor percibido, SEO, compartible |
-| `revelacion_proceso_industrial` | Muestra maquinaria, producción, fábrica | Genera confianza en compradores B2B |
+| `revelacion_proceso_industrial` | Muestra maquinaria, producción, fábrica | B2B: genera confianza en compradores. B2C: humaniza la marca y aporta "detrás de cámaras" aspiracional |
 | `dato_sorprendente` | Estadística inesperada en el título | Rompe el scroll, genera debate en comentarios |
 | `comparacion_antes_despues` | Contraste explícito en título o thumbnail | Fácil de consumir, muy compartible |
 | `testimonio_cliente` | Historia real de cliente con resultados | Prueba social, genera leads directos |

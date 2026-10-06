@@ -1,8 +1,8 @@
 {
   "name": "marketing-agents",
   "display_name": "Marketing Agents",
-  "version": "2.0.0",
-  "description": "Multi-tenant marketing automation toolkit. Agents for content planning, publishing, social monitoring, market intelligence, prospecting and brand identity. Portable across clients via client-brief.json.",
+  "version": "2.1.0",
+  "description": "Multi-tenant marketing automation toolkit. 14 agents + 25 commands. Supports B2B, B2C and both business models via brief.company.business_model. Cadence (frequency + timing) is calibrated by content-planner based on strategy, not assumed. Portable across clients via client-brief.json.",
   "author": "jufaldanabo",
   "license": "MIT",
   "repository": "https://github.com/jufaldanabo/Marketing_agents",

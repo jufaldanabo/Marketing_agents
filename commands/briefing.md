@@ -53,13 +53,13 @@ Ya existe un brief para "{brand_name}". ¿Qué quieres hacer?
 ¡Hola! Soy el asistente que arma el brief de tu cliente.
 
 Un brief completo captura:
-  📌 Empresa, producto, tono y plataformas
+  📌 Empresa, modelo de negocio, producto, tono y plataformas
   🎯 Objetivos de negocio y KPIs medibles
   💰 Presupuesto para pauta y producción
   👤 Buyer persona (el humano que decide)
-  🏢 ICP (si es B2B)
+  🏢 ICP (si es B2B o both)
   📊 Mercado y competencia
-  🎨 Rol estratégico de cada red
+  🎨 Rol estratégico de cada red (cadencia manual o AI-recomendada)
 
 Me tomará 10-15 minutos. Puedes responder informalmente — yo estructuro.
 ```
@@ -73,11 +73,31 @@ Me tomará 10-15 minutos. Puedes responder informalmente — yo estructuro.
 - Propuesta de valor (¿por qué eligen a este cliente?)
 - Misión/propósito (opcional, en una frase)
 
-**1.2 Tono de comunicación**:
+**1.2 Modelo de negocio** ⚠️ **CRÍTICO — determina todo el tono downstream**:
+```
+¿A quién le vende el cliente?
+
+  1. B2C — Consumidor final (ej. zapatos a usuario, panadería a familias,
+     ropa a consumidor, cualquier producto/servicio a persona natural)
+  2. B2B — Empresas / tomadores de decisión (ej. maquinaria industrial a
+     fabricantes, software empresarial, materia prima a confeccionistas)
+  3. Both — Vende a ambos (ej. retailer con línea mayorista, consultoría
+     que atiende empresas y personas)
+```
+
+**Impacto de la respuesta**:
+- `b2c` → tono conversacional, aspiracional, lifestyle. ICP opcional, buyer_persona crítico.
+- `b2b` → tono profesional, educativo, orientado a decisión. ICP + buyer_persona ambos críticos. Habilita `/prospect-leads`.
+- `both` → el content-planner balanceará contenido 70/30 según foco actual (configurable).
+
+**1.3 Tono de comunicación**:
 - Formal / Cercano / Técnico / Aspiracional / Otro
 
-**1.3 Plataformas activas**:
+**1.4 Plataformas activas**:
 - Instagram / Facebook / TikTok / LinkedIn / YouTube
+
+> **Nota**: Si cliente es B2B, LinkedIn suele ser crítico. Si es B2C, TikTok y Instagram
+> suelen dominar. El content-planner lo tomará en cuenta.
 
 ### Fase 2 — Objetivos de negocio (sección `objectives`) **NUEVO**
 
@@ -149,8 +169,9 @@ Si prefiere no compartir aún, lo dejamos en 0 y lo actualizamos luego.
 
 ### Fase 5 — Buyer persona (sección `buyer_persona`) **NUEVO**
 
-> El buyer persona es el **humano que decide la compra**. Diferente del ICP
-> (que es la empresa). Si es B2C, solo rellenamos aquí.
+> El buyer persona es el **humano que decide la compra**. En B2C es el consumidor final.
+> En B2B es el decisor dentro de la empresa objetivo. En ambos casos, define a quién
+> le habla el contenido día a día.
 
 ```
 Dime cómo describirías al cliente ideal:
@@ -166,45 +187,72 @@ Dime cómo describirías al cliente ideal:
 
 ### Fase 6 — Rol de cada red social (sección `network_roles`) **NUEVO**
 
-Para cada plataforma de Fase 1.3, preguntar:
+Para cada plataforma de Fase 1.4, capturar el ROL (qué sirve esa red) + ESTRATEGIA DE CADENCIA.
 
+**6.1 Rol estratégico**:
 ```
-¿Cuál es el rol estratégico de {PLATAFORMA}?
+¿Cuál es el rol estratégico de {PLATAFORMA} para este cliente?
 
-Guía:
-  Instagram: vitrina de marca + reels + historias para comunidad y venta
-  Facebook: pauta + público más adulto + grupos + remarketing
-  TikTok: alcance orgánico + descubrimiento + video nativo
-  LinkedIn: autoridad + B2B + thought leadership
-```
-
-Para cada red capturar:
-- `role_description`: frase que describe el rol
-- `primary_formats`: formatos principales (reels, carousels, posts, stories...)
-- `frequency_per_week`: ej. `{reels: 3, stories: 7, posts: 2}`
-- `primary_objective`: `reach | engagement | conversion | retention | service`
-
-**Frecuencia típica según rol**:
-- Instagram B2C: 3-5 publicaciones/semana + stories diarias
-- Facebook: 2-3 publicaciones/semana
-- TikTok: 3-7 videos/semana
-- LinkedIn B2B: 2-3 posts/semana
-
-### Fase 7 — ICP (sección `icp`) — Solo si es B2B
-
-```
-¿Es un negocio B2B o B2C?
-  B2B → preguntar por ICP (empresa objetivo)
-  B2C → saltar esta fase, usar buyer_persona solamente
+Guía según business_model:
+  B2C:
+    Instagram: vitrina + comunidad + ventas directas vía DM
+    TikTok: descubrimiento orgánico + reach a nuevo público
+    Facebook: pauta pagada + grupos + remarketing a adultos
+  B2B:
+    LinkedIn: autoridad + thought leadership + lead gen
+    Instagram: humanizar la empresa, behind-the-scenes
+    YouTube: content largo, casos de estudio
+  Both: priorizar según foco del período
 ```
 
-Si B2B:
-- Sector objetivo
-- Geografía de prospectos
-- Tamaño de empresa (solo/small/medium/large/mixed)
-- Decisor de compra (cargo)
-- Pain points de la EMPRESA (vs buyer_persona que son del humano)
-- Buying triggers (eventos que gatillan compra)
+**6.2 Estrategia de cadencia** ⚠️ **DECISIÓN CLAVE**:
+```
+¿Cómo definimos frecuencia y horarios en {PLATAFORMA}?
+
+  1. "AI-recommended" (recomendado) — el content-planner analizará:
+     • Tu objetivo primario (awareness → más frecuencia; retención → menos)
+     • Buyer persona (consumo de formatos)
+     • Budget de producción (constraints reales)
+     • Benchmarks del sector y business_model
+     • Resultados del /audit si existe
+     y propondrá frecuencia + horarios óptimos para aprobación.
+
+  2. "Manual" — tú defines explícitamente aquí frequency_per_week y preferred_times.
+     El planner los respetará sin cuestionar.
+```
+
+**Si elige "AI-recommended"** (default) → guardar `cadence_strategy: "ai-recommended"`.
+Primary_formats puede quedar vacío o con preferencias; el planner los optimizará.
+
+**Si elige "manual"** → preguntar:
+```
+Para cada formato que quieras publicar:
+  • Frecuencia/semana (ej. reels: 3, stories: 7, carousels: 2)
+  • Horario preferido (ej. reels: 19:00, stories: 08:30)
+```
+
+**6.3 Objetivo primario por red**:
+```
+¿Qué métrica persigues en {PLATAFORMA}?
+  reach | engagement | conversion | retention | service
+```
+
+> **Nota**: en v2.0 la **cadencia emerge de la estrategia**, no se asume. Un cliente de
+> awareness con budget alto puede publicar 2x/día. Un cliente de retención B2B puede
+> publicar 1x/semana. El planner lo calcula, no es dogma.
+
+### Fase 7 — ICP (sección `icp`)
+
+**Reglas según `business_model`**:
+- `b2c` → **omitir esta fase**. El `buyer_persona` ya cubre el consumidor final.
+- `b2b` → **obligatoria**. Capturar la EMPRESA ideal:
+  - Sector objetivo
+  - Geografía de prospectos
+  - Tamaño de empresa (solo/small/medium/large/mixed)
+  - Decisor de compra (cargo)
+  - Pain points de la EMPRESA (vs buyer_persona que son del humano)
+  - Buying triggers (eventos que gatillan compra)
+- `both` → **recomendada**. Capturar ICP para el lado B2B del negocio.
 
 ### Fase 8 — Mercado y competencia (sección `market`)
 

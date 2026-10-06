@@ -4,7 +4,7 @@
   "title": "Client Brief",
   "description": "Documento fundacional del cliente que todos los agentes del toolkit leen como contexto. Generado por /briefing new, actualizado por /briefing update. Captura las 6 dimensiones de un brief de agencia: identidad, ICP, mercado, equipo comercial, catálogo, objetivos+KPIs+presupuesto+persona+roles por red.",
   "type": "object",
-  "required": ["version", "created_at", "company", "icp", "sales", "objectives"],
+  "required": ["version", "created_at", "company", "sales", "objectives"],
   "additionalProperties": false,
   "properties": {
     "version": {
@@ -23,7 +23,7 @@
     "company": {
       "type": "object",
       "description": "Identidad y características del cliente (sección 1 del brief).",
-      "required": ["name", "industry", "product", "tone", "location", "platforms"],
+      "required": ["name", "industry", "product", "tone", "location", "platforms", "business_model"],
       "additionalProperties": false,
       "properties": {
         "name": {"type": "string", "minLength": 1},
@@ -33,6 +33,11 @@
         "location": {"type": "string", "minLength": 1},
         "value_proposition": {"type": "string"},
         "mission": {"type": "string", "description": "Propósito de la marca en una frase."},
+        "business_model": {
+          "type": "string",
+          "enum": ["b2b", "b2c", "both"],
+          "description": "Determina a quién habla el contenido. b2b=empresas/tomadores de decisión; b2c=consumidor final; both=mezcla (p.ej. retail que también vende mayorista). Los agentes de contenido (publisher, planner, community-manager) adaptan tono, pilares y lenguaje según este campo. B2B es obligatorio para que /prospect-leads funcione."
+        },
         "platforms": {
           "type": "array",
           "items": {"type": "string", "enum": ["instagram", "facebook", "tiktok", "linkedin", "youtube"]},
@@ -282,12 +287,23 @@
         "primary_formats": {
           "type": "array",
           "items": {"type": "string", "enum": ["reels", "carousels", "posts", "stories", "lives", "video_largo", "tiktok_video", "tiktok_photo"]},
-          "description": "Formatos principales a producir en esta red."
+          "description": "Formatos principales a producir en esta red. Si cadence_strategy=ai-recommended, puede dejarse vacío y el content-planner lo calcula."
         },
         "frequency_per_week": {
           "type": "object",
           "additionalProperties": {"type": "number"},
-          "description": "Frecuencia por formato (ej. {reels: 3, stories: 7, carousels: 2})."
+          "description": "Frecuencia por formato (ej. {reels: 3, stories: 7, carousels: 2}). Solo se respeta si cadence_strategy=manual. Si ai-recommended, el planner calcula y rellena este campo tras aprobación humana."
+        },
+        "preferred_times": {
+          "type": "object",
+          "additionalProperties": {"type": "string"},
+          "description": "Horarios preferidos por formato en formato HH:MM del timezone del cliente (ej. {reels: '19:00', stories: '08:30'}). Si vacío/ai-recommended, el planner los calcula basado en buyer_persona + benchmarks."
+        },
+        "cadence_strategy": {
+          "type": "string",
+          "enum": ["manual", "ai-recommended"],
+          "default": "ai-recommended",
+          "description": "manual=respetar frequency_per_week y preferred_times tal como vienen del brief. ai-recommended=el content-planner propone frecuencia y horarios óptimos basado en objectives, buyer_persona, budget, audit y benchmarks del sector, con aprobación humana."
         },
         "primary_objective": {
           "type": "string",

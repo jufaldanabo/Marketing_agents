@@ -7,8 +7,8 @@
     {
       "name": "marketing-agents",
       "display_name": "Marketing Agents",
-      "description": "Social media marketing automation for SMBs — publish, monitor, prospect B2B leads from Claude Code.",
-      "version": "1.0.0",
+      "description": "Multi-tenant marketing automation toolkit for Claude Code. 14 agents + 25 commands covering the full agency flow for B2B and B2C clients: diagnosis, brand, planning, production, publishing, community, ads, monitoring and B2B prospecting.",
+      "version": "2.1.0",
       "author": {
         "name": "jufaldanabo",
         "url": "https://github.com/jufaldanabo"
@@ -17,7 +17,7 @@
         "type": "github",
         "repo": "jufaldanabo/Marketing_agents"
       },
-      "tags": ["marketing", "social-media", "instagram", "facebook", "b2b", "prospecting"]
+      "tags": ["marketing", "social-media", "instagram", "facebook", "tiktok", "b2b", "b2c", "prospecting", "agency", "multi-tenant"]
     }
   ]
 }
