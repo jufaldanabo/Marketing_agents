@@ -11,7 +11,7 @@ model: claude-haiku-4-5
 y enriquece los resultados con la API oEmbed de TikTok. No requiere credenciales
 ni solicitud de aprobación.
 
-**Usado por**: `agents/trend-analyst-agent.md`, `commands/trend-ranking.md`
+**Usado por**: `agents/trend-analyst.md`, `commands/trend-ranking.md`
 
 ---
 

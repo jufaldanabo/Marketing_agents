@@ -1,18 +1,37 @@
-# CLAUDE.md — Marketing Agents Toolkit v2.0
+# CLAUDE.md — Marketing Agents Toolkit v2.1
 
-**Toolkit multi-tenant de automatización de marketing para Claude Code.** Cubre el flujo completo de agencia (6 fases) para cualquier cliente que configures en el repo donde se instala.
+**Toolkit multi-tenant de automatización de marketing para Claude Code.** Cubre el flujo completo de agencia (6 fases) para clientes **B2B, B2C y both** — nada hardcoded, todo se adapta a `brief.company.business_model`.
 
 ---
 
 ## ¿Qué es este toolkit?
 
 Un **plugin de Claude Code** compuesto por:
-- **13 agentes** especializados (bounded contexts) que operan vía Task tool
-- **24 commands** (slash commands) como entry points thin
+- **14 agentes** especializados (bounded contexts) que operan vía Task tool
+- **25 commands** (slash commands) como entry points thin
 - **27 skills** reutilizables (atómicos y composables)
 - **3 schemas** JSON como contratos entre componentes
 
 Instalable en cualquier repo via `install.sh`. Cada repo tiene su propio `.claude/client-brief.json` que define el cliente — **el toolkit no se modifica entre clientes, solo el brief**.
+
+### Qué cambia según `business_model` del brief
+
+| Dimensión | B2B | B2C | Both |
+|---|---|---|---|
+| Tono del contenido | Profesional, data-driven | Conversacional, aspiracional | Mezcla según pilar |
+| Pilares dominantes | Educativo + Casos de éxito | Lifestyle + Entretenimiento | 60/40 según foco |
+| Formatos ganadores | Carousels + LinkedIn long-form | Reels + Stories + UGC | Alternancia |
+| Plataformas priorizadas | LinkedIn + IG empresarial | IG + TikTok + Facebook | Todas |
+| `/prospect-leads` disponible | ✅ Sí | ❌ No (es wholesale) | ✅ Sí |
+| ICP requerido en brief | ✅ Sí | ❌ Opcional | ✅ Recomendado |
+
+### Cadencia dinámica (no asumida)
+
+Para cada red del brief, puedes elegir:
+- `cadence_strategy: "manual"` → tú defines `frequency_per_week` y `preferred_times`
+- `cadence_strategy: "ai-recommended"` → el `content-planner` propone cadencia óptima basada en objetivos, buyer_persona, budget, audit y benchmarks del sector, con aprobación humana.
+
+**Principio clave**: no asumimos "daily publishing". La cadencia emerge de la estrategia. Un cliente de retención B2B puede publicar 2×/semana; uno de awareness B2C con buen budget puede publicar 2×/día. El planner calcula, el humano aprueba.
 
 ---
 
@@ -117,22 +136,22 @@ Cubierto 100% por el toolkit:
 
 ## Los 14 agentes
 
-| Agente | Fase | Modelo | Responsabilidad |
-|---|---|---|---|
-| `account-auditor` | 1 | opus | Audita cuentas + competencia, valida realismo de KPIs |
-| `brand-guardian` | 2 | opus | Extrae identidad visual/verbal del cliente |
-| `content-planner` | 3 | opus | Parrilla mensual con razonamiento estratégico |
-| `trend-analyst` | 3 | sonnet | Analiza tendencias virales YouTube + TikTok, genera ideas de contenido |
-| `producer` | 4 | opus | Plan de rodaje batch mensual |
-| `content-publisher` | 5 | opus | Publica contenido diario multi-plataforma |
-| `community-manager` | 5 | sonnet | Comments/DMs con FAQ + SLA + escalación |
-| `paid-media` | 5 | opus | Meta Ads + TikTok Ads (nunca gasta solo) |
-| `social-monitor` | 6 | sonnet | Reporte nocturno + detección crisis + token health |
-| `performance-analyst` | 6 | opus | Análisis 24h/72h/semanal/mensual vs KPIs |
-| `conductor` | cross | opus | Orquestación meta — eventos, circuit breakers, flujo diario |
-| `approval-gatekeeper` | infra | sonnet | Gestión asíncrona de aprobaciones humanas |
-| `market-analyst` | aux | opus | Inteligencia de mercado (precios + competencia pública) |
-| `sales-prospector` | aux B2B | opus | Pipeline comercial B2B (no en flujo agencia principal) |
+| Agente | Fase | Modelo | Responsabilidad | Adaptativo a business_model |
+|---|---|---|---|---|
+| `account-auditor` | 1 | opus | Audita cuentas + competencia, valida realismo de KPIs | ✅ |
+| `brand-guardian` | 2 | opus | Extrae identidad visual/verbal del cliente | ✅ |
+| `content-planner` | 3 | opus | Parrilla mensual + calibración de cadencia óptima | ✅ |
+| `trend-analyst` | 3 | sonnet | Analiza tendencias virales YouTube + TikTok, genera ideas | ✅ |
+| `producer` | 4 | opus | Plan de rodaje batch mensual | ✅ |
+| `content-publisher` | 5 | opus | Publica contenido multi-plataforma | ✅ |
+| `community-manager` | 5 | sonnet | Comments/DMs con FAQ + SLA + escalación | ✅ |
+| `paid-media` | 5 | opus | Meta Ads + TikTok Ads (nunca gasta solo) | ✅ |
+| `social-monitor` | 6 | sonnet | Reporte nocturno + detección crisis + token health | — (neutral) |
+| `performance-analyst` | 6 | opus | Análisis 24h/72h/semanal/mensual vs KPIs | — (neutral) |
+| `conductor` | cross | opus | Orquestación meta — eventos, circuit breakers, flujo diario | — (neutral) |
+| `approval-gatekeeper` | infra | sonnet | Gestión asíncrona de aprobaciones humanas | — (neutral) |
+| `market-analyst` | aux | opus | Inteligencia de mercado (precios + competencia pública) | — (neutral) |
+| `sales-prospector` | aux B2B | opus | **Solo B2B o both** — pipeline comercial wholesale/empresas | B2B-only |
 
 ---
 

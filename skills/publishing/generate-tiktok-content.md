@@ -1,6 +1,6 @@
 ---
 name: generate-tiktok-content
-description: Generates native TikTok content (short video script and/or photo-post caption) with hook, hashtags and sound style, tailored to small/informal B2B businesses. Returns strict JSON.
+description: Generates native TikTok content (short video script and/or photo-post caption) with hook, hashtags and sound style — adapts to brief.company.business_model (B2B uses process/behind-scenes angles, B2C uses lifestyle/aspirational angles). TikTok is 100% native (never repost from IG). Returns strict JSON.
 allowed-tools: [Read, Write]
 model: claude-opus-4-7
 ---
@@ -15,9 +15,13 @@ y caption para post de foto. Adapta el mensaje al estilo auténtico y casual de 
 
 ## Cuándo usar este skill
 
-TikTok es diferente a Instagram y Facebook. No apliques el mismo contenido B2B formal.
+TikTok es diferente a Instagram y Facebook. No apliques el mismo contenido formal corporativo.
 Este skill genera contenido nativo de TikTok: auténtico, directo, con hook en los
-primeros 3 segundos, y pensado para negocios informales y pequeños.
+primeros 3 segundos, y adaptado al `business_model` del cliente:
+
+- `b2c` → lifestyle, humor, trends, personajes, storytimes. Prime territory de TikTok.
+- `b2b` → behind-the-scenes de la empresa, procesos industriales fascinantes, "cómo se hace", day-in-the-life. B2B en TikTok funciona cuando humaniza la empresa, no cuando corporativiza.
+- `both` → mezcla según el pilar.
 
 ## Inputs requeridos
 
@@ -39,7 +43,8 @@ primeros 3 segundos, y pensado para negocios informales y pequeños.
 | Longitud | 150-500 chars | Caption: 100-150 chars |
 | Hashtags | 5-10 de nicho | 3-5 + #parati #fyp |
 | Formato | Foto estática, carrusel | Video 15-60 seg, foto |
-| Contenido | Logros, datos, B2B | Proceso, detrás de cámaras, relatable |
+| Contenido (si B2B) | Logros, datos, cases formales | Proceso, detrás de cámaras, "día en la fábrica" |
+| Contenido (si B2C) | Producto hero, lifestyle estático | Trends, storytime, humor, UGC |
 | CTA | "Contáctanos" | "¿Tú también?" / "¿Lo sabías?" |
 
 ## Tipos de contenido que funcionan en TikTok para negocios informales

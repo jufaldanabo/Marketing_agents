@@ -1,7 +1,7 @@
 ---
 name: generate-carousel
 description: Generates a full Instagram carousel (3-10 slides) with narrative structure, per-slide copy, text overlays and AI-generated images. Delegates image generation to generate-image-ai (never calls fal.ai directly).
-allowed-tools: [Read, Write, Bash]
+allowed-tools: [Read, Write]
 model: claude-opus-4-7
 ---
 

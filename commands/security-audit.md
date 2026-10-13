@@ -1,6 +1,6 @@
 ---
 description: Audita el proyecto contra reglas de seguridad y buenas prácticas (Meta API, Anthropic API, web scraping, Telegram, exposición de credenciales)
-argument-hint: "[--fix] [--domain meta|anthropic|telegram|all]"
+argument-hint: "[--dry-run] [--fix] [--domain meta|anthropic|telegram|all]"
 allowed-tools: [Read, Grep, Bash]
 ---
 
@@ -177,12 +177,15 @@ Para cada fix automático aplicado, mostrar:
 ## Opciones del command
 
 ```bash
-/security-audit                    # Auditoría completa
+/security-audit                    # Auditoría completa (modo read-only por defecto)
+/security-audit --dry-run          # Explícitamente modo read-only (mismo que default)
 /security-audit --critical-only    # Solo checks críticos (más rápido)
-/security-audit --fix              # Audita y aplica fixes automáticos seguros
+/security-audit --fix              # Audita y aplica fixes automáticos seguros (destructivo)
 /security-audit --pre-deploy       # Versión estricta antes de hacer push a Railway
 /security-audit deploy/scheduler.py # Auditar solo un archivo específico
 ```
+
+**Nota sobre `--dry-run` y `--fix`**: Por defecto el command es **read-only** (solo reporta hallazgos). `--fix` es el único flag que modifica archivos — requiere confirmación interactiva por cada fix aplicado. `--dry-run` es redundante con el default pero se incluye para consistencia con otros commands del toolkit.
 
 ## Cuándo ejecutar
 

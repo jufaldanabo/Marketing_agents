@@ -81,7 +81,7 @@ SKILLS=(
   _core/schemas/client-brief.schema _core/schemas/brand-kit.schema
   _core/schemas/kpi-tracking.schema _core/schemas/state-structure
   # Publishing (9)
-  publishing/generate-b2b-content publishing/generate-image-ai
+  publishing/generate-content publishing/generate-image-ai
   publishing/generate-carousel publishing/generate-reel
   publishing/generate-tiktok-content publishing/publish-instagram
   publishing/publish-facebook publishing/publish-tiktok

@@ -144,7 +144,7 @@ Reporte enviado por Telegram
 
 ## Notas
 
-- Este command es **thin**: NO reimplementa la lógica. Las llamadas a Graph API, clasificación de comentarios, detección de crisis y verificación de tokens viven en `agents/monitoring-agent.md` y en los skills bajo `skills/social_monitoring/*`.
+- Este command es **thin**: NO reimplementa la lógica. Las llamadas a Graph API, clasificación de comentarios, detección de crisis y verificación de tokens viven en `agents/social-monitor.md` y en los skills bajo `skills/social_monitoring/*`.
 - Programación automática: Railway cron ~22:00 (ver `/setup-railway`). El agente ya está diseñado para ejecutarse de forma no-interactiva.
 - Idempotency: el agente usa `_core/state-store` con `key = sha1("report:" + target_date)` para evitar generar dos reportes del mismo día; si se re-ejecuta, actualiza el existente.
 - Para responder a los comentarios flagged, usar `/respond-comments` (flujo separado con aprobación por Telegram).

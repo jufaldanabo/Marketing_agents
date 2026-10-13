@@ -1,6 +1,6 @@
 ---
 name: publish-instagram
-description: Publishes an image/video/carousel/reel post to Instagram Business via Graph API v18.0 (two-step container + media_publish flow). Requires INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID.
+description: Use when content-publisher has an approved draft ready to publish to Instagram. Executes the two-step Graph API v18.0 flow (create container + media_publish) for image, video, carousel or reel. Requires INSTAGRAM_ACCESS_TOKEN + INSTAGRAM_BUSINESS_ACCOUNT_ID in env. Returns the published post_id and permalink.
 allowed-tools: [Bash]
 model: claude-haiku-4-5
 ---
@@ -9,7 +9,7 @@ model: claude-haiku-4-5
 
 **Propósito**: Publica contenido en una cuenta de Instagram Business via Graph API.
 **API**: Instagram Graph API v18.0
-**Usado por**: `publisher-agent.md`, `/publish-today`
+**Usado por**: `content-publisher.md`, `/publish-today`
 
 ---
 

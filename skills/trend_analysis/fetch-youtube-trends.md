@@ -12,7 +12,7 @@ más comentados y con más reacciones sobre un tema en los últimos N días.
 Soporta búsqueda general por tema y búsqueda acotada a canales de competidores.
 
 **API**: YouTube Data API v3 (gratuita — cuota 10,000 units/día)
-**Usado por**: `agents/trend-analyst-agent.md`, `commands/trend-ranking.md`
+**Usado por**: `agents/trend-analyst.md`, `commands/trend-ranking.md`
 
 ---
 

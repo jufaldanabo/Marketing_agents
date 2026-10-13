@@ -1,7 +1,7 @@
 ---
 name: generate-reel
 description: Generates a complete short-form reel package (scene-by-scene script, text overlays, trending audio suggestion, cover image and caption) ready to film. Delegates image generation to generate-image-ai (never calls fal.ai directly).
-allowed-tools: [Read, Write, Bash, WebSearch]
+allowed-tools: [Read, Write, WebSearch]
 model: claude-opus-4-7
 ---
 

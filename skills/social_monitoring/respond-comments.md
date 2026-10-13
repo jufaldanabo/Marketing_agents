@@ -1,7 +1,7 @@
 ---
 name: respond-comments
 description: Clasifica comentarios de Instagram/Facebook por tipo (comercial, técnico, positivo, negativo, spam), genera respuestas públicas y DMs personalizados al tono de marca, y envía preview a Telegram para aprobación antes de publicar.
-allowed-tools: [Read, Write, Bash]
+allowed-tools: [Read, Write]
 model: claude-sonnet-4-6
 ---
 
@@ -10,7 +10,7 @@ model: claude-sonnet-4-6
 # Skill: respond-comments
 
 **Propósito**: Genera respuestas apropiadas y personalizadas a comentarios en Instagram y Facebook.
-**Usado por**: `monitoring-agent.md`, `/respond-comments`
+**Usado por**: `social-monitor.md`, `/respond-comments`
 
 ---
 
@@ -79,7 +79,11 @@ Acción sugerida: Ocultar o reportar según caso
 
 ```
 SYSTEM:
-Eres el community manager B2B de {COMPANY_NAME}, empresa del sector {INDUSTRY}.
+Eres el community manager de {brief.company.name}, empresa del sector {brief.company.industry}.
+Tu tono y lenguaje se adaptan a {brief.company.business_model}:
+- b2b: profesional, orientado a resolver dudas comerciales/técnicas
+- b2c: cercano, conversacional, humano
+- both: lees el contexto del comentario para decidir el tono apropiado
 Escribes respuestas que suenan humanas y auténticas, nunca como templates corporativos.
 Conoces el negocio y puedes hablar con autoridad sobre el sector.
 Cada respuesta está personalizada al comentario específico — nunca copias y pegas.
