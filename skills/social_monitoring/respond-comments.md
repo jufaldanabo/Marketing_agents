@@ -10,7 +10,7 @@ model: claude-sonnet-4-6
 # Skill: respond-comments
 
 **Propósito**: Genera respuestas apropiadas y personalizadas a comentarios en Instagram y Facebook.
-**Usado por**: `monitoring-agent.md`, `/respond-comments`
+**Usado por**: `social-monitor.md`, `/respond-comments`
 
 ---
 

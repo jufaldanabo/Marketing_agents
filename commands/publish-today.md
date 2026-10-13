@@ -140,7 +140,7 @@ Borrador abc12345 publicado
 
 ## Notas
 
-- Este command es **thin**: NO reimplementa la lógica del flujo. Toda la lógica (parrilla, generación de imagen vía fal.ai, polling de Telegram, publicación en Graph API, actualización de historial) vive en `agents/publisher-agent.md` y en los skills bajo `skills/publishing/*`.
-- Si necesitas inspeccionar o modificar el flujo interno, lee `agents/publisher-agent.md`.
+- Este command es **thin**: NO reimplementa la lógica del flujo. Toda la lógica (parrilla, generación de imagen vía fal.ai, polling de Telegram, publicación en Graph API, actualización de historial) vive en `agents/content-publisher.md` y en los skills bajo `skills/publishing/*`.
+- Si necesitas inspeccionar o modificar el flujo interno, lee `agents/content-publisher.md`.
 - Para operaciones duplicadas (misma fecha, mismo topic), el agente usa `_core/state-store` con `idempotency_key = sha1(date + topic + platform)`.
 - Para publicar un borrador que quedó pendiente por timeout, usa `/check-approvals` — no requiere re-ejecutar este command.

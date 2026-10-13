@@ -9,7 +9,7 @@ model: claude-opus-4-7
 
 **Propósito**: Genera contenido profesional para redes sociales usando Claude, **adaptado dinámicamente al `business_model` del cliente** (B2B profesional / B2C conversacional / both híbrido).
 
-**Usado por**: `publisher-agent.md`, `/publish-today`, agentes del toolkit que necesiten copy adaptado a marca.
+**Usado por**: `content-publisher.md`, `/publish-today`, agentes del toolkit que necesiten copy adaptado a marca.
 
 **Antes se llamaba** `generate-b2b-content` — renombrado en v2.1 cuando el toolkit dejó de asumir B2B. La lógica se expandió para contemplar B2C y both.
 

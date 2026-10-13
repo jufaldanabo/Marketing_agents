@@ -59,7 +59,7 @@ Task(
     - Lookback days: {lookback_days}
     - Top N per ranking: {top_n}
 
-    Pipeline esperado (ver agents/trend-analyst-agent.md):
+    Pipeline esperado (ver agents/trend-analyst.md):
     1. Determinar temas (del arg o auto-inferir del brief)
     2. fetch-youtube-trends (si YOUTUBE_API_KEY disponible)
     3. fetch-tiktok-trends (siempre que platform incluya tiktok)
@@ -153,4 +153,4 @@ Solo la primera vez:
 - Si YouTube API quota se agota, el agente continúa con TikTok y lo documenta en el reporte.
 - Las ideas generadas se adaptan a recursos PYME: teléfono + CapCut, sin producción profesional obligatoria.
 - El evento `trend_insights` emitido al final queda en cola para el próximo `/content-calendar` — el `content-planner` lo consume automáticamente.
-- Toda la lógica de los 5 skills del pipeline (fetch-youtube, fetch-tiktok, analyze, generate-ideas, build-report) está en `agents/trend-analyst-agent.md` — este command solo delega.
+- Toda la lógica de los 5 skills del pipeline (fetch-youtube, fetch-tiktok, analyze, generate-ideas, build-report) está en `agents/trend-analyst.md` — este command solo delega.

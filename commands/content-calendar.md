@@ -144,7 +144,7 @@ Parrilla aprobada para noviembre 2026
 
 ## Notas
 
-- Este command es **thin**: NO reimplementa la lógica. La investigación de tendencias, razonamiento estratégico y generación del JSON viven en `agents/planner-agent.md` y en `skills/planning/generate-content-calendar.md`.
+- Este command es **thin**: NO reimplementa la lógica. La investigación de tendencias, razonamiento estratégico y generación del JSON viven en `agents/content-planner.md` y en `skills/planning/generate-content-calendar.md`.
 - La parrilla aprobada es la **fuente de verdad** para `/publish-today` — días sin entrada caen al modo autónomo del publicador.
 - Para ajustar entradas puntuales sin regenerar todo, el manager responde `editar: ...` en Telegram durante la aprobación — el agente ya soporta edición incremental.
 - Idempotency: el agente usa `_core/state-store` con `key = sha1("calendar:" + target_month)` para evitar generar dos parrillas simultáneas del mismo mes.

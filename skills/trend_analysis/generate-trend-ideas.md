@@ -11,7 +11,7 @@ model: claude-opus-4-7
 inspiradas en los patrones virales identificados. Cada idea está adaptada al producto,
 tono y cliente ideal de la empresa — no son ideas genéricas.
 
-**Usado por**: `agents/trend-analyst-agent.md`, `commands/trend-ranking.md`
+**Usado por**: `agents/trend-analyst.md`, `commands/trend-ranking.md`
 
 ---
 

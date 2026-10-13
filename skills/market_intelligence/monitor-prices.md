@@ -9,7 +9,7 @@ model: claude-sonnet-4-6
 
 **Propósito**: Busca y recopila precios actuales de materias primas usando búsqueda web.
 **Herramientas**: WebSearch + WebFetch de Claude
-**Usado por**: `intelligence-agent.md`, `/market-intel`
+**Usado por**: `market-analyst.md`, `/market-intel`
 
 ---
 

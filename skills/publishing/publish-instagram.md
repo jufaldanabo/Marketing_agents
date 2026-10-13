@@ -9,7 +9,7 @@ model: claude-haiku-4-5
 
 **Propósito**: Publica contenido en una cuenta de Instagram Business via Graph API.
 **API**: Instagram Graph API v18.0
-**Usado por**: `publisher-agent.md`, `/publish-today`
+**Usado por**: `content-publisher.md`, `/publish-today`
 
 ---
 

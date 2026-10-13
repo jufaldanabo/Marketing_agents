@@ -9,7 +9,7 @@ model: claude-haiku-4-5
 
 **Propósito**: Publica contenido en una Página de Facebook via Graph API.
 **API**: Facebook Graph API v18.0
-**Usado por**: `publisher-agent.md`, `/publish-today`
+**Usado por**: `content-publisher.md`, `/publish-today`
 
 ---
 

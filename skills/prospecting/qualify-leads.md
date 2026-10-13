@@ -9,7 +9,7 @@ model: claude-sonnet-4-6
 
 **Propósito**: Evalúa y puntúa cada lead según su ajuste con el ICP y probabilidad de conversión.
 **Herramientas**: Claude API + WebSearch para enriquecer datos
-**Usado por**: `prospecting-agent.md`, `/prospect-leads`
+**Usado por**: `sales-prospector.md`, `/prospect-leads`
 
 ---
 

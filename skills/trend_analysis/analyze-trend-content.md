@@ -11,7 +11,7 @@ model: claude-sonnet-4-6
 los mecanismos de éxito (formato, gancho, narrativa, timing) y los articula en 2-3
 líneas accionables para el equipo de marketing.
 
-**Usado por**: `agents/trend-analyst-agent.md`, `commands/trend-ranking.md`
+**Usado por**: `agents/trend-analyst.md`, `commands/trend-ranking.md`
 
 ---
 

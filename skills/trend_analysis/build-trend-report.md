@@ -11,7 +11,7 @@ model: claude-sonnet-4-6
 análisis e ideas, y genera el reporte final en formato legible para el experto
 de marketing y el JSON estructurado para uso posterior.
 
-**Usado por**: `agents/trend-analyst-agent.md`, `commands/trend-ranking.md`
+**Usado por**: `agents/trend-analyst.md`, `commands/trend-ranking.md`
 
 ---
 

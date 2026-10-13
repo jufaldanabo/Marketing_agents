@@ -19,7 +19,7 @@ con los agentes programados automáticamente (cron jobs).
 Railway Project
 │
 ├── [Cron Service] content-planner     → corre día 25 de cada mes 8am
-├── [Cron Service] publisher-agent     → corre diario 8am L-V
+├── [Cron Service] content-publisher     → corre diario 8am L-V
 ├── [Cron Service] social-report       → corre diario 10pm
 ├── [Cron Service] respond-comments    → corre diario 9am y 3pm
 ├── [Cron Service] market-intel        → corre lunes 7am
@@ -303,7 +303,7 @@ cronSchedule = "0 8 25 * *"
 # Lee la parrilla mensual aprobada como fuente primaria
 # Horario: Lunes a viernes a las 8:00am UTC
 [[services]]
-name = "publisher-agent"
+name = "content-publisher"
 
 [services.deploy]
 startCommand = "python deploy/scheduler.py publisher"
@@ -534,7 +534,7 @@ Railway detecta el `railway.toml` y crea automáticamente todos los servicios cr
 
 | Agente | Horario | Frecuencia |
 |---|---|---|
-| publisher-agent | 8:00am | Lunes a viernes |
+| content-publisher | 8:00am | Lunes a viernes |
 | social-report | 10:00pm | Todos los días |
 | respond-comments | 9:00am y 3:00pm | Lunes a viernes |
 | market-intel | 7:00am | Lunes |
@@ -623,7 +623,7 @@ Archivos generados:
 
 Servicios programados:
 📅 content-planner      → Día 25 de cada mes 8:00 UTC
-📅 publisher-agent      → Lun-Vie 8:00 UTC
+📅 content-publisher      → Lun-Vie 8:00 UTC
 📅 social-report        → Todos los días 22:00 UTC
 📅 respond-comments-am  → Lun-Vie 9:00 UTC
 📅 respond-comments-pm  → Lun-Vie 15:00 UTC
