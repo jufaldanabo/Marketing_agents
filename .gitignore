@@ -1,5 +1,5 @@
-# Demo data (isolated per client run)
-demo/.data/
+# Demo
+demo/
 
 # Production state (generated in client projects)
 .claude/
