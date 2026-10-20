@@ -11,7 +11,7 @@
     {
       "name": "content-publisher",
       "description": "Generates and publishes daily B2B content to Instagram, Facebook and TikTok. Supports approval workflow via Telegram.",
-      "file": "agents/publisher-agent.md",
+      "file": "agents/content-publisher.md",
       "model": "claude-opus-4-7",
       "thinking": "adaptive",
       "tools": ["WebSearch", "WebFetch", "Read", "Write", "Bash", "Task"]
@@ -19,7 +19,7 @@
     {
       "name": "social-monitor",
       "description": "Monitors comments, DMs and metrics on Instagram and Facebook. Alerts via Telegram and checks token expiry.",
-      "file": "agents/monitoring-agent.md",
+      "file": "agents/social-monitor.md",
       "model": "claude-sonnet-4-6",
       "thinking": "adaptive",
       "tools": ["WebFetch", "Read", "Write", "Bash"]
@@ -27,7 +27,7 @@
     {
       "name": "market-analyst",
       "description": "Monitors commodity prices and competitor activity. Generates actionable market intelligence reports.",
-      "file": "agents/intelligence-agent.md",
+      "file": "agents/market-analyst.md",
       "model": "claude-sonnet-4-6",
       "thinking": "adaptive",
       "tools": ["WebSearch", "WebFetch", "Read", "Write"]
@@ -35,7 +35,7 @@
     {
       "name": "sales-prospector",
       "description": "Searches, qualifies and reaches out to B2B leads. Manages multi-touch follow-up sequences and positive response handling.",
-      "file": "agents/prospecting-agent.md",
+      "file": "agents/sales-prospector.md",
       "model": "claude-opus-4-7",
       "thinking": "adaptive",
       "tools": ["WebSearch", "WebFetch", "Read", "Write", "Bash"]
@@ -43,7 +43,7 @@
     {
       "name": "content-planner",
       "description": "Researches trends, cultural events and competitive landscape to generate monthly content calendars for the client.",
-      "file": "agents/planner-agent.md",
+      "file": "agents/content-planner.md",
       "model": "claude-opus-4-7",
       "thinking": "adaptive",
       "tools": ["WebSearch", "WebFetch", "Read", "Write"]
@@ -59,7 +59,7 @@
     {
       "name": "trend-analyst",
       "description": "Detects viral content trends on YouTube and TikTok. Analyzes why videos performed well and generates actionable content ideas for the client. Weekly cadence or on-demand via /trend-ranking.",
-      "file": "agents/trend-analyst-agent.md",
+      "file": "agents/trend-analyst.md",
       "model": "claude-sonnet-4-6",
       "thinking": "adaptive",
       "tools": ["WebSearch", "WebFetch", "Read", "Write", "Bash"]

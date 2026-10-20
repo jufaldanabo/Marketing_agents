@@ -55,23 +55,12 @@ COMMANDS=(
   plugin
 )
 
-AGENTS=(
-  content-planner-planner-agent     # file: planner-agent.md
-  content-publisher-publisher-agent # file: publisher-agent.md
-  social-monitor-monitoring-agent   # file: monitoring-agent.md
-  market-analyst-intelligence-agent # file: intelligence-agent.md
-  sales-prospector-prospecting-agent # file: prospecting-agent.md
-  brand-guardian conductor approval-gatekeeper
-  account-auditor community-manager paid-media performance-analyst producer
-)
-
-# Actual filenames (some agents have alternate file names from v1.0 legacy)
 AGENT_FILES=(
-  planner-agent.md publisher-agent.md monitoring-agent.md
-  intelligence-agent.md prospecting-agent.md
+  content-planner.md content-publisher.md social-monitor.md
+  market-analyst.md sales-prospector.md trend-analyst.md
   brand-guardian.md conductor.md approval-gatekeeper.md
   account-auditor.md community-manager.md paid-media.md
-  performance-analyst.md producer.md trend-analyst-agent.md
+  performance-analyst.md producer.md
 )
 
 SKILLS=(

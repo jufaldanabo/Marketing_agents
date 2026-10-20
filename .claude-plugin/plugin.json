@@ -37,11 +37,11 @@
     { "name": "security-audit",    "path": "commands/security-audit.md" }
   ],
   "agents": [
-    { "name": "content-planner",     "path": "agents/planner-agent.md" },
-    { "name": "content-publisher",   "path": "agents/publisher-agent.md" },
-    { "name": "social-monitor",      "path": "agents/monitoring-agent.md" },
-    { "name": "market-analyst",      "path": "agents/intelligence-agent.md" },
-    { "name": "sales-prospector",    "path": "agents/prospecting-agent.md" },
+    { "name": "content-planner",     "path": "agents/content-planner.md" },
+    { "name": "content-publisher",   "path": "agents/content-publisher.md" },
+    { "name": "social-monitor",      "path": "agents/social-monitor.md" },
+    { "name": "market-analyst",      "path": "agents/market-analyst.md" },
+    { "name": "sales-prospector",    "path": "agents/sales-prospector.md" },
     { "name": "brand-guardian",      "path": "agents/brand-guardian.md" },
     { "name": "conductor",           "path": "agents/conductor.md" },
     { "name": "approval-gatekeeper", "path": "agents/approval-gatekeeper.md" },
@@ -50,7 +50,7 @@
     { "name": "paid-media",          "path": "agents/paid-media.md" },
     { "name": "performance-analyst", "path": "agents/performance-analyst.md" },
     { "name": "producer",            "path": "agents/producer.md" },
-    { "name": "trend-analyst",       "path": "agents/trend-analyst-agent.md" }
+    { "name": "trend-analyst",       "path": "agents/trend-analyst.md" }
   ],
   "requires": {
     "env": [
