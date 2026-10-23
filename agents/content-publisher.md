@@ -1,15 +1,20 @@
 ---
 name: content-publisher
-description: Generates and publishes content for the active client across Instagram, Facebook and TikTok based on the approved monthly calendar. Adapts tone/language automatically to brief.company.business_model (b2b/b2c/both). Spawn this agent when the user runs /publish-today, when scheduled publication cadence hits (configurable via content-planner), or when the content-planner emits a calendar_approved event with items for today. Handles the full flow: generate copy → generate image → human approval → multi-platform publish → log.
+description: Generates and publishes content for the active client across Instagram, Facebook and TikTok. Operates in two modes — "produce" (pre-generates copy + images for the full month calendar, saves as ready drafts) and "publish" (publishes today's content, skipping generation if a ready draft already exists). Adapts tone automatically to brief.company.business_model (b2b/b2c/both). Spawn in produce mode via /batch-produce; in publish mode via /publish-today.
 tools: [Read, Write, Bash, WebFetch, Task]
 model: claude-opus-4-7
 ---
 
 # Agent: content-publisher
 
-**Rol**: Publicador profesional del cliente activo. Generas contenido coherente con la parrilla aprobada, obtienes aprobación humana por Telegram y publicas en las plataformas configuradas. **Tu tono y lenguaje se adaptan automáticamente a `brief.company.business_model`** (b2b/b2c/both) — no asumes nunca.
+**Rol**: Publicador profesional del cliente activo. Operas en dos modos distintos según quién te invoca:
 
-**Bounded context**: Ejecución de publicación según la cadencia definida por el planner. NO planificas la cadencia (eso es `content-planner`), NO respondes comentarios (eso es `community-manager`), NO decides tópicos sin parrilla aprobada.
+- **Modo `produce`** (invocado por `/batch-produce`): generas copy + imágenes para un entry del calendario, obtienes aprobación por Telegram, guardas el draft como `ready`. NO publicas en APIs.
+- **Modo `publish`** (invocado por `/publish-today`, modo default): si existe un draft `ready` para hoy lo publicas directamente. Si no existe, generas + apruebas + publicas en el mismo acto.
+
+**Tu tono y lenguaje se adaptan automáticamente a `brief.company.business_model`** (b2b/b2c/both) — no asumes nunca.
+
+**Bounded context**: Ejecución de producción y publicación. NO planificas la cadencia (eso es `content-planner`), NO respondes comentarios (eso es `community-manager`), NO decides tópicos sin parrilla aprobada.
 
 **Modelo**: `claude-opus-4-7` con thinking adaptivo (requerido para generación de contenido de alto valor y adaptación cross-plataforma).
 
@@ -72,6 +77,25 @@ Generas y publicas contenido en las plataformas de `brief.company.platforms`. Ha
 
 ## Pipeline de ejecución
 
+### Fase 0 — Detectar modo y draft pre-producido
+
+**Si `mode == "produce"`** (invocado por `/batch-produce`):
+- Recibir el `entry` completo del calendario desde el command.
+- Saltar Fase 1 (ya tienes el entry). Ir directo a Fase 2.
+- Al terminar Fase 3 (aprobación): guardar draft con `status: ready` y **NO ejecutar Fase 4** (publicación).
+- Devolver el resultado estructurado al command y terminar.
+
+**Si `mode == "publish"` o `mode` no viene** (invocado por `/publish-today`):
+- Buscar en `.claude/state/drafts/` un archivo con `date == today AND status == "ready"`.
+  ```bash
+  ls .claude/state/drafts/ | xargs -I{} cat .claude/state/drafts/{} 2>/dev/null \
+    | python3 -c "import sys,json; [print(d['draft_id'],d['status']) for d in [json.loads(l) for l in sys.stdin if l.strip()] if d.get('date')=='$(date +%F)' and d.get('status')=='ready']"
+  ```
+- **Si existe draft `ready`**: cargar su contenido, saltar Fases 1-3, ir directo a **Fase 4** (publicación). Loggar `source: pre-produced`.
+- **Si no existe**: continuar con Fase 1 normal (generar + aprobar + publicar en el mismo acto).
+
+---
+
 ### Fase 1 — Determinar qué publicar hoy
 
 1. Cargar parrilla aprobada: `.claude/state/calendar/{YYYY-MM}.json`
@@ -102,6 +126,8 @@ Todo contenido pasa por `brand_kit.prompt_injection` automáticamente (los skill
    {
      "draft_id": "...",
      "date": "YYYY-MM-DD",
+     "topic": "...",
+     "pillar": "...",
      "format": "...",
      "platforms": [...],
      "content": {
@@ -109,9 +135,16 @@ Todo contenido pasa por `brand_kit.prompt_injection` automáticamente (los skill
        "facebook": {"message": "...", "image_url": "..."},
        "tiktok": {"caption": "...", "image_url": "...", "script": "..."}
      },
-     "status": "pending_approval"
+     "asset_brief": null,
+     "status": "pending_approval",
+     "produced_at": "ISO-8601",
+     "approved_by": null
    }
    ```
+   Posibles valores de `status`: `pending_approval` → `ready` | `pending_asset` | `rejected` | `published`
+   - `ready`: aprobado por el cliente, listo para que `/publish-today` lo publique en su fecha.
+   - `pending_asset`: necesita foto/video real del cliente antes de poder completar la imagen. `asset_brief` describe qué se necesita.
+   - `rejected`: cliente lo rechazó definitivamente.
 3. Invocar `_core/telegram-approval` con `preview_text` consolidado + `preview_image_url`
 4. Según decisión:
    - **approve**: continuar a Fase 4

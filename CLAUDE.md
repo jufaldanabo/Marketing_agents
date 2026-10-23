@@ -179,8 +179,11 @@ Cubierto 100% por el toolkit:
 ### Phase 4 — Producción (1)
 - `/production-plan` — plan de rodaje batch
 
+### Phase 4→5 — Pre-producción batch (1)
+- `/batch-produce` — genera y aprueba todo el mes de una vez (copy + imágenes); `/publish-today` solo publica lo que ya está listo
+
 ### Phase 5 — Publicación (4)
-- `/publish-today` — publicar contenido del día
+- `/publish-today` — publicar contenido del día (usa drafts pre-producidos si existen)
 - `/community` — gestión conversacional
 - `/ads` — pauta digital
 - `/respond-comments` — responder comentarios específicos

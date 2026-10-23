@@ -39,6 +39,8 @@ COMMANDS=(
   content-calendar
   # Phase 4 — Production
   production-plan
+  # Phase 4→5 — Batch pre-production
+  batch-produce
   # Phase 5 — Publishing / Community / Ads
   publish-today community ads respond-comments
   # Phase 6 — Monitoring + Trend analysis

@@ -16,6 +16,7 @@
     { "name": "optimize-profiles", "path": "commands/optimize-profiles.md" },
     { "name": "content-calendar",  "path": "commands/content-calendar.md" },
     { "name": "production-plan",   "path": "commands/production-plan.md" },
+    { "name": "batch-produce",     "path": "commands/batch-produce.md" },
     { "name": "publish-today",     "path": "commands/publish-today.md" },
     { "name": "community",         "path": "commands/community.md" },
     { "name": "ads",               "path": "commands/ads.md" },
