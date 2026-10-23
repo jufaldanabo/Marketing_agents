@@ -48,7 +48,7 @@ flowchart LR
 
     subgraph SKILLS_P["Skills de Publicación"]
         direction TB
-        s1["generate-b2b-content"]:::skill
+        s1["generate-content"]:::skill
         s2["generate-image-ai ✨"]:::skill
         s3["publish-instagram"]:::skill
         s4["publish-facebook"]:::skill
@@ -196,7 +196,7 @@ flowchart TD
 
     FAL & DALLE & NOGEN --> S7
 
-    S7["⑦ Generar contenido\nskill: generate-b2b-content\n• Instagram caption + hashtags\n• Facebook mensaje"]:::skill
+    S7["⑦ Generar contenido\nskill: generate-content\n• Instagram caption + hashtags\n• Facebook mensaje"]:::skill
 
     S7 --> S8["⑧ Preview completo\nImagen generada + textos\ncon formato final"]
 

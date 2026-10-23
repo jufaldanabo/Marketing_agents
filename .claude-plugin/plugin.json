@@ -1,8 +1,8 @@
 {
   "name": "marketing-agents",
   "display_name": "Marketing Agents",
-  "description": "Multi-tenant marketing automation toolkit. Agents for content planning, publishing, social monitoring, market intelligence, prospecting and brand identity. Portable across clients via client-brief.json.",
-  "version": "2.0.0",
+  "description": "Multi-tenant marketing automation toolkit. 14 agents + 25 commands. Supports B2B, B2C and both business models via brief.company.business_model. Cadence (frequency + timing) is calibrated by content-planner based on strategy, not assumed. Portable across clients via client-brief.json.",
+  "version": "2.1.0",
   "author": {
     "name": "jufaldanabo",
     "url": "https://github.com/jufaldanabo"
@@ -16,6 +16,7 @@
     { "name": "optimize-profiles", "path": "commands/optimize-profiles.md" },
     { "name": "content-calendar",  "path": "commands/content-calendar.md" },
     { "name": "production-plan",   "path": "commands/production-plan.md" },
+    { "name": "batch-produce",     "path": "commands/batch-produce.md" },
     { "name": "publish-today",     "path": "commands/publish-today.md" },
     { "name": "community",         "path": "commands/community.md" },
     { "name": "ads",               "path": "commands/ads.md" },
@@ -37,11 +38,11 @@
     { "name": "security-audit",    "path": "commands/security-audit.md" }
   ],
   "agents": [
-    { "name": "content-planner",     "path": "agents/planner-agent.md" },
-    { "name": "content-publisher",   "path": "agents/publisher-agent.md" },
-    { "name": "social-monitor",      "path": "agents/monitoring-agent.md" },
-    { "name": "market-analyst",      "path": "agents/intelligence-agent.md" },
-    { "name": "sales-prospector",    "path": "agents/prospecting-agent.md" },
+    { "name": "content-planner",     "path": "agents/content-planner.md" },
+    { "name": "content-publisher",   "path": "agents/content-publisher.md" },
+    { "name": "social-monitor",      "path": "agents/social-monitor.md" },
+    { "name": "market-analyst",      "path": "agents/market-analyst.md" },
+    { "name": "sales-prospector",    "path": "agents/sales-prospector.md" },
     { "name": "brand-guardian",      "path": "agents/brand-guardian.md" },
     { "name": "conductor",           "path": "agents/conductor.md" },
     { "name": "approval-gatekeeper", "path": "agents/approval-gatekeeper.md" },
@@ -50,7 +51,7 @@
     { "name": "paid-media",          "path": "agents/paid-media.md" },
     { "name": "performance-analyst", "path": "agents/performance-analyst.md" },
     { "name": "producer",            "path": "agents/producer.md" },
-    { "name": "trend-analyst",       "path": "agents/trend-analyst-agent.md" }
+    { "name": "trend-analyst",       "path": "agents/trend-analyst.md" }
   ],
   "requires": {
     "env": [

@@ -9,7 +9,7 @@ model: claude-sonnet-4-6
 
 **Propósito**: Rastrea actividad pública de competidores en redes sociales y prensa.
 **Herramientas**: WebSearch + WebFetch de Claude
-**Usado por**: `intelligence-agent.md`, `/market-intel`
+**Usado por**: `market-analyst.md`, `/market-intel`
 
 ---
 

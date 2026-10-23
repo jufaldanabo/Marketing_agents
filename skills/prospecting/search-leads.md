@@ -9,7 +9,7 @@ model: claude-sonnet-4-6
 
 **Propósito**: Busca empresas y contactos que coincidan con el perfil de cliente ideal (ICP).
 **Herramientas**: WebSearch + WebFetch de Claude
-**Usado por**: `prospecting-agent.md`, `/prospect-leads`
+**Usado por**: `sales-prospector.md`, `/prospect-leads`
 
 ---
 

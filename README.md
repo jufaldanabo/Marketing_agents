@@ -213,8 +213,8 @@ Copy `.env.example` to `.env` and fill in the values. Run `/init` for a guided s
 |---|---|
 | `commands/init.md` | Onboarding wizard — collects all company context interactively |
 | `commands/setup-check.md` | Credential and connection validation guide |
-| `agents/publisher-agent.md` | Content publisher system prompt |
-| `agents/prospecting-agent.md` | Sales prospector system prompt |
+| `agents/content-publisher.md` | Content publisher system prompt |
+| `agents/sales-prospector.md` | Sales prospector system prompt |
 | `skills/publishing/content-approval.md` | Telegram approval workflow for content drafts |
 | `skills/prospecting/handle-positive-response.md` | Lead positive response handling |
 | `skills/social_monitoring/check-token-expiry.md` | Meta API token expiry monitoring |

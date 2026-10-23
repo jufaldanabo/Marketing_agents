@@ -8,7 +8,7 @@ model: claude-opus-4-7
 # Skill: outreach-message
 
 **Propósito**: Genera mensajes de primer contacto personalizados para cada prospecto.
-**Usado por**: `prospecting-agent.md`, `/prospect-leads`
+**Usado por**: `sales-prospector.md`, `/prospect-leads`
 
 ---
 

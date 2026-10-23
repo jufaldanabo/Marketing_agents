@@ -1,14 +1,18 @@
 ---
 name: generate-image-ai
-description: Generates a professional B2B product image via fal.ai nano-banana-2 (text-to-image or edit-image if a product reference photo exists) and returns a public URL ready for Instagram/Facebook Graph API.
+description: Generates a professional product/lifestyle image via fal.ai nano-banana-2 (text-to-image or edit-image if a product reference photo exists), adapted to brief.company.business_model (B2B industrial/catalog vs B2C lifestyle/aspiracional). Returns a public URL ready for Instagram/Facebook/TikTok Graph API. Applies brand_kit.prompt_injection.image_prefix/suffix automatically.
 allowed-tools: [Read, Write, Bash]
 model: claude-opus-4-7
 ---
 
 # Skill: generate-image-ai
 
-Genera una imagen publicitaria B2B usando `fal-ai/nano-banana-2` a partir del contexto
+Genera una imagen publicitaria usando `fal-ai/nano-banana-2` a partir del contexto
 de la empresa, las fotos de referencia del producto y la temática del post del día.
+**El estilo visual se adapta a `brief.company.business_model`**:
+- `b2b` → fotografía de producto/catálogo profesional, backgrounds limpios, enfoque técnico
+- `b2c` → lifestyle, aspiracional, con contexto emocional, personas, in-situ
+- `both` → según el pilar del post (producto → B2B, lifestyle → B2C)
 
 Usa **prompts conversacionales con contexto de negocio** ("soy fabricante de X, necesito
 una imagen para redes sociales, el tema de hoy es Y") que producen mejores resultados
@@ -173,7 +177,7 @@ por el usuario durante `/init` — es la fuente de verdad para describir el prod
 | **Prompt en español, primera persona** | "Soy dueño de Sesgo Express, una fábrica de sesgo textil en Medellín..." | "Professional product photography, colorful rolls of bias binding tape..." (inglés genérico → el modelo inventa) |
 | **Describir productos con detalle físico** | "un carrete cilíndrico de plástico negro con sesgo de color enrollado alrededor, y al lado varios discos planos apilados de sesgo predoblado en colores vivos" | "colorful rolls of bias binding tape in various widths and colors" (genérico → el modelo produce cintas de regalo o grosgrain) |
 | **Composición explícita** | "muestre los dos productos juntos sobre fondo blanco: el carrete a la izquierda y los discos apilados a la derecha" | "neatly arranged on a wooden surface or industrial table" (vago → el modelo decide la composición) |
-| **Usar el estilo visual de la marca** | "fotografía de producto profesional sobre fondo blanco limpio, colores vivos y saturados, estilo catálogo industrial textil" | "warm lighting, sharp focus, B2B industrial aesthetic" (genérico → parece foto de stock) |
+| **Usar el estilo visual de la marca** | "fotografía de producto profesional sobre fondo blanco limpio, colores vivos y saturados, estilo catálogo industrial textil" | "warm lighting, sharp focus, industrial aesthetic" (genérico → parece foto de stock) |
 | **Nombrar la empresa y ubicación** | "Soy dueño de Sesgo Express, en Medellín Colombia" | "Colombian textile factory setting" (el nombre se pierde, el modelo pone una fábrica de fondo) |
 | **No describir acciones** | "herramientas de corte profesionales al lado del producto" | "muestra la tela siendo cortada" (acción → transforma el producto) |
 

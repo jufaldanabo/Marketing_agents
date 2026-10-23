@@ -8,7 +8,7 @@ model: claude-opus-4-7
 # Skill: follow-up-sequence
 
 **Propósito**: Genera secuencias de seguimiento multi-toque para leads que no respondieron al primer contacto.
-**Usado por**: `prospecting-agent.md`, `/followup-leads`
+**Usado por**: `sales-prospector.md`, `/followup-leads`
 
 ---
 
