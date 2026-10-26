@@ -1,572 +1,523 @@
 ---
 name: generate-image-ai
-description: Generates a professional product/lifestyle image via fal.ai nano-banana-2 (text-to-image or edit-image if a product reference photo exists), adapted to brief.company.business_model (B2B industrial/catalog vs B2C lifestyle/aspiracional). Returns a public URL ready for Instagram/Facebook/TikTok Graph API. Applies brand_kit.prompt_injection.image_prefix/suffix automatically.
+description: Genera (create) o edita (edit) imágenes de producto para redes sociales con fal.ai google/nano-banana-2.1, adaptadas a la industria de la empresa mediante industry-profile.json. En edit usa SIEMPRE la imagen entregada por el usuario y encadena operaciones (quitar fondo, contexto profesional, resaltar, slogan). Devuelve una URL pública lista para Instagram/Facebook/TikTok.
 allowed-tools: [Read, Write, Bash]
 model: claude-opus-4-7
 ---
 
-# Skill: generate-image-ai
+# Skill: generate-image-ai (v2)
 
-Genera una imagen publicitaria usando `fal-ai/nano-banana-2` a partir del contexto
-de la empresa, las fotos de referencia del producto y la temática del post del día.
-**El estilo visual se adapta a `brief.company.business_model`**:
-- `b2b` → fotografía de producto/catálogo profesional, backgrounds limpios, enfoque técnico
-- `b2c` → lifestyle, aspiracional, con contexto emocional, personas, in-situ
-- `both` → según el pilar del post (producto → B2B, lifestyle → B2C)
+Produce una imagen publicitaria para redes sociales a partir del contexto de la empresa,
+el perfil de su industria y la petición del día. Tiene dos intenciones separadas:
 
-Usa **prompts conversacionales con contexto de negocio** ("soy fabricante de X, necesito
-una imagen para redes sociales, el tema de hoy es Y") que producen mejores resultados
-que los prompts técnicos de fotografía. Cuando hay fotos de referencia, las pasa al modelo
-como base visual (img2img) junto con el prompt conversacional.
+| intent | Qué hace | Imagen de entrada |
+|---|---|---|
+| `create` | Genera una imagen nueva desde cero | Ninguna obligatoria. Las fotos del catálogo se usan solo como **referencia de fidelidad** del producto (opcional, máx. 3) |
+| `edit` | Transforma una foto que el usuario entrega | `input_image` **obligatoria**. El producto de esa foto es el protagonista y no se altera |
 
-Devuelve una **URL pública** lista para usar directamente en Instagram Graph API.
+Los prompts son **conversacionales, en español, en primera persona**: suenan como el dueño
+de la empresa pidiéndole la imagen a un fotógrafo o a un diseñador. Nunca en inglés,
+nunca como instrucción técnica de stock photo. google/nano-banana-2.1 responde mejor a este estilo.
 
 ---
 
-## Variables requeridas
+## Variables de entorno
 
 | Variable | Descripción |
 |---|---|
-| `FAL_KEY` | API key de fal.ai — requerida para img2img y text-to-image |
-
-Obtener `FAL_KEY`: https://fal.ai → Dashboard → API Keys
+| `FAL_KEY` | API key de fal.ai (https://fal.ai → Dashboard → API Keys) |
 
 ---
 
 ## Inputs del skill
 
 ```
-brand_style      → JSON de .claude/brand-images/brand-style.json (o null si no existe)
-topic            → Tópico del post del día
-category         → Categoría del contenido
-company_name     → Nombre de la empresa
-industry         → Sector de la empresa
-special_date     → Fecha especial si aplica (o null)
-platform         → "instagram" (1:1) | "facebook" (1.91:1)
-product_slug     → Slug del producto a usar (o null para auto-detectar desde topic/category)
+intent            → "create" | "edit"   (si falta, se infiere en Paso 0)
+input_image       → ruta local o URL de la foto a editar (obligatoria en edit, ignorada en create)
+operations        → lista ordenada, solo en edit. Valores: remove_background | recontext | highlight | slogan
+                    Default edit: ["remove_background", "recontext", "highlight"]
+topic             → Tópico del post del día
+category          → Tipo de tópico: producto | tip | caso_exito | detras_escena | tendencia | fecha_especial | lanzamiento
+company_name      → Nombre de la empresa
+industry          → Sector (texto libre, ej. "panadería artesanal")
+location          → Ciudad/país (o null)
+special_date      → Fecha especial (o null)
+platform          → instagram_feed (4:5) | instagram_square (1:1) | story (9:16) | tiktok (9:16) | facebook (1.91:1)
+product_slug      → Producto del catálogo (o null → auto-detectar por topic/category)
+slogan            → Texto corto a colocar (o null). Máximo 5 palabras
+slogan_mode       → "overlay" (default, se pinta con código) | "in_model" (lo escribe el modelo)
+zona_libre        → "superior_derecha" | "superior_izquierda" | "inferior" | "centro_superior" (default: superior_derecha)
+```
+
+Archivos de contexto (generados/aprobados en `/init`):
+
+```
+.claude/brand-images/brand-style.json                      → estilo visual de marca (o null)
+.claude/brand-images/industry-profile.json                 → perfil de la industria (ver esquema abajo)
+.claude/brand-images/products/product-catalog.json         → catálogo con keywords y default_product
+.claude/brand-images/products/{slug}/product-info.json     → technical_description aprobada
+.claude/brand-images/products/{slug}/*.jpg|png|webp        → fotos de referencia
 ```
 
 ---
 
-## Instrucciones para Claude
+## Reglas fundamentales — no negociables
 
-> **🔒 REGLA FUNDAMENTAL — NO NEGOCIABLE:**
-> Las fotos de referencia del producto son **solo input para la generación de IA**.
-> La imagen que se publica en redes sociales es **SIEMPRE una imagen nueva generada por IA**,
-> nunca la foto original. Si hay fotos de referencia disponibles → obligatoriamente img2img.
-> Si no hay fotos → generar de texto. En ningún caso publicar una foto sin procesar.
+> **🔒 El output es siempre el resultado del modelo.** Nunca se publica un archivo crudo.
+> En `edit` sí se usa la foto del usuario como entrada, pero lo que se publica es la imagen
+> editada (sin fondo, con contexto, etc.), nunca `input_image` tal cual.
 
-> **🔒 REGLA DE IDIOMA — OBLIGATORIA:**
-> El prompt generado DEBE estar en **español**, en **primera persona**, con **tono conversacional**.
-> NUNCA en inglés. NUNCA como instrucción técnica de stock photography.
-> Si el prompt resultante contiene frases como "Professional product photography",
-> "colorful rolls", "neatly arranged", "warm lighting" → ESTÁ MAL. Borrar y regenerar en español.
+> **🔒 El producto no se inventa ni se altera.** En `edit`, el producto de `input_image`
+> conserva forma, color, textura, logo y etiquetas. Solo cambia lo que está alrededor.
+> En `create`, el producto se describe con la `technical_description` aprobada, nunca con
+> términos genéricos del sector.
+
+> **🔒 Todo prompt está anclado a la industria.** El entorno, los props, la iluminación y la
+> paleta salen de `industry-profile.json`. Una zapatería genera en un almacén de calzado; una
+> panadería, con hornos y vitrinas; aunque el usuario no lo pida.
+
+> **🔒 Idioma del prompt: español, primera persona, conversacional.** Si el prompt contiene
+> "Professional product photography", "neatly arranged", "warm lighting" → está mal, regenerar.
 
 ---
 
-### Paso 0 — Seleccionar producto y obtener imagen de referencia
+## Esquema de `industry-profile.json`
 
-Antes de construir el prompt, identificar qué producto usar y si hay fotos disponibles.
+Lo genera el agente en `/init` a partir de `industry` y lo aprueba el usuario. Si no existe
+al ejecutar este skill, el agente lo genera en el momento con este esquema, lo guarda y avisa.
 
-#### 0.1 — Leer catálogo de productos
+```json
+{
+  "industria": "panadería artesanal",
+  "entorno_principal": "interior de una panadería artesanal con vitrina de vidrio y mostrador de madera",
+  "entornos_alternativos": {
+    "trabajo": "mesa de amasado con harina espolvoreada y horno de leña al fondo",
+    "exhibicion": "estante de madera con panes y canastas de mimbre",
+    "premium": "mostrador de mármol claro con luz de mañana",
+    "cliente": "mesa de cafetería con taza de café y servilleta de tela"
+  },
+  "props": ["bandejas con pan recién horneado", "vitrina con croissants", "canastas de mimbre", "paño de lino", "horno al fondo"],
+  "superficies": ["madera cálida", "mármol claro", "lino crudo"],
+  "iluminacion": "luz cálida dorada de mañana, sensación de recién horneado",
+  "paleta": "dorados, marrones tostados, crema, toques terracota",
+  "ambiente": "acogedor, artesanal, familiar",
+  "evitar": ["plástico", "ambiente clínico o frío", "producto quemado", "comida de aspecto industrial", "manos o caras deformes"]
+}
+```
+
+Ver `industry-profile.example.json` para panadería, zapatería y fábrica textil.
+
+---
+
+## Paso 0 — Determinar intención y fuente de la imagen
+
+**0.1 — Inferir `intent` si no vino explícito:**
+
+| Señal en la petición | intent |
+|---|---|
+| Viene una imagen adjunta o `input_image` ≠ null | `edit` |
+| Verbos: "quítale el fondo", "mejora esta foto", "ponle un slogan a esta", "edita", "cambia el fondo de" | `edit` |
+| Verbos: "créame", "genera", "quiero una imagen de", "necesito una foto para el post de" sin imagen adjunta | `create` |
+| Ambiguo | **Preguntar al usuario**. Es más barato que generar lo equivocado |
+
+**0.2 — Validar la fuente:**
+
+- `intent == edit` y `input_image == null` → detenerse y pedir la imagen. **No** ir al catálogo a buscar una.
+- `intent == edit` y `input_image` existe → `SOURCE_IMAGE = input_image`. Las fotos del catálogo no se usan.
+- `intent == create` → `SOURCE_IMAGE = null`. Continuar con 0.3 para referencias opcionales.
+
+**0.3 — Seleccionar producto del catálogo (ambos modos, para la ficha técnica):**
 
 ```bash
 cat .claude/brand-images/products/product-catalog.json 2>/dev/null
 ```
 
-- Si el archivo **no existe** → `mode = "text"`, `has_catalog = false` → saltar al Paso 1
-- Si el archivo **existe** → continuar con 0.2
+1. Si `product_slug` vino explícito → usarlo.
+2. Si no, comparar palabras clave de `topic` + `category` con `keywords` de cada producto.
+3. Un solo producto → usarlo. Varios sin coincidencia → `default_product`.
+4. Sin catálogo → `PRODUCT_SLUG = null`.
 
-#### 0.2 — Seleccionar el producto más relevante
-
-Elegir el producto que mejor coincida con `topic` y `category` del post:
-
-**Reglas de selección (en orden de prioridad):**
-1. Si `product_slug` fue pasado explícitamente → usarlo sin evaluar
-2. Comparar palabras clave de `topic` y `category` contra los `keywords` de cada producto
-3. Si hay un solo producto en el catálogo → usarlo siempre
-4. Si hay múltiples sin coincidencia clara → usar el `default_product` del catálogo
-
-#### 0.3 — Verificar si hay imágenes de referencia
+**0.4 — Referencias de fidelidad (solo `create`):**
 
 ```bash
-PRODUCT_SLUG="{SLUG_SELECCIONADO}"
-ls .claude/brand-images/products/$PRODUCT_SLUG/ 2>/dev/null | grep -E "\.(jpg|jpeg|png|webp)$"
+ls .claude/brand-images/products/$PRODUCT_SLUG/ 2>/dev/null | grep -E "\.(jpg|jpeg|png|webp)$" | head -3
 ```
 
-- **Con imágenes** → `mode = "edit-image"` (PREFERIDO) → continuar con 0.4
-  > La foto de referencia es el input para la edición, no la imagen final.
-  > `REF_IMAGE_PATH` se usa únicamente para pasar a la API. Nunca como `image_url` de publicación.
-- **Sin imágenes** → `mode = "text-to-image"` → saltar al Paso 1
-
-#### 0.4 — Preparar imagen de referencia (solo modo img2img)
-
-Seleccionar la primera imagen disponible y codificar para la API:
-
-```bash
-REF_IMAGE=$(ls .claude/brand-images/products/$PRODUCT_SLUG/ | grep -E "\.(jpg|jpeg|png|webp)$" | head -1)
-REF_IMAGE_PATH=".claude/brand-images/products/$PRODUCT_SLUG/$REF_IMAGE"
-
-# Codificar como base64 con data URI
-BASE64_IMG=$(base64 -i "$REF_IMAGE_PATH" 2>/dev/null || base64 "$REF_IMAGE_PATH")
-EXT="${REF_IMAGE##*.}"
-MIME_TYPE="image/jpeg"
-[ "$EXT" = "png" ] && MIME_TYPE="image/png"
-[ "$EXT" = "webp" ] && MIME_TYPE="image/webp"
-IMAGE_DATA_URI="data:$MIME_TYPE;base64,$BASE64_IMG"
-```
-
-Guardar para uso posterior:
-- `PRODUCT_SLUG` → para metadata y logs
-- `REF_IMAGE_PATH` → para verificación visual
-- `IMAGE_DATA_URI` → para llamada API en Paso 3B
-- `mode = "edit-image"` → determina qué modelo y prompt usar
-
-> Usar `fal-ai/nano-banana-2/edit` con `image_url` + prompt de edición.
+Hasta 3 fotos → `REFERENCE_IMAGES`. Se pasan al modelo como guía visual del producto
+(para que el zapato generado se parezca al zapato que se vende), **no** como imagen a editar.
+Sin fotos → text-to-image puro.
 
 ---
 
-### Paso 1 — Verificar FAL_KEY
+## Paso 1 — Verificar FAL_KEY
 
 ```bash
-# Cargar .env si existe (local), en Railway las vars ya están en el entorno
 [ -f .env ] && export $(grep -v '^#' .env | xargs)
-
-# Verificar que FAL_KEY está configurada
-[ -n "$FAL_KEY" ] && echo "fal" || echo "none"
+[ -n "$FAL_KEY" ] && echo "ok" || echo "none"
 ```
 
-| Estado | Con imagen referencia (`edit-image`) | Sin imagen referencia (`text-to-image`) |
-|---|---|---|
-| `FAL_KEY` presente | edit con `fal-ai/nano-banana-2/edit` ⭐ | text-to-image con `fal-ai/nano-banana-2` |
-| `FAL_KEY` ausente | Paso 5 (error — configurar key) | Paso 5 (error — configurar key) |
+Si `none` → ir a Paso 8 (error).
 
 ---
 
-### Paso 2 — Obtener descripción técnica del producto
-
-Leer la ficha técnica aprobada por el usuario desde `product-info.json`:
+## Paso 2 — Cargar contexto
 
 ```bash
-cat .claude/brand-images/products/{PRODUCT_SLUG}/product-info.json 2>/dev/null
+cat .claude/brand-images/brand-style.json 2>/dev/null
+cat .claude/brand-images/industry-profile.json 2>/dev/null
+cat .claude/brand-images/products/$PRODUCT_SLUG/product-info.json 2>/dev/null
 ```
 
-Extraer `technical_description` del JSON. Esta descripción fue generada y aprobada
-por el usuario durante `/init` — es la fuente de verdad para describir el producto.
+- `PRODUCT_DESCRIPTION` = `technical_description` del product-info. Si no existe y hay
+  `SOURCE_IMAGE` o `REFERENCE_IMAGES` → describir el producto con la herramienta de visión.
+  Si no hay nada → null.
 
-- **Si existe `technical_description`** → usar como `product_description`
-- **Si no existe** (producto configurado antes de esta feature) → analizar
-  `REF_IMAGE_PATH` con la herramienta de visión como fallback
-- **Si `mode == "text-to-image"` y no hay producto** → `product_description = null`
+  **La ficha técnica debe cubrir cinco campos** (en `/init` se exige; si falta alguno, el
+  agente lo completa con visión o pregunta). Sin foto de referencia, este párrafo es lo
+  único que evita que el modelo invente un producto parecido:
+  1. **Forma y presentación** — "disco plano enrollado sobre núcleo de cartón", "torta redonda sobre base dorada con una porción cortada"
+  2. **Dimensiones relativas** — "25–30 cm de diámetro; el ancho del disco es el ancho de la tela"
+  3. **Material y acabado** — "algodón mate, no brillante", "ganache brillante, miga húmeda"
+  4. **Empaque / soporte** — "envuelta en plástico transparente", "sobre base de cartón dorado"
+  5. **No confundir con** — "no es cinta de raso ni grosgrain", "no es torta de cumpleaños ni brownie"
+- `PROFILE` = industry-profile.json. Si no existe → generarlo ahora con el esquema de arriba.
+- `BRAND_STYLE` = brand-style.json o null.
+
+**2.1 — Seleccionar ambientación desde el perfil según `category`:**
+
+| category | entorno | props (2–3) | superficie | notas |
+|---|---|---|---|---|
+| producto | `entorno_principal` | `props[0..1]` | `superficies[0]` | fondo suave y difuminado |
+| tip | `entornos_alternativos.trabajo` | herramientas del oficio del perfil | `superficies[0]` | ordenado, nunca desordenado |
+| caso_exito | `entornos_alternativos.cliente` | `props[1..2]` | `superficies[1]` | luz cálida, transmite confianza |
+| detras_escena | `entornos_alternativos.trabajo` | elementos de producción al fondo desenfocados | `superficies[0]` | taller limpio |
+| tendencia | fondo minimalista con gradiente sutil | 1 prop | `superficies[1]` | editorial |
+| fecha_especial | `entorno_principal` + decoración de `special_date` | `props[0]` + decoración | `superficies[0]` | el producto sigue siendo protagonista |
+| lanzamiento | `entornos_alternativos.premium` | ninguno o 1 | `superficies[1]` | luz lateral que destaque detalles |
+
+Guardar como `ENTORNO`, `PROPS`, `SUPERFICIE`, `NOTAS_AMBIENTE`. Siempre usar `PROFILE.iluminacion`,
+`PROFILE.paleta` y `PROFILE.evitar`.
+
+**2.2 — Zona libre para texto:** si `slogan != null` → `ZONA_LIBRE` en lenguaje natural
+("la esquina superior derecha", "la franja inferior"). Si `slogan == null` → omitir la frase.
+
+**2.3 — Formato:**
+
+| platform | aspect_ratio |
+|---|---|
+| instagram_feed | 4:5 |
+| instagram_square | 1:1 |
+| story / tiktok | 9:16 |
+| facebook | 16:9 |
 
 ---
 
-### Paso 2A — Construir prompt para TEXT-TO-IMAGE (sin foto de referencia)
+## Paso 3A — Prompt CREATE
 
-> Usar cuando `mode == "text-to-image"`.
-> Genera un prompt que describe la escena completa desde cero.
-
-> **🔒 REGLA CRÍTICA:** El prompt SIEMPRE se escribe en español, en primera persona,
-> tono conversacional. NUNCA en inglés. NUNCA como instrucción técnica de stock photo.
-> Debe sonar como si el dueño de la empresa le pidiera la imagen a un fotógrafo profesional.
-
-#### Reglas críticas para text-to-image
-
-| Regla | Correcto | Incorrecto |
-|---|---|---|
-| **Prompt en español, primera persona** | "Soy dueño de Sesgo Express, una fábrica de sesgo textil en Medellín..." | "Professional product photography, colorful rolls of bias binding tape..." (inglés genérico → el modelo inventa) |
-| **Describir productos con detalle físico** | "un carrete cilíndrico de plástico negro con sesgo de color enrollado alrededor, y al lado varios discos planos apilados de sesgo predoblado en colores vivos" | "colorful rolls of bias binding tape in various widths and colors" (genérico → el modelo produce cintas de regalo o grosgrain) |
-| **Composición explícita** | "muestre los dos productos juntos sobre fondo blanco: el carrete a la izquierda y los discos apilados a la derecha" | "neatly arranged on a wooden surface or industrial table" (vago → el modelo decide la composición) |
-| **Usar el estilo visual de la marca** | "fotografía de producto profesional sobre fondo blanco limpio, colores vivos y saturados, estilo catálogo industrial textil" | "warm lighting, sharp focus, industrial aesthetic" (genérico → parece foto de stock) |
-| **Nombrar la empresa y ubicación** | "Soy dueño de Sesgo Express, en Medellín Colombia" | "Colombian textile factory setting" (el nombre se pierde, el modelo pone una fábrica de fondo) |
-| **No describir acciones** | "herramientas de corte profesionales al lado del producto" | "muestra la tela siendo cortada" (acción → transforma el producto) |
-
-#### Cadena de pensamiento para construir el prompt text-to-image
-
-Antes de escribir el prompt, pensar en estos 7 pasos:
-
-1. **¿Quién soy?** — Nombre de la empresa, sector, ubicación. Ser específico.
-   "Soy dueño de {COMPANY_NAME}, una {INDUSTRY} en {LOCATION}."
-2. **¿Qué producto(s)?** — Usar la `product_description` del producto.
-   Describir CADA producto como se ve físicamente: forma, color, material, tamaño,
-   presentación. Ejemplo: "carrete cilíndrico de plástico negro con sesgo de color
-   enrollado alrededor" — NO "rollos de colores".
-3. **¿Cuál es el tema del día?** — El tópico del post y cómo se refleja en la imagen.
-4. **¿Cuál es el estilo visual de la marca?** — Usar `brand_style` si existe.
-   Si no existe, usar por defecto: fotografía de producto profesional, fondo limpio.
-5. **¿Qué composición tiene la imagen?** — Describir físicamente qué va dónde:
-   qué producto va a la izquierda, qué va a la derecha, qué va al fondo,
-   sobre qué superficie, con qué fondo. Ser explícito sobre la disposición espacial.
-6. **¿Qué debe ser el protagonista?** — El producto siempre es el centro de atención.
-   Los elementos decorativos y la ambientación acompañan, no compiten.
-7. **¿Estilo fotográfico?** — Tipo de iluminación, enfoque, atmósfera. Concreto, no genérico.
-
-#### Plantilla obligatoria para text-to-image
-
-> **IMPORTANTE:** Seguir esta plantilla al pie de la letra. NO resumir. NO simplificar.
-> NO convertir a estilo técnico. Cada sección debe estar presente en el prompt final.
+Seguir la plantilla al pie de la letra. No resumir, no convertir a estilo técnico.
+Antes de escribir, responder mentalmente: ¿quién soy? ¿qué producto, físicamente? ¿qué tema?
+¿qué entorno de mi industria? ¿qué va dónde? ¿qué es el protagonista? ¿qué luz?
 
 ```
 Soy {dueño/responsable de marketing} de {COMPANY_NAME}, una empresa de {INDUSTRY}
-{Si hay LOCATION → agregar: en {LOCATION}}.
-Necesito crear una imagen para publicar en redes sociales.
+{en {LOCATION}}. Necesito una imagen para publicar en redes sociales.
 
-{Si hay PRODUCT_DESCRIPTION:
-  Mi empresa fabrica/vende {PRODUCT_DESCRIPTION_DETALLADA}.
-  → Describir CADA producto con su forma física exacta, color, material,
-    presentación y tamaño relativo. Ej: "sesgo empitado: carrete cilíndrico
-    de plástico negro con sesgo de color enrollado alrededor" — NO "rollos de colores".
-}
+{Si PRODUCT_DESCRIPTION:
+Mi empresa fabrica/vende {PRODUCT_DESCRIPTION}.
+→ Describir cada producto por su forma física exacta, color, material, presentación
+  y tamaño relativo. "Carrete cilíndrico de plástico negro con sesgo azul enrollado",
+  no "rollos de colores". "Zapato oxford de cuero marrón con suela de goma y costura
+  visible", no "zapatos elegantes".}
 
-{Si hay BRAND_STYLE:
-  El estilo visual de mi marca es: {BRAND_STYLE}.
-}
+{Si REFERENCE_IMAGES: Te adjunto fotos reales del producto para que lo reproduzcas
+fielmente: misma forma, color, materiales y detalles. Úsalas como guía, no como
+imagen a editar.}
 
-Me gustaría que generes una imagen profesional y realista para publicar en
-los canales y redes sociales oficiales de la marca (Instagram, Facebook,
-página web). La imagen debe verse como si hubiera sido tomada y ambientada
-por un equipo experto en fotografía de producto.
+{Si BRAND_STYLE: El estilo visual de mi marca es: {BRAND_STYLE}.}
 
-El tema del post de hoy es: {TOPIC}.
-{Si hay SPECIAL_DATE → agregar: La ocasión especial es {SPECIAL_DATE}.}
+El tema del post de hoy es: {TOPIC}. {Si SPECIAL_DATE: La ocasión es {SPECIAL_DATE}.}
 
-Crea una imagen atractiva para redes sociales que muestre {COMPOSICIÓN_EXPLÍCITA}.
+Quiero una imagen profesional y realista, como tomada por un equipo experto en
+fotografía de producto, que muestre {COMPOSICIÓN_EXPLÍCITA: qué producto, dónde:
+"a la izquierda", "apilados a la derecha", "al fondo", sobre {SUPERFICIE}}.
 
-{INSTRUCCIONES_DE_AMBIENTACIÓN}
+La escena es {ENTORNO}, con {PROPS} alrededor, ordenados y ligeramente
+desenfocados. {NOTAS_AMBIENTE}. La iluminación es {PROFILE.iluminacion} y la
+paleta general {PROFILE.paleta}. El ambiente debe sentirse {PROFILE.ambiente}.
 
-El protagonista de la imagen debe ser {ELEMENTO_PROTAGONISTA_DEL_PRODUCTO}.
-Todo lo demás en la imagen debe acompañar al producto sin opacarlo.
+El protagonista absoluto es {ELEMENTO_PROTAGONISTA}. Todo lo demás acompaña
+sin opacarlo.
 
-{CONTEXTO_DEL_TÓPICO_DEL_DÍA}
+{Si ZONA_LIBRE: Deja {ZONA_LIBRE} despejada, sin objetos ni elementos
+importantes, porque voy a colocar un texto ahí.}
 
-{ESTILO_FOTOGRÁFICO}.
-Sin texto, sin logos, sin watermarks superpuestos.
+{Si slogan_mode == in_model y slogan: Escribe el texto "{SLOGAN}" en {ZONA_LIBRE},
+con tipografía limpia y legible, sobre un área lisa, sin tapar el producto.}
+
+Evita que aparezca: {PROFILE.evitar, separados por coma}.
+{Si no hay slogan in_model: Sin texto, sin logos, sin marcas de agua.}
 ```
 
-**Construir `{COMPOSICIÓN_EXPLÍCITA}`:** Describir con precisión física qué contiene
-la imagen y dónde va cada elemento. Esta es la parte más importante del prompt:
-- Nombrar cada producto por su forma real (no términos genéricos del sector)
-- Indicar posición: "a la izquierda", "al lado", "al fondo", "apilados a la derecha"
-- Describir formas y colores específicos: "un carrete cilíndrico de plástico negro
-  con sesgo azul enrollado" — NO "rollos de colores"
-- Describir la superficie y fondo: "sobre fondo blanco limpio" o "sobre mesa de madera"
-- Evitar: "productos variados", "elementos del sector", "neatly arranged"
-
-#### Instrucciones de ambientación según el tópico (text-to-image)
-
-| Tipo de tópico | Instrucciones de ambientación |
-|---|---|
-| Producto / servicio | "Quisiera que el producto esté sobre una superficie limpia y elegante, con fondo suave y difuminado, iluminación de estudio que resalte los detalles y la textura del producto. Algunos elementos del sector alrededor, ordenados y estéticos." |
-| Tip del sector | "Quisiera que el producto esté sobre una mesa de trabajo profesional de {INDUSTRY}, con algunas herramientas del oficio al lado (ordenadas, no desordenadas). Fondo limpio que transmita profesionalismo." |
-| Caso de éxito / cliente satisfecho | "Quisiera que el producto esté en un ambiente corporativo elegante, sobre una superficie de madera o mármol, con iluminación cálida que transmita confianza y calidad." |
-| Detrás de escena / proceso | "Quisiera que el producto esté en un ambiente de taller o producción, pero ordenado y profesional. Elementos de manufactura al fondo, ligeramente desenfocados." |
-| Tendencia / mercado | "Quisiera que el producto esté sobre una superficie minimalista, fondo con gradiente sutil. Composición editorial contemporánea." |
-| Fecha especial | "Quisiera que el producto esté sobre una mesa con ambientación de {SPECIAL_DATE}: {DECORACIÓN_ACORDE}. El producto sigue siendo el protagonista absoluto." |
-| Nuevo lanzamiento | "Quisiera que el producto esté sobre una superficie premium (mármol, madera oscura o acrílico), con fondo degradado limpio e iluminación lateral que destaque cada detalle." |
-
-#### Ejemplo completo de prompt text-to-image
+**Ejemplo (zapatería, category = producto, slogan overlay):**
 
 ```
-Soy dueño de Sesgo Express, una fábrica de sesgo textil en Medellín, Colombia.
-Necesito crear una imagen para publicar en redes sociales.
+Soy dueño de Calzado Andino, una zapatería en Bogotá, Colombia. Necesito una
+imagen para publicar en redes sociales.
 
-Mi empresa fabrica sesgo textil: tiras de tela que se usan para ribetear
-bordes de prendas de ropa. El sesgo planchado viene en discos planos de
-tela doblada, enrollados en tortas de 50 metros, en muchos colores vivos
-como rojo, azul, verde, amarillo, naranja, negro y blanco. Cada torta
-viene envuelta en plástico transparente.
+Mi empresa vende zapatos de cuero para hombre: un oxford de cuero marrón cognac,
+puntera lisa, suela de goma color miel, cordones encerados y costura visible
+en el contorno.
 
-El estilo visual de mi marca es: fotografía de producto profesional,
-colores vivos y saturados, sin personas, estilo catálogo industrial textil.
+El tema del post de hoy es: zapatos para volver a la oficina.
 
-Me gustaría que generes una imagen profesional y realista para publicar en
-los canales y redes sociales oficiales de la marca (Instagram, Facebook,
-página web). La imagen debe verse como si hubiera sido tomada y ambientada
-por un equipo experto en fotografía de producto.
+Quiero una imagen profesional y realista, como tomada por un equipo experto en
+fotografía de producto, que muestre un par de oxford marrón cognac, uno de pie
+y otro ligeramente inclinado mostrando la suela, en el centro de la imagen,
+sobre un estante de madera oscura.
 
-El tema del post de hoy es: sesgo planchado para el Día de la Mujer.
-La ocasión especial es el Día de la Mujer.
+La escena es el interior de una tienda de calzado boutique, con filas de cajas
+de zapatos y un espejo de piso al fondo, ordenados y ligeramente desenfocados.
+Fondo suave y difuminado. La iluminación es luz de showroom limpia y direccional
+con sombras suaves, y la paleta general marrones, cognac y madera oscura con
+toques crema. El ambiente debe sentirse elegante y confiable.
 
-Crea una imagen atractiva para redes sociales que muestre varias tortas
-de sesgo planchado apiladas y dispuestas sobre una mesa de madera cálida
-y limpia, en diferentes colores vivos (rojo, rosa, blanco, lavanda).
-Al fondo, flores de colores pastel suaves ligeramente desenfocadas
-(rosas, blancas, lavanda), y una tela de algodón blanca o crema como
-base decorativa. Composición limpia y acogedora.
+El protagonista absoluto es el par de zapatos. Todo lo demás acompaña sin opacarlo.
 
-El protagonista de la imagen deben ser las tortas de sesgo de colores.
-Todo lo demás en la imagen debe acompañar al producto sin opacarlo.
+Deja la esquina superior derecha despejada, sin objetos ni elementos
+importantes, porque voy a colocar un texto ahí.
 
-La ambientación debe evocar el Día de la Mujer sin opacar al producto.
-Tonos cálidos, rosados suaves y blancos. Atmósfera tierna.
-
-Fotografía comercial de producto, iluminación natural cálida y suave,
-enfoque nítido en las tortas de sesgo.
-Sin texto, sin logos, sin watermarks superpuestos.
+Evita que aparezca: pies descalzos, zapatos con proporciones incorrectas,
+suelas flotando, cajas desordenadas, ambiente de bodega.
+Sin texto, sin logos, sin marcas de agua.
 ```
 
-Usar el prompt construido como `{PROMPT_CONSTRUIDO}` → ir al **Paso 3A**.
+→ `PROMPT_CREATE` → Paso 4A.
 
 ---
 
-### Paso 2B — Construir prompt para EDIT-IMAGE (con foto de referencia)
+## Paso 3B — Prompts EDIT (por operación)
 
-> Usar cuando `mode == "edit-image"`.
-> Toma una foto casual/real del producto y la transforma en una imagen profesional
-> lista para publicar en Instagram, redes sociales y página web.
+En `edit` se construye **un prompt por operación**, y cada operación recibe como entrada
+la salida de la anterior. Orden canónico: `remove_background` → `recontext` → `highlight` → `slogan`.
 
-> **🔒 REGLA CRÍTICA:** El prompt SIEMPRE se escribe en español, en primera persona,
-> tono conversacional. NUNCA en inglés. NUNCA como instrucción técnica.
-> Debe sonar como si el dueño de la empresa le pidiera a un diseñador que mejore su foto.
+**Regla de oro de edición:** nunca decirle al modelo qué HACER con el producto, solo qué
+PONER ALREDEDOR. No describir acciones ("muestra el pan siendo cortado"). El producto se queda
+exactamente como está en la foto.
 
-#### Reglas críticas para edit-image
+### 3B.1 — `remove_background`
 
-| Regla | Correcto | Incorrecto |
-|---|---|---|
-| **Anclar el sujeto** | "Mantén el sujeto principal de la foto original" | "Mantén los elementos visuales principales" (vago, el modelo reinterpreta) |
-| **Solo cambiar el entorno** | "mejórala con [elementos alrededor]" | "Muestra la tela siendo cortada" (describe acción → transforma el producto) |
-| **No describir acciones** | "herramientas de corte profesionales al lado" | "Muestra el corte a 45 grados" (el modelo cambia el producto) |
-| **Nombrar la empresa** | "para Sesgo Express, empresa textil de Medellín" | "para marketing de sesgo textil" (genérico, el modelo improvisa) |
-| **Estilo fotográfico concreto** | "Fotografía comercial, iluminación cálida industrial, enfoque nítido" | "Iluminación profesional para marketing" (vago) |
-| **Enriquecer, no reemplazar** | "mejórala con rollos de colores, herramientas, taller limpio" | "transfórmala en foto de estudio profesional" (el modelo recrea todo) |
+No usa prompt. Va a un modelo de segmentación (Paso 4B.1). Salida: PNG con fondo transparente.
+Un modelo generativo "reinterpreta" el producto; el segmentador lo deja intacto.
 
-> **Resumen:** Nunca le digas al modelo qué HACER con el producto. Solo dile qué PONER ALREDEDOR.
-> El producto se queda exactamente como está en la foto original.
-
-#### Cadena de pensamiento para construir el prompt edit-image
-
-Antes de escribir el prompt, pensar en estos 5 pasos:
-
-1. **¿Quién soy?** — Nombre de la empresa, sector, ubicación. Ser específico.
-2. **¿Qué se ve en la foto?** — Usar la `technical_description` del producto aprobada
-   en `/init`. Si no existe, describir lo que se observa en la imagen.
-3. **¿Qué quiero que cambie del ENTORNO?** — Limpiar el fondo, remover objetos, mejorar la superficie.
-   La foto original suele ser casual (escritorio desordenado, piso, fondo de bodega).
-   **NUNCA describir una acción para el producto** (no "muestra cortando", no "muestra siendo usado").
-   Solo describir qué elementos agregar ALREDEDOR: herramientas, decoración, superficie, fondo.
-4. **¿Cómo debe verse el resultado?** — Estilo fotográfico concreto: tipo de iluminación
-   (cálida industrial, suave natural, lateral dramática), enfoque (nítido, profundidad de campo),
-   atmósfera (taller limpio, estudio elegante, minimalista).
-5. **¿Para qué plataforma?** — Instagram, redes sociales, página web.
-   Siempre: sin texto superpuesto, sin logos, sin watermarks.
-
-#### Plantilla obligatoria para edit-image
-
-> **IMPORTANTE:** Seguir esta plantilla al pie de la letra. NO resumir. NO simplificar.
+### 3B.2 — `recontext`
 
 ```
 Soy {dueño/responsable de marketing} de {COMPANY_NAME}, una empresa de {INDUSTRY}
-{Si hay LOCATION → agregar: en {LOCATION}}.
-Esta es una imagen de {TECHNICAL_DESCRIPTION_RESUMIDA}.
+{en {LOCATION}}. Esta es una foto de {PRODUCT_DESCRIPTION_RESUMIDA}
+{, ya recortada sin fondo | con un fondo casual que quiero reemplazar}.
 
-Me gustaría que volvieras esta foto más profesional y realista, lista para
-ser publicada en los canales y redes sociales oficiales de la marca
-(Instagram, Facebook, página web). La imagen debe verse como si hubiera
-sido tomada y ambientada por un equipo experto en fotografía de producto.
+Quiero que la vuelvas una foto profesional lista para publicar en las redes
+sociales oficiales de la marca, como si la hubiera ambientado un equipo experto
+en fotografía de producto.
 
-Mantén el sujeto principal de la foto original pero mejórala con
-{ELEMENTOS_DEL_ENTORNO}.
+Mantén el producto exactamente igual: misma forma, color, textura, proporciones,
+logo y etiquetas. Solo cambia lo que está alrededor.
 
-{INSTRUCCIONES_DE_EDICIÓN}
+Colócalo en {ENTORNO}, sobre {SUPERFICIE}, con {PROPS} alrededor, ordenados y
+ligeramente desenfocados. {NOTAS_AMBIENTE}. Que la luz sea {PROFILE.iluminacion},
+coherente con la luz que ya tiene el producto, y que el producto proyecte una
+sombra de contacto realista sobre la superficie. Paleta general {PROFILE.paleta}.
 
-La parte principal es {ELEMENTO_PROTAGONISTA_DEL_PRODUCTO}. Las cosas que están
-alrededor que no son parte del producto, remuévelas.
+{Si SPECIAL_DATE: Agrega ambientación de {SPECIAL_DATE} alrededor, sin que
+compita con el producto.}
 
-{CONTEXTO_DEL_TÓPICO_DEL_DÍA}
+El protagonista es {ELEMENTO_PROTAGONISTA}. Si quedan objetos de la foto original
+que no son parte del producto (papeles, cables, objetos de escritorio), remuévelos.
 
-{ESTILO_FOTOGRÁFICO}.
-Sin texto, sin logos, sin watermarks superpuestos.
+{Si ZONA_LIBRE: Deja {ZONA_LIBRE} despejada, sin objetos, porque voy a colocar
+un texto ahí.}
+
+Evita que aparezca: {PROFILE.evitar}. Sin texto, sin logos, sin marcas de agua.
 ```
 
-**Construir `{ELEMENTOS_DEL_ENTORNO}`:** Listar 2-4 elementos concretos que van
-ALREDEDOR del producto (no sobre él, no reemplazándolo):
-- Herramientas del oficio: "herramientas de corte profesionales, cinta métrica"
-- Materiales relacionados: "rollos de tela de colores, carretes de hilo"
-- Superficie: "mesa de madera limpia, superficie de mármol"
-- Ambiente: "ambiente de taller limpio, fondo de estudio elegante"
-
-**Construir `{ESTILO_FOTOGRÁFICO}`:** Una línea concreta, no genérica:
-- "Fotografía comercial, iluminación cálida industrial, enfoque nítido"
-- "Fotografía de producto, iluminación natural suave, poca profundidad de campo"
-- "Estilo editorial, iluminación lateral dramática, composición limpia"
-- Evitar: "Iluminación profesional apta para marketing" (demasiado vago)
-
-#### Instrucciones de edición según el tópico (edit-image)
-
-| Tipo de tópico | Instrucciones de edición |
-|---|---|
-| Producto / servicio | "Quisiera que el producto esté sobre una superficie limpia y elegante, que el fondo sea suave y difuminado, con iluminación de estudio que resalte los detalles y la textura del producto." |
-| Tip del sector | "Quisiera que el producto esté sobre una mesa de trabajo profesional de {INDUSTRY}, con algunas herramientas del oficio al lado (ordenadas, no desordenadas). Fondo limpio." |
-| Caso de éxito / cliente satisfecho | "Quisiera que el producto esté en un ambiente corporativo elegante, sobre una superficie de madera o mármol, con iluminación cálida que transmita confianza y calidad." |
-| Detrás de escena / proceso | "Quisiera que el producto esté en un ambiente de taller o producción, pero ordenado y profesional. Elementos de manufactura al fondo, ligeramente desenfocados." |
-| Tendencia / mercado | "Quisiera que el producto esté sobre una superficie minimalista, fondo con gradiente sutil. Composición editorial contemporánea." |
-| Fecha especial | "Quisiera que el producto esté sobre una mesa con ambientación de {SPECIAL_DATE}: {DECORACIÓN_ACORDE}. El producto sigue siendo el protagonista absoluto." |
-| Nuevo lanzamiento | "Quisiera que el producto esté sobre una superficie premium (mármol, madera oscura o acrílico), con fondo degradado limpio e iluminación lateral que destaque cada detalle." |
-
-#### Ejemplo completo de prompt edit-image
+### 3B.3 — `highlight`
 
 ```
-Soy fabricante de sesgo textil y mi fábrica se llama Sesgo Express,
-en Medellín Colombia.
-Esta es una imagen del sesgo negro que fabrico, una torta de sesgo
-planchado envuelta en plástico transparente.
+Esta es una foto de {PRODUCT_DESCRIPTION_RESUMIDA} de {COMPANY_NAME}.
+Quiero que el producto resalte más, sin cambiarlo: mantén su forma, color,
+textura, logo y etiquetas exactamente iguales.
 
-Me gustaría que volvieras esta foto más profesional y realista, lista para
-ser publicada en los canales y redes sociales oficiales de la marca
-(Instagram, Facebook, página web). La imagen debe verse como si hubiera
-sido tomada y ambientada por un equipo experto en fotografía de producto.
-
-Mantén el sujeto principal de la foto original pero mejórala con
-rollos de sesgo de colores, herramientas de corte profesionales
-y un ambiente de taller textil limpio.
-
-Quisiera que el sesgo esté sobre una mesa de madera limpia y elegante,
-que el fondo sea suave y difuminado con tonos neutros. Que se vean
-algunos elementos textiles decorativos alrededor (pequeños rollos de
-sesgo de otros colores, una cinta métrica, telas dobladas al fondo)
-pero todo ordenado y estético.
-
-La parte principal es el sesgo negro. Las cosas que están alrededor
-que no son parte del producto (papeles, bolígrafos, facturas,
-objetos de escritorio), remuévelas.
-
-Fotografía comercial, iluminación cálida industrial, enfoque nítido.
-Sin texto, sin logos, sin watermarks superpuestos.
+Dale más nitidez y contraste al producto, suaviza y desatura ligeramente el
+fondo, agrega una luz de borde sutil que lo separe del fondo y mejora el balance
+de color general para que se vea limpio y profesional. No agregues ni quites
+objetos. Sin texto, sin logos, sin marcas de agua.
 ```
 
-Usar el prompt construido como `{PROMPT_CONSTRUIDO}` → ir al **Paso 3B**.
+### 3B.4 — `slogan`
 
----
+- `slogan_mode == overlay` (default) → no usa modelo; ir a Paso 5.
+- `slogan_mode == in_model`:
 
-### Paso 2C — Negative prompt
-
-Para `nano-banana-2`: generalmente no necesita negative prompt con prompts conversacionales.
-Incluir solo si la primera generación tiene defectos visibles.
-
-Negative prompt estándar (cuando se necesite):
 ```
-text, watermark, logo, cartoon, illustration, low quality, blurry, deformed hands,
-extra fingers, bad anatomy, AI artifacts
+Esta es una foto de producto de {COMPANY_NAME}. Agrega el texto "{SLOGAN}"
+en {ZONA_LIBRE}, con tipografía limpia, {BRAND_STYLE.tipografia | sans-serif moderna},
+color {BRAND_STYLE.color_texto | que contraste con el fondo}, legible en pantalla
+de celular. El texto no debe tapar el producto ni deformarlo. No cambies nada más
+en la imagen.
+```
+
+**Ejemplo `recontext` (panadería, foto casual de un pan):**
+
+```
+Soy dueño de Pan de Casa, una panadería artesanal en Medellín, Colombia. Esta es
+una foto de una hogaza de pan de masa madre de corteza dorada y crujiente con
+cortes en cruz, ya recortada sin fondo.
+
+Quiero que la vuelvas una foto profesional lista para publicar en las redes
+sociales oficiales de la marca, como si la hubiera ambientado un equipo experto
+en fotografía de producto.
+
+Mantén el producto exactamente igual: misma forma, color, textura, proporciones,
+logo y etiquetas. Solo cambia lo que está alrededor.
+
+Colócalo en el interior de una panadería artesanal con vitrina de vidrio y
+mostrador de madera, sobre una tabla de madera cálida, con un paño de lino y
+una canasta de mimbre con otros panes alrededor, ordenados y ligeramente
+desenfocados. Fondo suave y difuminado. Que la luz sea luz cálida dorada de
+mañana, coherente con la luz que ya tiene el producto, y que el pan proyecte
+una sombra de contacto realista sobre la tabla. Paleta general dorados,
+tostados y crema.
+
+El protagonista es la hogaza de pan. Si quedan objetos de la foto original
+que no son parte del producto, remuévelos.
+
+Deja la franja inferior despejada, sin objetos, porque voy a colocar un texto ahí.
+
+Evita que aparezca: plástico, ambiente clínico o frío, pan quemado, comida de
+aspecto industrial. Sin texto, sin logos, sin marcas de agua.
 ```
 
 ---
 
-### Paso 3A — Text-to-Image con fal.ai nano-banana-2
+## Paso 4 — Llamadas a fal.ai
 
-> Usar cuando `mode == "text-to-image"` (no hay foto de referencia).
+> Construir siempre el payload con Python o `jq` y enviarlo con `-d @payload.json`.
+> Nunca meter el prompt ni base64 directamente en la línea de comando: las comillas
+> rompen el JSON y una imagen normal supera el límite de argumentos del shell.
+
+> Verificar los nombres de parámetros en la página de cada modelo en fal.ai antes del
+> primer uso (`image_urls` como lista, `aspect_ratio`, `output_format`). Los nombres
+> `image_size` / `image_url` singular son de la familia FLUX y pueden no aplicar.
+
+**Helper para codificar imágenes locales:**
 
 ```bash
-curl -s -X POST "https://fal.run/fal-ai/nano-banana-2" \
-  -H "Authorization: Key $FAL_KEY" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"prompt\": \"{PROMPT_CONSTRUIDO}\",
-    \"image_size\": \"square_hd\",
-    \"num_images\": 1,
-    \"enable_safety_checker\": true
-  }"
-```
-
-> **Para Facebook**: cambiar `"image_size"` a `"landscape_4_3"`
-
----
-
-### Paso 3B — Edit Image con fal.ai nano-banana-2/edit ⭐
-
-> Usar cuando `mode == "edit-image"` y hay `FAL_KEY`.
-> Toma la foto de referencia del producto y la transforma según el prompt de edición,
-> preservando el producto como protagonista y modificando el contexto/fondo/ambientación.
-
-```bash
-curl -s -X POST "https://fal.run/fal-ai/nano-banana-2/edit" \
-  -H "Authorization: Key $FAL_KEY" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"image_url\": \"$IMAGE_DATA_URI\",
-    \"prompt\": \"{PROMPT_CONSTRUIDO}\",
-    \"image_size\": \"square_hd\",
-    \"num_images\": 1,
-    \"enable_safety_checker\": true
-  }"
-```
-
-> **Para Facebook**: cambiar `"image_size"` a `"landscape_4_3"`
-
-**Respuesta esperada (misma estructura que nano-banana-2):**
-```json
-{
-  "images": [
-    {
-      "url": "https://fal.media/files/xxx/edited.jpeg",
-      "width": 1024,
-      "height": 1024,
-      "content_type": "image/jpeg"
-    }
-  ],
-  "seed": 12345,
-  "has_nsfw_concepts": [false]
+to_data_uri() { python3 - "$1" <<'EOF'
+import sys, base64, mimetypes
+p = sys.argv[1]; m = mimetypes.guess_type(p)[0] or "image/jpeg"
+print(f"data:{m};base64," + base64.b64encode(open(p,"rb").read()).decode())
+EOF
 }
 ```
 
-Extraer: `images[0].url` → URL pública persistente, lista para Instagram Graph API.
-
----
-
-### Verificaciones comunes (aplica a Paso 3A y 3B)
-
-**Si `has_nsfw_concepts[0]` es `true`** → regenerar (máximo 2 intentos).
-
-**Verificación de calidad:** Revisar visualmente la imagen generada con la herramienta de visión.
-Si hay defectos (manos deformes, caras, artefactos) → regenerar con variación del prompt. Máximo 3 intentos.
-
-**Verificación de integridad — antes de continuar al Paso 4:**
-- `image_url` debe ser una URL pública de fal.ai (`fal.media/...`), nunca una ruta local.
-- Si `image_url` apunta a un archivo local o a `REF_IMAGE_PATH` → error: la generación no se completó. Reintentar.
-
----
-
-### Paso 4 — Guardar resultado
+### 4A — CREATE
 
 ```bash
-mkdir -p .claude/posts/images
+python3 - <<EOF > payload.json
+import json
+p = {"prompt": open("prompt_create.txt").read(), "aspect_ratio": "$ASPECT", "num_images": 1}
+refs = $REFERENCE_IMAGES_JSON   # lista de data URIs o []
+if refs: p["image_urls"] = refs  # con refs → usar endpoint /edit como guía visual
+print(json.dumps(p))
+EOF
+ENDPOINT="google/nano-banana-2.1"; [ -n "$REFS" ] && ENDPOINT="google/nano-banana-2.1/edit"
+curl -s -X POST "https://fal.run/$ENDPOINT" -H "Authorization: Key $FAL_KEY" \
+  -H "Content-Type: application/json" -d @payload.json > out.json
 ```
 
-Crea `.claude/posts/images/{FECHA}.json`:
+### 4B — EDIT (encadenado)
+
+`CURRENT=$(to_data_uri "$SOURCE_IMAGE")`. Para cada operación en orden:
+
+**4B.1 `remove_background`** → modelo de segmentación (ej. `fal-ai/birefnet` o `fal-ai/bria/background/remove`):
+
+```bash
+jq -n --arg img "$CURRENT" '{image_url: $img}' > payload.json
+curl -s -X POST "https://fal.run/fal-ai/birefnet" -H "Authorization: Key $FAL_KEY" \
+  -H "Content-Type: application/json" -d @payload.json > out.json
+CURRENT=$(jq -r '.image.url' out.json)
+```
+
+**4B.2 `recontext` / 4B.3 `highlight` / 4B.4 `slogan in_model`** → `google/nano-banana-2.1/edit`:
+
+```bash
+python3 - <<EOF > payload.json
+import json
+print(json.dumps({"prompt": open("prompt_${OP}.txt").read(), "image_urls": ["$CURRENT"],
+                  "aspect_ratio": "$ASPECT", "num_images": 1}))
+EOF
+curl -s -X POST "https://fal.run/google/nano-banana-2.1/edit" -H "Authorization: Key $FAL_KEY" \
+  -H "Content-Type: application/json" -d @payload.json > out.json
+CURRENT=$(jq -r '.images[0].url' out.json)
+```
+
+Al final `IMAGE_URL = CURRENT`.
+
+---
+
+## Paso 5 — Slogan por overlay (default)
+
+Si `slogan != null` y `slogan_mode == overlay`: descargar `IMAGE_URL`, pintar el texto con Pillow
+en `zona_libre` usando la fuente y color de `brand-style.json` (fallback: sans-serif bold, blanco con
+sombra suave), tamaño ≈ 5–6 % del alto de la imagen, margen 4 %. Subir el resultado al storage
+propio (Paso 7) y usar esa URL. Ventajas: ortografía garantizada, fuente de marca, gratis.
+
+---
+
+## Paso 6 — Verificación
+
+Revisar la imagen final con la herramienta de visión. Rehacer (máx. 3 intentos) si:
+
+- Hay defectos: manos/caras deformes, artefactos, texto ilegible.
+- **En `edit`: el producto no coincide con `SOURCE_IMAGE`** (forma, color, etiqueta, logo). Es el
+  fallo más caro: publicar un producto que no se vende. Comparar lado a lado.
+- **El entorno no corresponde a la industria** (zapatos sin tienda, pan sin panadería). Reforzar
+  `ENTORNO` y `PROPS` en el prompt y regenerar.
+- `ZONA_LIBRE` no quedó despejada y hay slogan → regenerar o mover el texto.
+- `IMAGE_URL` no es una URL pública (apunta a ruta local o a `SOURCE_IMAGE`) → la generación no
+  terminó, reintentar.
+
+---
+
+## Paso 7 — Guardar resultado
+
+Descargar la imagen final y subirla al storage propio (S3, Cloudinary, Supabase). No depender de
+que las URLs de fal.media sean permanentes. Guardar `.claude/posts/images/{FECHA}.json`:
+
 ```json
 {
   "date": "{FECHA_ISO}",
-  "provider": "fal",
-  "model": "fal-ai/nano-banana-2 | fal-ai/nano-banana-2/edit",
-  "mode": "text-to-image | edit-image",
-  "product_slug": "{SLUG_DEL_PRODUCTO} | null",
-  "reference_image": ".claude/brand-images/products/{SLUG}/ref-1.jpg | null",
-  "prompt_used": "{PROMPT_CONSTRUIDO}",
-  "image_url": "https://fal.media/files/xxx/generated.jpeg",
-  "topic": "{TOPIC_DEL_POST}",
-  "category": "{CATEGORIA_DEL_POST}",
-  "platform": "instagram"
+  "intent": "create | edit",
+  "operations": ["remove_background", "recontext", "highlight"],
+  "models": ["fal-ai/birefnet", "google/nano-banana-2.1/edit"],
+  "product_slug": "{slug} | null",
+  "source_image": "{input_image} | null",
+  "reference_images": ["..."] ,
+  "prompts_used": {"recontext": "...", "highlight": "..."},
+  "slogan": "{slogan} | null",
+  "slogan_mode": "overlay | in_model",
+  "image_url": "https://tu-storage/...",
+  "topic": "{TOPIC}", "category": "{CATEGORY}", "platform": "{PLATFORM}"
 }
 ```
 
-> `mode`: `"edit-image"` (con foto de referencia) | `"text-to-image"` (sin referencia)
-> Las URLs de fal.ai son persistentes (no expiran)
-
 ---
 
-### Paso 5 — Si no hay FAL_KEY
+## Paso 8 — Sin FAL_KEY
 
 ```
-⚠️  No se encontró FAL_KEY en las variables de entorno
-
-La imagen del post NO puede ser la foto de referencia original.
-Debes generar una imagen nueva antes de publicar.
-
-Para continuar:
-
-  Configura la variable de entorno: FAL_KEY=tu_key_aqui
-  Obtener en: https://fal.ai → Dashboard → API Keys
-
-⛔ NO publicar la foto de referencia original como imagen del post.
+⚠️  No se encontró FAL_KEY. Configura FAL_KEY=tu_key (https://fal.ai → Dashboard → API Keys).
+⛔ No publicar la foto original ni ninguna imagen sin procesar.
 ```
 
 ---
@@ -576,51 +527,25 @@ Para continuar:
 ```json
 {
   "success": true,
-  "provider": "fal",
-  "mode": "text-to-image | edit-image",
-  "model": "fal-ai/nano-banana-2 | fal-ai/nano-banana-2/edit",
-  "product_slug": "{slug-del-producto} | null",
-  "reference_image_used": ".claude/brand-images/products/{slug}/ref-1.jpg | null",
-  "image_url": "https://fal.media/files/xxx/...",
-  "prompt_used": "...",
-  "dimensions": "1024x1024",
-  "ready_for_instagram": true
+  "intent": "create | edit",
+  "operations": [...],
+  "image_url": "https://tu-storage/...",
+  "prompts_used": {...},
+  "aspect_ratio": "4:5",
+  "ready_for_publishing": true
 }
 ```
 
 ---
 
-## Precios de referencia
-
-| Modelo | Modo | Precio/imagen | Velocidad | Recomendado para |
-|---|---|---|---|---|
-| fal-ai/nano-banana-2/edit | edit-image | ~$0.050 | ~10 seg | ⭐ Editar foto real del producto |
-| fal-ai/nano-banana-2 | text-to-image | ~$0.025 | ~15 seg | Sin foto de referencia |
-
----
-
-## Notas
-
-- **edit-image es el modo preferido** cuando hay fotos de referencia: preserva el producto real y solo modifica el contexto/ambientación
-- **text-to-image** se usa cuando no hay fotos de referencia o se necesita una imagen conceptual
-- Configurar fotos de referencia ejecutando `/init` desde el proyecto de empresa
-- Las fotos de referencia se leen de `.claude/brand-images/products/{slug}/` (max recomendado: 5 fotos por producto)
-- Las URLs de fal.ai son persistentes (no expiran) — ideales para Instagram Graph API
-- Si el post tiene fecha especial, incluirla en el prompt de edición para ambientar la imagen
-- El prompt nunca debe pedir texto dentro de la imagen — Instagram lo procesa mejor sin texto
-- Compatible con la Instagram Graph API: `image_url` se pasa directamente al crear el media container
-
 ## Guía anti-alucinaciones
 
-| Problema común | Causa | Solución |
+| Problema | Causa | Solución |
 |---|---|---|
-| Manos con 6+ dedos | Poco contexto anatómico + pocos pasos | Negative prompt + 28 pasos (flux/dev) |
-| Caras con 3 ojos | Composición ambigua | Especificar "retrato de perfil" o evitar caras |
-| Piel plástica / artificial | Modelo incorrecto | Usar prompts conversacionales con contexto real de la empresa |
-| Texto ilegible en imagen | Modelos no generan texto bien | Nunca pedir texto en el prompt |
-| Producto no se parece a la foto | Prompt de edición demasiado agresivo | Ser más específico en la instrucción, editar solo el contexto |
-| Producto distorsionado | Imagen de referencia de baja resolución | Usar fotos de mínimo 512×512 px como referencia |
-| Fondo no cambia lo suficiente | Instrucción de edición muy vaga | Ser específico: "cambiar fondo a X" en vez de "mejorar" |
-
-**Regla de oro:** usar siempre **edit-image con foto de referencia** cuando sea posible.
-El resultado es más profesional, más fiel a la marca y más rápido de aprobar internamente.
+| Entorno genérico, no se nota la industria | Perfil ausente o props vagos | Revisar `industry-profile.json`: `props` concretos y `evitar` específico. El 80 % de la calidad sectorial vive ahí |
+| Producto cambiado en edit | Prompt describe acciones o re-describe el producto en detalle | Solo "mantén el producto exactamente igual" + qué poner alrededor. Nunca verbos sobre el producto |
+| Producto genérico en create | `technical_description` vaga | Reescribirla con forma, color, material, presentación. Pasar `REFERENCE_IMAGES` |
+| Fondo mal recortado | Se usó generativo para quitar fondo | Usar siempre el segmentador en `remove_background` |
+| Texto ilegible o mal escrito | Texto generado por el modelo | `slogan_mode: overlay` |
+| Luz del producto no coincide con la escena | Recontext sin referencia a la luz original | Frase "coherente con la luz que ya tiene el producto" + sombra de contacto |
+| Manos/caras deformes | Escena con personas | Evitar personas salvo que `BRAND_STYLE` lo pida; si las hay, sin manos en primer plano |
