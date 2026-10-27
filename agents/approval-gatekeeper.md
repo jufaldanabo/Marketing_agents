@@ -106,8 +106,10 @@ System:
 Clasifica el mensaje del manager del cliente como un comando de trigger o como otra cosa.
 
 Triggers reconocidos:
-- "publish_today": quiere publicar el contenido de hoy (ej. "publish today", "publicar hoy",
-  "publica hoy", "/publish", "publica", "ya publica", "lanza el post")
+- "publish_today": quiere publicar contenido hoy. Puede venir con un tema específico
+  (ej. "publica algo sobre el día del contador", "hoy quiero un post de X tema",
+  "crea una imagen sobre Y y publícala", "publicar hoy", "lanza el post")
+  o sin tema (ej. "publica", "publish today") → en ese caso topic es null.
 - "pause": quiere pausar la publicación (ej. "pausa", "detén publicación", "para todo", "/pause")
 - "resume": quiere reanudar (ej. "reanuda", "continúa", "/resume", "vuelve a publicar")
 - "check": quiere ver estado (ej. "qué hay pendiente", "cómo vamos", "/check")
@@ -115,7 +117,20 @@ Triggers reconocidos:
   "qué necesitas", "qué fotos necesitas", "assets pendientes", "qué videos me faltan")
 - "none": no es un comando de trigger
 
-Devuelve JSON: {"trigger": "publish_today|pause|resume|check|asset_query|none", "confidence": "high|medium|low"}
+Cuando el trigger es "publish_today", extrae el tema del post si viene en el mensaje.
+El tema es la descripción del contenido que el manager quiere publicar.
+Ejemplos:
+  "hoy quiero publicar algo sobre el día del contador" → topic: "día del contador"
+  "crea una imagen del nuevo producto y publícala hoy" → topic: "nuevo producto"
+  "publica hoy" → topic: null
+  "publicar hoy sobre nuestros 20 años en el mercado" → topic: "20 años en el mercado"
+
+Devuelve JSON:
+{
+  "trigger": "publish_today|pause|resume|check|asset_query|none",
+  "topic": "tema extraído del mensaje | null",
+  "confidence": "high|medium|low"
+}
 
 Mensaje: "{texto_del_manager}"
 ```
@@ -139,6 +154,11 @@ Si `confidence == "low"` → tratar como `none` (no actuar con ambigüedad).
 
 3. Responder en Telegram inmediatamente:
    ```
+   {Si topic != null:}
+   ⚡ Entendido — voy a crear el contenido sobre "{topic}".
+   Te mando el preview para aprobar antes de publicar.
+
+   {Si topic == null:}
    ⚡ Iniciando publicación... Te llega el preview para aprobar en unos minutos.
    ```
 
@@ -146,12 +166,21 @@ Si `confidence == "low"` → tratar como `none` (no actuar con ambigüedad).
    ```
    Task(
      subagent_type: "content-publisher",
-     description: "Publicar hoy — trigger manual desde Telegram",
+     description: "Publicar hoy — trigger manual desde Telegram{Si topic: : {topic}}",
      prompt: """
    El manager solicitó publicar ahora desde Telegram.
    Ejecuta el flujo completo de publicación diaria (mode: publish).
+
+   {Si topic != null:}
+   IMPORTANTE: El manager especificó el tema que quiere publicar hoy:
+   topic_override: "{topic}"
+   Este tema tiene prioridad absoluta sobre la parrilla del día.
+   Genera copy + imagen específicamente sobre este tema.
+   NO uses el entry de la parrilla — usa topic_override como punto de partida.
+
+   {Si topic == null:}
    Si existe draft ready para hoy, publicar directamente.
-   Si no existe, generar copy + imagen + aprobación + publicar.
+   Si no existe, generar copy + imagen según la parrilla del día + aprobación + publicar.
    """
    )
    ```
