@@ -78,6 +78,61 @@ model: claude-opus-4-7
 
 Default mode. Ejecutado por Railway cron cada hora.
 
+### Fase 0 — Publicación programada por parrilla
+
+Antes de procesar eventos, verificar si hay posts programados para esta hora exacta.
+
+**0.1 — Leer calendario aprobado del mes actual:**
+
+```bash
+MONTH=$(date +%Y-%m)
+cat .claude/state/calendar/${MONTH}.json 2>/dev/null
+```
+
+Si no existe o `status != "approved"` → saltar a Fase 1.
+
+**0.2 — Calcular ventana horaria:**
+
+```bash
+NOW_HOUR=$(date +%H)   # hora actual en HH
+TODAY=$(date +%Y-%m-%d)
+```
+
+Buscar entries donde `date == TODAY` y `time` empiece con `NOW_HOUR:` (ej. `"08:00"` cuando son las 08:xx).
+
+**0.3 — Para cada entry en ventana horaria:**
+
+1. Calcular `draft_id = sha1(entry.date + entry.topic)[:8]`
+2. Verificar que NO existe `.claude/state/drafts/{draft_id}.json` con `status: published` o `status: ready`
+3. Verificar que NO existe `.claude/state/locks/posting.lock`
+
+**Si pasa ambas verificaciones** → spawn `content-publisher`:
+
+```
+Task(
+  subagent_type: "content-publisher",
+  description: "Publicar {entry.date} {entry.time} — {entry.topic}",
+  prompt: """
+Ejecuta el flujo completo de publicación para el siguiente entry de la parrilla.
+Fue programado para las {entry.time} de hoy.
+
+Entry: {entry_json}
+mode: "publish"
+
+Si ya existe un draft con status ready para este entry, ir directo a Fase 4 (publicación).
+Si no existe draft, generar copy + imagen + aprobación Telegram + publicar.
+"""
+)
+```
+
+**Si existe `posting.lock`** y hay un entry programado para esta hora → notificar vía `_core/telegram-notify`:
+
+```
+⏸️ Post programado para las {entry.time} no pudo publicarse — publicación pausada.
+Motivo: {lock.reason}
+Para reanudar: /resume-posting
+```
+
 ### Fase 1 — Recolectar eventos pendientes
 
 ```bash

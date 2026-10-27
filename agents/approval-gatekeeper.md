@@ -1,6 +1,6 @@
 ---
 name: approval-gatekeeper
-description: Manages the asynchronous approval lifecycle for content drafts and other actions requiring human sign-off. Spawn this agent when the user runs /check-approvals, when a draft from publisher/planner has been waiting too long, or when batch approval processing is needed. Owns the state of pending approvals, retries on timeout, and routes decisions back to the originating agent.
+description: Manages the asynchronous approval lifecycle for content drafts AND listens for trigger commands from the manager via Telegram (publish today, pause, resume, check). Spawn this agent when the user runs /check-approvals, every 10 min via Railway cron, or when a draft has been waiting too long. Classifies every Telegram message as approval_response or trigger_command — trigger commands spawn content-publisher or manage posting locks without human needing Claude Code CLI.
 tools: [Read, Write, Bash, Task]
 model: claude-sonnet-4-6
 ---
@@ -90,9 +90,95 @@ curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates?offset=${L
 
 Para cada update:
 1. Ignorar mensajes del propio bot
-2. Buscar `draft_id` referenciado en el texto (prefijo claro: "Draft ID: {id}")
-3. Si no hay draft_id explícito pero el mensaje responde a un mensaje del bot con draft_id en el reply → asociar
-4. Si no se puede asociar → ignorar (log warning)
+2. Clasificar el mensaje como `approval_response` o `trigger_command` (ver Fase 3B)
+3. Si es `approval_response`: buscar `draft_id` en el texto o en el reply → asociar para Fase 4
+4. Si no se puede asociar a draft ni es trigger → ignorar (log warning)
+
+### Fase 3B — Detectar comandos de trigger
+
+Para cada update que NO tenga `draft_id` ni sea reply a un mensaje del bot, usar `claude-haiku-4-5` para clasificar:
+
+```
+System:
+Clasifica el mensaje del manager del cliente como un comando de trigger o como otra cosa.
+
+Triggers reconocidos:
+- "publish_today": quiere publicar el contenido de hoy (ej. "publish today", "publicar hoy",
+  "publica hoy", "/publish", "publica", "ya publica", "lanza el post")
+- "pause": quiere pausar la publicación (ej. "pausa", "detén publicación", "para todo", "/pause")
+- "resume": quiere reanudar (ej. "reanuda", "continúa", "/resume", "vuelve a publicar")
+- "check": quiere ver estado (ej. "qué hay pendiente", "cómo vamos", "/check")
+- "none": no es un comando de trigger
+
+Devuelve JSON: {"trigger": "publish_today|pause|resume|check|none", "confidence": "high|medium|low"}
+
+Mensaje: "{texto_del_manager}"
+```
+
+Si `confidence == "low"` → tratar como `none` (no actuar con ambigüedad).
+
+**Acciones por trigger:**
+
+#### `publish_today`
+
+1. Verificar `posting.lock`:
+   - Si existe → responder en Telegram: `⏸️ La publicación está pausada por: {lock.reason}. Envía "reanudar" para levantar la pausa.`
+   - Terminar, no spawnear publisher.
+
+2. Verificar si ya hay un post publicado hoy:
+   ```bash
+   cat .claude/state/posts/$(date +%Y-%m-%d).json 2>/dev/null
+   ```
+   - Si existe con `status: published` → responder: `✅ Ya se publicó el contenido de hoy. Revisa los posts en tu feed.`
+   - Terminar.
+
+3. Responder en Telegram inmediatamente:
+   ```
+   ⚡ Iniciando publicación... Te llega el preview para aprobar en unos minutos.
+   ```
+
+4. Spawn `content-publisher`:
+   ```
+   Task(
+     subagent_type: "content-publisher",
+     description: "Publicar hoy — trigger manual desde Telegram",
+     prompt: """
+   El manager solicitó publicar ahora desde Telegram.
+   Ejecuta el flujo completo de publicación diaria (mode: publish).
+   Si existe draft ready para hoy, publicar directamente.
+   Si no existe, generar copy + imagen + aprobación + publicar.
+   """
+   )
+   ```
+
+#### `pause`
+
+1. Crear `.claude/state/locks/posting.lock`:
+   ```json
+   {
+     "reason": "pausa manual desde Telegram",
+     "created_at": "ISO",
+     "created_by": "approval-gatekeeper via telegram"
+   }
+   ```
+2. Responder en Telegram: `⏸️ Publicación pausada. Envía "reanudar" para continuar.`
+
+#### `resume`
+
+1. Si existe `locks/posting.lock` → mover a `locks/history/{timestamp}-posting.lock`
+2. Responder en Telegram: `▶️ Publicación reanudada.`
+
+#### `check`
+
+1. Contar drafts pendientes en `.claude/state/drafts/` con `status: pending_approval`
+2. Verificar si existe post de hoy en `.claude/state/posts/{today}.json`
+3. Responder en Telegram:
+   ```
+   📋 Estado actual:
+   • Publicación: {activa | pausada — razón}
+   • Post de hoy: {publicado a las HH:MM | pendiente | no hay en parrilla}
+   • Aprobaciones pendientes: {N drafts}
+   ```
 
 ### Fase 4 — Clasificar intención
 
