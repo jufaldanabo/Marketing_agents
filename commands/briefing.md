@@ -313,6 +313,181 @@ Mostrar resumen completo estructurado y pedir confirmación.
 
 **Archivo 3**: `.env.example` con variables según plataformas Y según si incluye paid media.
 
+**Archivo 4**: `README.md` en la raíz del repo del cliente.
+
+Generar usando la siguiente plantilla, sustituyendo con datos reales del brief:
+
+````markdown
+# Marketing Agents — {brief.company.name}
+
+> Automatización de redes sociales con IA para {brief.company.name}.
+> Powered by [Marketing Agents Toolkit v2.1](https://github.com/jufaldanabo/Marketing_agents).
+
+---
+
+## Qué hace este sistema para {brief.company.name}
+
+{brief.company.name} es {brief.company.description} en {brief.company.location}.
+
+Este toolkit gestiona automáticamente el ciclo completo de marketing en redes sociales:
+
+**Plataformas activas**: {brief.company.platforms unido con " · "}
+
+**Objetivo principal**: {brief.objectives.narrative}
+
+**Modelo de negocio**: {brief.company.business_model}
+{Si b2b: → Tono profesional, educativo, orientado a decisión de compra}
+{Si b2c: → Tono conversacional, aspiracional, lifestyle}
+{Si both: → Mezcla según pilar del post}
+
+---
+
+## Flujo mensual de operación
+
+```
+Día 20  → /production-plan     Plan de sesión fotográfica/video del mes siguiente
+Día 25  → /content-calendar    Parrilla mensual (aprobación por Telegram)
+Día 25+ → /batch-produce       Genera copy + imágenes de todo el mes (aprobación por Telegram)
+Día 1   → /report-monthly      Informe vs KPIs del mes anterior
+```
+
+**Operación diaria (automática en Railway)**:
+```
+Cada hora    → conductor revisa la parrilla y publica si toca
+Cada 4h      → community-manager responde comentarios y DMs
+Cada noche   → social-monitor envía reporte de métricas
+Cada 10 min  → approval-gatekeeper recoge aprobaciones de Telegram
+```
+
+---
+
+## Control desde Telegram
+
+Una vez desplegado en Railway, puedes controlar el sistema enviando mensajes al bot de Telegram — sin necesidad de abrir Claude Code.
+
+| Mensaje | Qué hace |
+|---|---|
+| `publicar hoy` | Publica el contenido de hoy inmediatamente |
+| `pausa` | Detiene toda publicación |
+| `reanuda` | Reactiva la publicación |
+| `check` | Responde con el estado actual |
+| `sí` / `ok` / `publicar` | Aprueba un borrador pendiente |
+| `editar: {instrucción}` | Pide cambios al borrador |
+| `no` / `rechazar` | Descarta un borrador |
+
+---
+
+## Comandos disponibles
+
+### Configuración inicial (solo una vez)
+```
+/briefing new        → Brief del cliente
+/setup-check         → Validar credenciales
+/audit               → Auditoría de cuentas y competencia
+/brand-kit new       → Identidad visual y verbal
+/optimize-profiles   → Optimizar bios y links
+```
+
+### Operación mensual
+```
+/production-plan     → Plan de rodaje (día 20)
+/content-calendar    → Parrilla mensual (día 25)
+/batch-produce       → Pre-producir todo el mes
+/report-monthly      → Informe mensual vs KPIs (día 1)
+```
+
+### Operación diaria
+```
+/publish-today       → Publicar contenido del día
+/community           → Gestión de comunidad
+/social-report       → Reporte nocturno
+/dashboard           → Vista ejecutiva
+```
+{Si brief.company.business_model es b2b o both:
+```
+/prospect-leads      → Buscar y calificar leads B2B
+/followup-leads      → Secuencia de seguimiento
+```
+}
+{Si brief.budget.paid_media_monthly > 0:
+```
+/ads                 → Campaña de pauta Meta Ads / TikTok Ads
+```
+}
+
+### Emergencias
+```
+/pause-posting       → Pausar publicación manualmente
+/resume-posting      → Reanudar
+/retry-failed        → Reintentar operaciones fallidas
+```
+
+---
+
+## Credenciales necesarias
+
+Copia `.env.example` → `.env` y completa:
+
+| Variable | Requerida para |
+|---|---|
+| `ANTHROPIC_API_KEY` | Todo |
+| `TELEGRAM_BOT_TOKEN` | Notificaciones y control |
+| `TELEGRAM_CHAT_ID` | Notificaciones y control |
+| `FAL_KEY` | Generación de imágenes con IA |
+{Si instagram en platforms:
+| `INSTAGRAM_ACCESS_TOKEN` | Publicar en Instagram |
+| `INSTAGRAM_BUSINESS_ACCOUNT_ID` | Publicar en Instagram |
+}
+{Si facebook en platforms:
+| `FACEBOOK_ACCESS_TOKEN` | Publicar en Facebook |
+| `FACEBOOK_PAGE_ID` | Publicar en Facebook |
+| `FACEBOOK_APP_ID` | Verificar expiración de token |
+| `FACEBOOK_APP_SECRET` | Verificar expiración de token |
+}
+{Si tiktok en platforms:
+| `TIKTOK_ACCESS_TOKEN` | Publicar en TikTok (expira 24h) |
+| `TIKTOK_OPEN_ID` | Publicar en TikTok |
+| `TIKTOK_CLIENT_KEY` | Renovar token TikTok |
+| `TIKTOK_CLIENT_SECRET` | Renovar token TikTok |
+}
+{Si paid_media_monthly > 0:
+| `META_AD_ACCOUNT_ID` | Campañas Meta Ads |
+}
+
+---
+
+## Archivos clave
+
+```
+.claude/
+├── client-brief.json          ← Configuración del cliente (no tocar manualmente)
+├── brand-kit.json             ← Identidad visual y verbal
+├── brand-images/              ← Logos, fotos de producto, estilos
+│   └── products/{slug}/       ← Fotos de referencia por producto
+├── state/
+│   ├── calendar/{YYYY-MM}.json  ← Parrilla mensual aprobada
+│   ├── drafts/                  ← Borradores listos para publicar
+│   ├── posts/                   ← Historial de publicaciones
+│   └── kpi-tracking.json        ← Seguimiento de KPIs
+└── commands/ agents/ skills/  ← Toolkit instalado
+```
+
+---
+
+## KPIs del período actual
+
+{Para cada kpi en brief.kpis:
+| {kpi.metric} | Baseline: {kpi.baseline} → Target: {kpi.target} | Deadline: {kpi.deadline} |
+}
+
+---
+
+*Generado automáticamente por `/briefing new` — {FECHA_ISO}*
+*Para actualizar este README: `/briefing update` y el archivo se regenera.*
+````
+
+> **Nota**: Si el repo ya tiene un `README.md` con contenido propio del proyecto, preguntar si sobreescribir o crear como `MARKETING.md`. Default: sobreescribir si el README existente es el placeholder del toolkit.
+
 ### Fase 14 — Siguiente paso recomendado
 
 ```
@@ -369,6 +544,7 @@ Ej. `/briefing update kpis`:
 4. Validar contra schema
 5. Actualizar `updated_at`
 6. Si se actualizan KPIs → también actualizar `.claude/state/kpi-tracking.json`
+7. Regenerar `README.md` con los datos actualizados del brief (misma plantilla de Fase 13)
 
 ---
 

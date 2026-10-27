@@ -1,224 +1,265 @@
-# Marketing Agents
-**Social media marketing automation for small and medium businesses.**
-This plugin provides skills, agents and commands for publishing B2B content,
-monitoring social activity, tracking competitors and prospecting leads — all from Claude Code.
+# Marketing Agents Toolkit v2.1
+
+**Multi-tenant marketing agency automation for Claude Code.**  
+Covers the complete 6-phase agency workflow (diagnosis → brand → planning → production → publishing → monitoring) for B2B, B2C and both business models — nothing hardcoded, everything adapts to the client brief.
+
+---
+
+## What it is
+
+A **Claude Code plugin** composed of:
+- **14 specialized agents** (bounded contexts) operating via the Task tool
+- **24 slash commands** as thin entry points
+- **27 reusable skills** (atomic and composable)
+- **3 JSON schemas** as contracts between components
+
+Installable in any client repo via `install.sh`. Each repo has its own `.claude/client-brief.json` defining the client — **the toolkit is never modified between clients, only the brief changes**.
+
+---
 
 ## Installation
 
-### Step 1 — Bootstrap `/plugin` (one-time, any terminal)
-
-`/plugin` is a command manager that lives in your global Claude Code config.
-Run this **once** to install it globally:
+### In a new client repo
 
 ```bash
-mkdir -p ~/.claude/commands && curl -sL \
-  https://raw.githubusercontent.com/jufaldanabo/Marketing_agents/main/commands/plugin.md \
-  -o ~/.claude/commands/plugin.md
-```
-
-After this, `/plugin` is available in **all** your Claude Code projects, forever.
-
----
-
-### Step 2 — Install Marketing Agents (from Claude Code, no bash)
-
-In any project, open Claude Code and run:
-
-```
-/plugin marketplace add jufaldanabo/Marketing_agents
-/plugin install marketing-agents@jufaldanabo-marketing
-/init
-```
-
-That's it. No more bash scripts.
-
----
-
-### Alternative — Install via script
-
-If you prefer to skip Step 1, run the installer directly:
-
-```bash
+cd /path/to/client-repo
 bash <(curl -sL https://raw.githubusercontent.com/jufaldanabo/Marketing_agents/main/install.sh)
 ```
 
----
-
-### Verify the installation
-
-**From the terminal** — check that the commands are in place:
-```bash
-ls .claude/commands/
-```
-You should see 12 files (including `plugin.md`):
-```
-check-approvals.md  followup-leads.md   init.md        market-intel.md
-plugin.md           prospect-leads.md   publish-today.md    respond-comments.md
-security-audit.md   setup-check.md      setup-railway.md  social-report.md
-```
-
-**From Claude Code** — type `/` in the chat. The commands should appear in the autocomplete:
-
-```
-/plugin
-/init
-/setup-check
-/publish-today
-...
-```
-
-If the commands appear, the plugin is installed. Run `/init` next.
-
----
-
-## Day-to-Day Usage
-
-The plugin follows a simple loop: **configure → publish → monitor → grow**.
-
-### First time setup
-```
-/init              → Interactive wizard: company context, ICP, credentials guide
-/setup-check       → Validate all API connections and token expiry
-```
-
-### Daily publishing
-```
-/publish-today                    → Generate and publish B2B content (Instagram + Facebook)
-/publish-today "tema específico"  → Publish about a specific topic
-/check-approvals                  → Publish drafts approved by manager via Telegram
-```
-
-### Nightly monitoring
-```
-/social-report     → Metrics, comments and DMs summary sent to Telegram
-/respond-comments  → Generate and publish replies to pending comments
-```
-
-### Weekly growth
-```
-/market-intel      → Commodity prices + competitor activity report
-/prospect-leads    → Search and qualify new B2B leads
-/followup-leads    → Send follow-up messages to non-responsive leads
-```
-
-### Deployment & maintenance
-```
-/setup-railway     → Deploy agents as cron jobs on Railway
-/security-audit    → Audit credentials and security practices before deploying
-```
-
----
-
-## Typical workflow in one session
+### From the cloned toolkit (dev)
 
 ```bash
-# Morning: content day
-/init                           → Configure company (first time only)
-/setup-check                    → Confirm all tokens are valid
-/publish-today "nueva línea"    → Generate + preview + publish
-/check-approvals                → Publish yesterday's pending approvals
+cd ~/Marketing_agents
+bash install.sh /path/to/client-repo
+```
 
-# Evening: check activity
-/social-report                  → What happened today?
-/respond-comments               → Reply to commercial and urgent comments
+### After installing
 
-# Weekly: grow the pipeline
-/market-intel                   → Any price changes or competitor moves?
-/prospect-leads                 → Find 10 new leads in target sector
-/followup-leads                 → Follow up on leads from last week
+```
+1. /briefing new     → 10-15 min guided wizard — captures the full client brief
+2. /setup-check      → validate all API credentials
+3. /audit            → real baseline of accounts (adjusts unrealistic KPIs)
+4. /brand-kit new    → extract visual identity
+5. /optimize-profiles → align bios/links with objectives
 ```
 
 ---
 
-## Skills
+## The 6-phase agency workflow
 
-| Skill | Description | Key Commands |
+| Phase | What an agency does | Toolkit does it via |
 |---|---|---|
-| `publishing` | B2B content generation for Instagram, Facebook, TikTok. Approval workflow via Telegram | `/publish-today`, `/check-approvals` |
-| `social-monitoring` | Comments analysis, metrics, token expiry alerts, Telegram notifications | `/social-report`, `/respond-comments` |
-| `market-intel` | Commodity price tracking and public competitor activity monitoring | `/market-intel` |
-| `prospecting` | Lead search (ICP-based), scoring 0-100, outreach messages, multi-touch follow-up | `/prospect-leads`, `/followup-leads` |
+| **1 — Diagnosis** | Client brief, account audit, buyer persona, KPIs | `/briefing new` + `/audit` |
+| **2 — Brand** | Brand platform, visual identity, profile optimization | `/brand-kit new` + `/optimize-profiles` |
+| **3 — Planning** | Monthly content calendar, optimal cadence | `/content-calendar` + `/trend-ranking` |
+| **4 — Production** | Batch shooting plan, call sheets, post-production specs | `/production-plan` + `/batch-produce` |
+| **5 — Publishing** | Scheduled posts, community management, paid media | `/publish-today` + `/community` + `/ads` |
+| **6 — Monitoring** | 24h/72h/weekly/monthly performance vs KPIs | `/social-report` + `/report-monthly` |
 
 ---
 
-## Agents
+## The 14 agents
 
-| Agent | Description |
-|---|---|
-| `content-publisher` | Generates daily B2B content adapted per platform and publishes via Meta and TikTok APIs |
-| `social-monitor` | Reads comments, DMs and metrics; alerts via Telegram; checks Meta token expiry |
-| `market-analyst` | Tracks commodity prices and competitor social activity; generates strategic reports |
-| `sales-prospector` | Searches leads using public sources, qualifies them, generates personalized outreach |
+| Agent | Phase | Model | Responsibility |
+|---|---|---|---|
+| `account-auditor` | 1 | opus | Audits accounts + competition, validates KPI realism |
+| `brand-guardian` | 2 | opus | Extracts visual/verbal identity from client materials |
+| `content-planner` | 3 | opus | Monthly calendar + optimal cadence calibration |
+| `trend-analyst` | 3 | sonnet | Analyzes viral trends on YouTube + TikTok |
+| `producer` | 4 | opus | Monthly batch shooting plan |
+| `content-publisher` | 5 | opus | Multi-platform publishing (produce + publish modes) |
+| `community-manager` | 5 | sonnet | Comments/DMs with FAQ + SLA + escalation |
+| `paid-media` | 5 | opus | Meta Ads + TikTok Ads (never spends alone) |
+| `social-monitor` | 6 | sonnet | Nightly report + crisis detection + token health |
+| `performance-analyst` | 6 | opus | 24h/72h/weekly/monthly analysis vs KPIs |
+| `conductor` | cross | opus | Meta-orchestrator — events, circuit breakers, scheduled publishing |
+| `approval-gatekeeper` | infra | sonnet | Async approval lifecycle + Telegram trigger commands |
+| `market-analyst` | aux | opus | Market intelligence (prices + public competition) |
+| `sales-prospector` | aux B2B | opus | Commercial pipeline — B2B/both only |
 
 ---
 
-## Commands
+## The 24 commands
 
-### Setup
+### Orchestration
 | Command | Description |
 |---|---|
-| `/init` | Interactive onboarding wizard — company, ICP, credentials guide. Generates `company-context.json` and `.env.example` |
-| `/setup-check` | Validates all API connections (Instagram, Facebook, TikTok, Telegram). Checks token expiry |
-| `/setup-railway` | Deploys all agents as scheduled cron jobs on Railway |
-| `/security-audit` | Audits credentials, `.env` handling, permissions and security practices |
+| `/daily` | Full daily flow — replaces running multiple commands manually |
+| `/dashboard` | Consolidated executive view |
+| `/pause-posting` | Manual circuit breaker — stops all publishing |
+| `/resume-posting` | Lifts the pause |
+| `/check-approvals` | Process pending Telegram approvals |
+| `/retry-failed` | Recover failed operations |
 
-### Publish
+### Phase 1 — Diagnosis
 | Command | Description |
 |---|---|
-| `/publish-today` | Generates B2B content and publishes to Instagram and Facebook (with preview before posting) |
-| `/check-approvals` | Polls Telegram for manager responses and publishes approved drafts |
+| `/briefing new\|update\|show\|validate` | Client brief (schema v2.0) |
+| `/audit` | Account + competition audit |
 
-### Monitor
+### Phase 2 — Brand
 | Command | Description |
 |---|---|
-| `/social-report` | Nightly report: metrics, comments and DMs summary sent to Telegram |
-| `/respond-comments` | Reads pending comments, generates replies by type, publishes after preview |
+| `/brand-kit new\|update\|show` | Visual and verbal identity |
+| `/optimize-profiles` | Optimize bios, links, highlights |
 
-### Grow
+### Phase 3 — Planning
 | Command | Description |
 |---|---|
-| `/market-intel` | Weekly commodity prices + competitor activity + strategic recommendations |
-| `/prospect-leads` | Searches and qualifies B2B leads based on ICP. Generates personalized outreach messages |
-| `/followup-leads` | Multi-touch follow-up for non-responsive leads. Handles positive responses with catalog messages |
+| `/content-calendar` | Monthly content calendar |
+| `/trend-ranking` | Content ideas based on YouTube + TikTok virals |
+
+### Phase 4 — Production
+| Command | Description |
+|---|---|
+| `/production-plan` | Monthly batch shooting plan |
+| `/batch-produce` | Pre-generate and approve the full month (copy + images) |
+
+### Phase 5 — Publishing
+| Command | Description |
+|---|---|
+| `/publish-today` | Publish today's content (uses pre-produced drafts if available) |
+| `/community` | Conversational community management |
+| `/ads` | Paid media (Meta Ads + TikTok Ads) |
+| `/respond-comments` | Respond to specific comments |
+
+### Phase 6 — Monitoring
+| Command | Description |
+|---|---|
+| `/social-report` | Nightly report |
+| `/report-monthly` | Monthly report vs KPIs |
+| `/market-intel` | Market intelligence |
+
+### B2B Auxiliary
+| Command | Description |
+|---|---|
+| `/prospect-leads` | Lead search and qualification |
+| `/followup-leads` | Follow-up sequence |
+
+### Infrastructure
+| Command | Description |
+|---|---|
+| `/setup-check` | Credential validation |
+| `/setup-railway` | Deploy as Railway cron jobs |
+| `/security-audit` | Security audit |
+
+---
+
+## Telegram control (no CLI needed)
+
+Once deployed on Railway, the client can control the system directly from Telegram — no Claude Code CLI required.
+
+| Send to Telegram | What happens |
+|---|---|
+| `publicar hoy` / `publish today` | Triggers `content-publisher` immediately |
+| `pausa` / `pause` | Pauses all publishing (creates lock) |
+| `reanuda` / `resume` | Lifts the pause |
+| `check` / `qué hay pendiente` | Replies with current status |
+| `sí` / `ok` / `publicar` | Approves a pending draft |
+| `editar: {instructions}` | Requests changes to a pending draft |
+| `no` / `rechazar` | Rejects a draft |
+
+The `approval-gatekeeper` polls Telegram every 10 minutes and classifies every message as either an approval response or a trigger command.
+
+---
+
+## Calendar-driven scheduling
+
+When deployed on Railway, the `conductor` runs every hour and checks the approved calendar for entries scheduled at the current hour. If a match is found, it automatically spawns `content-publisher` — no manual intervention required.
+
+Publishing time is set in the calendar when running `/content-calendar`.
+
+---
+
+## Railway deployment
+
+Run `/setup-railway` from Claude Code to generate all deployment files (`scheduler.py`, `railway.toml`, `Dockerfile`).
+
+Cron schedule (Colombia UTC-5, adjust to your timezone):
+
+| Agent | Schedule | Local time |
+|---|---|---|
+| `content-publisher` | `0 13 * * 1-5` | Mon-Fri 08:00 |
+| `conductor` | `0 * * * *` | Every hour |
+| `approval-gatekeeper` | `*/10 * * * *` | Every 10 min |
+| `social-monitor` | `0 3 * * *` | Daily 22:00 |
+| `community-manager` | `0 */4 * * *` | Every 4h |
+| `performance-analyst` | Multiple | 24h / 72h / weekly / monthly |
+| `content-planner` | `0 14 25 * *` | Day 25 09:00 |
+| `producer` | `0 14 20 * *` | Day 20 09:00 |
+
+Estimated cost: ~$25-40/month on Railway Pro.
 
 ---
 
 ## Environment variables
 
-Copy `.env.example` to `.env` and fill in the values. Run `/init` for a guided setup.
-
-| Variable | Required | Description |
+| Variable | Required for | Description |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | ✅ All | Anthropic API key |
-| `COMPANY_NAME` | ✅ All | Company name |
-| `INDUSTRY` | ✅ All | Industry sector (e.g. textil, manufactura) |
-| `TELEGRAM_BOT_TOKEN` | ✅ All | Telegram bot token (from @BotFather) |
-| `TELEGRAM_CHAT_ID` | ✅ All | Telegram chat ID for alerts |
-| `INSTAGRAM_ACCESS_TOKEN` | 📸 Publishing | Instagram Graph API long-lived token (60 days) |
-| `INSTAGRAM_BUSINESS_ACCOUNT_ID` | 📸 Publishing | Instagram business account ID |
-| `FACEBOOK_ACCESS_TOKEN` | 📘 Publishing | Facebook page long-lived token |
-| `FACEBOOK_PAGE_ID` | 📘 Publishing | Facebook page ID |
-| `FACEBOOK_APP_ID` | 🔑 Token check | App ID for token expiry verification |
-| `FACEBOOK_APP_SECRET` | 🔑 Token check | App secret for token expiry verification |
-| `TIKTOK_ACCESS_TOKEN` | 🎵 Optional | TikTok OAuth 2.0 token (scope: `video.publish`) |
-| `TIKTOK_OPEN_ID` | 🎵 Optional | TikTok user `open_id` |
-| `SENDER_NAME` | 📬 Prospecting | Salesperson name for outreach messages |
-| `SENDER_ROLE` | 📬 Prospecting | Salesperson role/title |
+| `ANTHROPIC_API_KEY` | Everything | Anthropic API key |
+| `TELEGRAM_BOT_TOKEN` | Everything | Telegram bot token (from @BotFather) |
+| `TELEGRAM_CHAT_ID` | Everything | Chat ID for alerts and approvals |
+| `FAL_KEY` | Image generation | fal.ai API key — uses `google/nano-banana-2.1` |
+| `INSTAGRAM_ACCESS_TOKEN` | IG publishing | Long-lived token (60 days) |
+| `INSTAGRAM_BUSINESS_ACCOUNT_ID` | IG publishing | Business account ID |
+| `FACEBOOK_ACCESS_TOKEN` | FB publishing | Page long-lived token |
+| `FACEBOOK_PAGE_ID` | FB publishing | Facebook page ID |
+| `FACEBOOK_APP_ID` | Token check | App ID for expiry verification |
+| `FACEBOOK_APP_SECRET` | Token check | App secret for expiry verification |
+| `TIKTOK_ACCESS_TOKEN` | TikTok | OAuth 2.0 token (24h expiry) |
+| `TIKTOK_OPEN_ID` | TikTok | User open_id |
+| `TIKTOK_CLIENT_KEY` | TikTok | Client key for token refresh |
+| `TIKTOK_CLIENT_SECRET` | TikTok | Client secret for token refresh |
+| `META_AD_ACCOUNT_ID` | Meta Ads | Only if `paid_media_monthly > 0` |
+| `TIKTOK_ADVERTISER_ID` | TikTok Ads | Only if TikTok Ads enabled |
 
 ---
 
-## Key References
+## Repo structure
 
-| File | Description |
+```
+Marketing_agents/
+├── commands/          ← 24 slash commands (thin orchestrators)
+├── agents/            ← 14 agents (bounded contexts)
+├── skills/
+│   ├── _core/         ← 6 foundational skills + 4 schemas
+│   ├── publishing/    ← 9 skills (generate, publish per platform)
+│   ├── social_monitoring/
+│   ├── market_intelligence/
+│   ├── prospecting/
+│   ├── deployment/
+│   └── security/
+├── install.sh         ← multi-tenant installer
+├── plugin.json        ← plugin manifest
+└── CLAUDE.md          ← full toolkit documentation
+```
+
+When installed in a client repo:
+
+```
+client-repo/
+├── .claude/
+│   ├── client-brief.json    ← client config (v2.0)
+│   ├── brand-kit.json       ← visual/verbal identity
+│   ├── brand-images/        ← photos, logos, product catalog
+│   ├── commands/            ← toolkit installed here
+│   ├── agents/
+│   ├── skills/
+│   └── state/               ← operational state
+├── .env                     ← credentials (gitignored)
+└── README.md                ← auto-generated after /briefing new
+```
+
+---
+
+## Models
+
+| Task | Model |
 |---|---|
-| `commands/init.md` | Onboarding wizard — collects all company context interactively |
-| `commands/setup-check.md` | Credential and connection validation guide |
-| `agents/content-publisher.md` | Content publisher system prompt |
-| `agents/sales-prospector.md` | Sales prospector system prompt |
-| `skills/publishing/content-approval.md` | Telegram approval workflow for content drafts |
-| `skills/prospecting/handle-positive-response.md` | Lead positive response handling |
-| `skills/social_monitoring/check-token-expiry.md` | Meta API token expiry monitoring |
-| `skills/publishing/publish-tiktok.md` | TikTok Content Posting API |
+| Creative / strategic generation | `claude-opus-4-7` with adaptive thinking |
+| Analysis / synthesis / classification | `claude-sonnet-4-6` |
+| Simple validations / intent classification | `claude-haiku-4-5` |
+| Image generation | `google/nano-banana-2.1` via fal.ai |
 
 ---
 
