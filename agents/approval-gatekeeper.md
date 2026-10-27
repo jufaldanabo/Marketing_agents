@@ -88,15 +88,18 @@ Leer `.claude/state/approvals/telegram-offset.json` → `last_update_id`.
 curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates?offset=${LAST_OFFSET}&limit=100&timeout=5"
 ```
 
-Para cada update:
-1. Ignorar mensajes del propio bot
-2. Clasificar el mensaje como `approval_response` o `trigger_command` (ver Fase 3B)
-3. Si es `approval_response`: buscar `draft_id` en el texto o en el reply → asociar para Fase 4
-4. Si no se puede asociar a draft ni es trigger → ignorar (log warning)
+Para cada update, clasificar en orden:
+1. Ignorar mensajes del propio bot (`from.is_bot == true`)
+2. Si el update tiene `message.photo` o `message.video` → `media_upload` → Fase 3C
+3. Si existe `.claude/state/approvals/pending-media.json` y el mensaje es texto → posible selección de draft → Fase 3D
+4. Si el texto menciona assets pendientes (`asset_query`) → Fase 3E
+5. Si el texto hace referencia a un `draft_id` o es reply a mensaje del bot con draft → `approval_response` → Fase 4
+6. Si es otro texto → clasificar como `trigger_command` → Fase 3B
+7. Si no encaja en ninguna categoría → ignorar (log warning)
 
 ### Fase 3B — Detectar comandos de trigger
 
-Para cada update que NO tenga `draft_id` ni sea reply a un mensaje del bot, usar `claude-haiku-4-5` para clasificar:
+Para cada update de texto sin `draft_id`, usar `claude-haiku-4-5` para clasificar:
 
 ```
 System:
@@ -108,9 +111,11 @@ Triggers reconocidos:
 - "pause": quiere pausar la publicación (ej. "pausa", "detén publicación", "para todo", "/pause")
 - "resume": quiere reanudar (ej. "reanuda", "continúa", "/resume", "vuelve a publicar")
 - "check": quiere ver estado (ej. "qué hay pendiente", "cómo vamos", "/check")
+- "asset_query": pregunta qué material físico necesita el sistema (ej. "qué me falta",
+  "qué necesitas", "qué fotos necesitas", "assets pendientes", "qué videos me faltan")
 - "none": no es un comando de trigger
 
-Devuelve JSON: {"trigger": "publish_today|pause|resume|check|none", "confidence": "high|medium|low"}
+Devuelve JSON: {"trigger": "publish_today|pause|resume|check|asset_query|none", "confidence": "high|medium|low"}
 
 Mensaje: "{texto_del_manager}"
 ```
@@ -179,6 +184,196 @@ Si `confidence == "low"` → tratar como `none` (no actuar con ambigüedad).
    • Post de hoy: {publicado a las HH:MM | pendiente | no hay en parrilla}
    • Aprobaciones pendientes: {N drafts}
    ```
+
+#### `asset_query`
+
+Leer todos los drafts con `status: pending_asset`:
+
+```bash
+python3 - <<'EOF'
+import os, json, glob
+drafts = []
+for f in glob.glob(".claude/state/drafts/*.json"):
+    d = json.load(open(f))
+    if d.get("status") == "pending_asset":
+        drafts.append(d)
+drafts.sort(key=lambda x: x["date"])
+print(json.dumps(drafts))
+EOF
+```
+
+- Si no hay ninguno → responder: `✅ Todo el material está completo para este mes. No hay assets pendientes.`
+- Si hay alguno → responder:
+
+```
+📋 Material físico pendiente:
+
+{Para cada draft en orden de fecha:}
+• {fecha en formato "D MMM"} — "{topic}"
+  {asset_brief}
+
+Envíame cada archivo directamente aquí y te pregunto para cuál fecha es.
+```
+
+---
+
+### Fase 3C — Media upload (foto o video recibido)
+
+Se activa cuando el update contiene `message.photo` o `message.video`.
+
+**3C.1 — Obtener file_id:**
+
+```bash
+# Fotos: usar la mayor resolución disponible (último elemento del array)
+FILE_ID=$(echo "$UPDATE" | python3 -c "
+import sys, json
+u = json.load(sys.stdin)
+msg = u.get('message', {})
+if 'photo' in msg:
+    print(msg['photo'][-1]['file_id'])
+elif 'video' in msg:
+    print(msg['video']['file_id'])
+")
+FILE_TYPE=$(echo "$UPDATE" | python3 -c "
+import sys, json
+msg = json.load(sys.stdin).get('message', {})
+print('video' if 'video' in msg else 'photo')
+")
+```
+
+**3C.2 — Descargar desde Telegram:**
+
+```bash
+FILE_INFO=$(curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${FILE_ID}")
+FILE_PATH=$(echo "$FILE_INFO" | python3 -c "import sys,json; print(json.load(sys.stdin)['result']['file_path'])")
+EXT="${FILE_PATH##*.}"
+
+curl -s "https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${FILE_PATH}" -o "/tmp/tg_media.${EXT}"
+```
+
+**3C.3 — Subir a fal.ai storage:**
+
+```bash
+UPLOAD=$(curl -s -X POST "https://rest.fal.run/storage/upload" \
+  -H "Authorization: Key ${FAL_KEY}" \
+  -F "file=@/tmp/tg_media.${EXT}")
+MEDIA_URL=$(echo "$UPLOAD" | python3 -c "import sys,json; print(json.load(sys.stdin)['url'])")
+```
+
+Si `MEDIA_URL` está vacía → responder: `❌ No pude subir el archivo. Verifica que FAL_KEY esté configurada y vuelve a intentarlo.` → terminar.
+
+**3C.4 — Obtener drafts con `pending_asset`:**
+
+```bash
+python3 - <<'EOF'
+import os, json, glob
+drafts = []
+for f in glob.glob(".claude/state/drafts/*.json"):
+    d = json.load(open(f))
+    if d.get("status") == "pending_asset":
+        drafts.append({"draft_id": d["draft_id"], "date": d["date"],
+                        "topic": d["topic"], "asset_brief": d.get("asset_brief","")})
+drafts.sort(key=lambda x: x["date"])
+for i, d in enumerate(drafts, 1):
+    print(f"{i}|{d['draft_id']}|{d['date']}|{d['topic']}|{d.get('asset_brief','')}")
+EOF
+```
+
+**3C.5 — Guardar URL pendiente:**
+
+Escribir `.claude/state/approvals/pending-media.json`:
+```json
+{
+  "url": "{MEDIA_URL}",
+  "file_type": "{photo|video}",
+  "received_at": "{ISO}",
+  "message_id": {update.message.message_id},
+  "awaiting_selection": true
+}
+```
+
+**3C.6 — Enviar lista al manager:**
+
+```
+📥 Material recibido ✅
+
+¿Para cuál de estos posts es?
+
+{Para cada draft con número:}
+  {N}. {D MMM} — "{topic}"
+     {asset_brief}
+
+Responde con el número (ej. "1") o la fecha (ej. "15 nov").
+```
+
+---
+
+### Fase 3D — Asociar media a draft (respuesta de selección)
+
+Se activa cuando existe `.claude/state/approvals/pending-media.json` con `awaiting_selection: true` y llega un mensaje de texto.
+
+**3D.1 — Cargar pending-media y drafts pendientes:**
+
+```bash
+PENDING=$(cat .claude/state/approvals/pending-media.json)
+MEDIA_URL=$(echo "$PENDING" | python3 -c "import sys,json; print(json.load(sys.stdin)['url'])")
+```
+
+**3D.2 — Interpretar la selección con haiku:**
+
+```
+System:
+El manager debe elegir a cuál post de una lista corresponde un archivo que acaba de enviar.
+La lista de drafts pendientes es: {lista_numerada_de_drafts}.
+
+Clasifica la respuesta como:
+- Un número de la lista (1, 2, 3...)
+- Una fecha (ej. "15 nov", "nov 15", "el 22")
+- Irrelevante (si el mensaje no es una selección)
+
+Devuelve JSON: {"type": "number|date|irrelevant", "value": "1|2026-11-15|null"}
+
+Mensaje: "{texto_del_manager}"
+```
+
+**3D.3 — Encontrar el draft:**
+
+- Si `type == "number"` → usar el draft en posición `value` de la lista
+- Si `type == "date"` → buscar draft cuyo `date` coincida con la fecha interpretada
+- Si `type == "irrelevant"` → responder: `No entendí. Responde con el número de la lista (ej. "1") o la fecha (ej. "15 nov").` → no borrar pending-media.json
+
+**3D.4 — Actualizar el draft:**
+
+```python
+import json
+draft = json.load(open(f".claude/state/drafts/{draft_id}.json"))
+
+# Inyectar URL en todas las plataformas del draft
+for platform in draft.get("content", {}):
+    draft["content"][platform]["image_url"] = MEDIA_URL
+
+draft["status"] = "ready"
+draft["asset_resolved_at"] = ISO_NOW
+draft["asset_source"] = "telegram_upload"
+
+json.dump(draft, open(f".claude/state/drafts/{draft_id}.json", "w"), indent=2)
+```
+
+Borrar `.claude/state/approvals/pending-media.json`.
+
+**3D.5 — Confirmar al manager:**
+
+```
+✅ Listo. El material quedó asignado al post del {D MMM} — "{topic}".
+
+Se publicará automáticamente el {D MMM} a las {draft.scheduled_time o "hora de la parrilla"}.
+No necesitas hacer nada más.
+
+{Si quedan más drafts con pending_asset:}
+📋 Aún me faltan {N} archivos más. Envíalos cuando los tengas y te preguntaré para cuál fecha son.
+```
+
+---
 
 ### Fase 4 — Clasificar intención
 

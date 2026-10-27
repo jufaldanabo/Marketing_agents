@@ -350,10 +350,47 @@ Ejecutado por `/daily` command. Flujo completo diario del cliente.
    - SÍ → spawn performance-analyst (monthly report)
 
 9. ¿Es día 20 del mes? (preparación mes siguiente)
-   - SÍ → spawn producer para próximo mes
+   - SÍ → verificar si ya existe `.claude/state/locks/producer-{YYYY-MM}.lock` (evitar re-preguntar)
+   - Si no existe lock → invocar `_core/telegram-approval` con:
+     ```
+     context: "Plan de producción — {mes_siguiente}"
+     preview_text: """
+     📅 Hoy es día 20 — es momento de planificar el rodaje de {MES_SIGUIENTE}.
+
+     ¿Arranco el plan de producción ahora?
+     Generaré el call sheet, la lista de fotos/videos necesarios y las specs de post-producción.
+     Te lo envío por aquí para revisar.
+
+     ✅ "sí" → arrancar ahora
+     ⏰ "mañana" → recordarme mañana
+     ❌ "no" → saltarse este mes
+     """
+     timeout_seconds: 86400
+     ```
+   - `approve` → spawn producer + crear `.claude/state/locks/producer-{YYYY-MM}.lock`
+   - `reject` (respuesta "no") → crear lock con `skipped: true`
+   - `timeout` o respuesta "mañana" → NO crear lock (el conductor preguntará de nuevo al día siguiente)
 
 10. ¿Es día 25 del mes? (planificación mes siguiente)
-    - SÍ → spawn content-planner para próximo mes
+    - SÍ → verificar si ya existe `.claude/state/locks/planner-{YYYY-MM}.lock`
+    - Si no existe lock → invocar `_core/telegram-approval` con:
+      ```
+      context: "Parrilla mensual — {mes_siguiente}"
+      preview_text: """
+      📅 Hoy es día 25 — voy a crear la parrilla de contenido de {MES_SIGUIENTE}.
+
+      ¿Arranco la planificación ahora?
+      Investigaré tendencias del sector, eventos del mes y generaré la parrilla completa.
+      Te la envío para aprobar antes de confirmarla.
+
+      ✅ "sí" → arrancar ahora
+      ❌ "no" → saltarse este mes
+      """
+      timeout_seconds: 86400
+      ```
+    - `approve` → spawn content-planner + crear `.claude/state/locks/planner-{YYYY-MM}.lock`
+    - `reject` → crear lock con `skipped: true`
+    - `timeout` → NO crear lock (preguntará de nuevo mañana)
 
 11. Resumen vía Telegram
     "✅ Daily flow completado. Ejecutados: {agents_run}. Pendientes: {queued}."

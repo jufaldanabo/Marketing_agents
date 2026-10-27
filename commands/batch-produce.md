@@ -145,7 +145,7 @@ Procesar los entries secuencialmente para no saturar la API de fal.ai ni la band
 
 ### Paso 4 — Presentar resumen final
 
-Al terminar todos los entries, mostrar:
+Al terminar todos los entries, mostrar en pantalla:
 
 ```
 Producción batch completada — Noviembre 2026
@@ -160,9 +160,30 @@ Posts que necesitan asset físico:
   • Nov 22 — "Reel del producto en uso"     → video 15-30s del producto en manos del cliente
 
 Siguiente paso:
-  • Cuando tengas las fotos/videos → sube a .claude/brand-images/products/ y corre /batch-produce --from 2026-11-15 --to 2026-11-15
+  • Manda las fotos/videos al bot de Telegram — te preguntará para cuál fecha son
   • Para publicar hoy si hay algo listo → /publish-today
   • Para revisar aprobaciones pendientes → /check-approvals
+```
+
+### Paso 4B — Notificar assets pendientes por Telegram
+
+Si hay posts con `status: pending_asset`, invocar `_core/telegram-notify` con:
+
+```
+📦 Producción de {MES} lista.
+
+{Si pending_asset > 0:}
+Necesito {N} archivo(s) físico(s) para completar el mes:
+
+{Para cada draft con pending_asset, en orden de fecha:}
+📸 {D MMM} — "{topic}"
+   {asset_brief}
+
+Envíame cada archivo directamente aquí.
+Te preguntaré para cuál fecha es y lo dejo listo para publicar automáticamente.
+
+{Si pending_asset == 0:}
+✅ Todo el contenido del mes está listo y aprobado. No necesito nada más de tu parte.
 ```
 
 ---
