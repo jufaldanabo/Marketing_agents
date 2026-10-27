@@ -275,9 +275,50 @@ Por cada evento priorizado:
 3. Consume event
 
 #### `calendar_approved`
+
 1. Si hoy hay entry en la parrilla aprobada Y no existe `posting.lock`:
    - Delegar a `content-publisher` para publicar hoy
-2. Si no hay entry hoy: solo loggar
+
+2. Preguntar via `_core/telegram-approval` si quiere pre-producir el mes:
+   ```
+   context: "Pre-producción batch — {payload.month}"
+   preview_text: """
+   ✅ Parrilla de {MES} aprobada — {payload.items_count} posts listos.
+
+   ¿Pre-produzco todo el mes ahora?
+   Generaré el copy + imágenes de cada post y te los mando uno a uno para aprobar.
+   Los que apruebes quedan listos para publicarse solos en su fecha.
+
+   ⏱️ Tiempo estimado: ~{items_count * 2} minutos
+
+   ✅ "sí" → arrancar ahora
+   ⏰ "mañana" → hacerlo mañana (te recuerdo)
+   ❌ "no" → lo haré manualmente cuando quiera
+   """
+   timeout_seconds: 86400
+   ```
+
+   - `approve` → spawn `content-publisher` en modo produce para todo el mes:
+     ```
+     Task(
+       subagent_type: "content-publisher",
+       description: "Batch produce {payload.month} — {payload.items_count} posts",
+       prompt: """
+     Ejecuta en modo PRODUCE para todos los entries del calendario {payload.month}.
+     Lee .claude/state/calendar/{payload.month}.json y produce cada entry en orden.
+     Por cada entry:
+       1. Genera copy + imagen
+       2. Envía preview a Telegram para aprobación
+       3. Guarda draft con status ready|pending_asset|rejected según respuesta
+       4. Continúa con el siguiente sin esperar al anterior si hay timeout
+     Al terminar, envía resumen por Telegram con cuántos quedaron ready vs pending_asset.
+     """
+     )
+     ```
+   - `reject` (no) → loggar, no hacer nada
+   - `timeout` o "mañana" → guardar en `.claude/state/handoffs/batch-produce-pending-{month}.json`
+     para que el conductor lo retome en la próxima corrida
+
 3. Consume event
 
 #### `post_published`
@@ -392,7 +433,29 @@ Ejecutado por `/daily` command. Flujo completo diario del cliente.
     - `reject` → crear lock con `skipped: true`
     - `timeout` → NO crear lock (preguntará de nuevo mañana)
 
-11. Resumen vía Telegram
+11. ¿Es día 1 de enero, abril, julio u octubre? (auditoría trimestral)
+    - Calcular trimestre actual: Q1=ene, Q2=abr, Q3=jul, Q4=oct
+    - Verificar si existe `.claude/state/locks/auditor-{YYYY}-Q{N}.lock`
+    - Si no existe lock → invocar `_core/telegram-approval` con:
+      ```
+      context: "Auditoría trimestral Q{N} {YYYY}"
+      preview_text: """
+      📊 Inicio de trimestre — es momento de la auditoría Q{N} {YYYY}.
+
+      ¿Hago la auditoría trimestral ahora?
+      Analizaré el desempeño de cuentas, competencia y ajustaré los KPIs si es necesario.
+      Te envío el reporte completo cuando termine (~10 minutos).
+
+      ✅ "sí" → arrancar ahora
+      ❌ "no" → saltarse este trimestre
+      """
+      timeout_seconds: 86400
+      ```
+    - `approve` → spawn `account-auditor` + crear `.claude/state/locks/auditor-{YYYY}-Q{N}.lock`
+    - `reject` → crear lock con `skipped: true`
+    - `timeout` → NO crear lock (preguntará de nuevo mañana)
+
+12. Resumen vía Telegram
     "✅ Daily flow completado. Ejecutados: {agents_run}. Pendientes: {queued}."
 ```
 
